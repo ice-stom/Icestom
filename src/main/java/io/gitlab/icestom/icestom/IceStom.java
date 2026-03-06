@@ -1,8 +1,16 @@
 package io.gitlab.icestom.icestom;
 
 import io.gitlab.icestom.icestom.command.BoatCommand;
+import io.gitlab.icestom.icestom.command.TimeTrialCommand;
 import io.gitlab.icestom.icestom.entity.Boat;
-import io.gitlab.icestom.icestom.instance.TestInstance;
+import io.gitlab.icestom.icestom.instance.SpawnInstance;
+import io.gitlab.icestom.icestom.track.MutableTrack;
+import io.gitlab.icestom.icestom.track.Track;
+import io.gitlab.icestom.icestom.track.TrackFormat;
+import io.gitlab.icestom.icestom.track.TrackLibrary;
+import io.gitlab.icestom.icestom.track.checkpoint.*;
+import net.hollowcube.polar.AnvilPolar;
+import net.hollowcube.polar.PolarWorld;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
 import net.minestom.server.coordinate.Pos;
@@ -15,12 +23,27 @@ import net.minestom.server.event.player.PlayerPacketOutEvent;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.InstanceManager;
 import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.*;
 
 public class IceStom {
+
+    public static final String NAMESPACE = "icestom";
+
+    private static final Logger log = LoggerFactory.getLogger(IceStom.class);
 
     private static IceStom instance;
 
     private final MinecraftServer minecraftServer;
+
+    private final TrackLibrary trackLibrary;
+    private final TimeTrialManager timeTrialManager;
+
+    private final SpawnInstance spawnInstance;
 
     IceStom() {
         System.setProperty("minestom.chunk-view-distance", "8");
@@ -28,26 +51,57 @@ public class IceStom {
         System.setProperty("minestom.dispatcher-threads", "2");
 
         minecraftServer = MinecraftServer.init();
+
+        trackLibrary = new TrackLibrary();
+        timeTrialManager = new TimeTrialManager();
+
+        spawnInstance = new SpawnInstance();
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public void start() {
-        CommandManager commandManager = MinecraftServer.getCommandManager();
+    public void start(String[] args) throws IOException {
 
+        if (args.length == 2 && args[0].equals("--convert")) {
+            Path path = Path.of(args[1]);
+
+            System.out.println("Converting " + path + " to stomtrack.");
+
+            PolarWorld world = AnvilPolar.anvilToPolar(path);
+
+            String id = path.getFileName().toString();
+
+            TrackFormat.saveTrack(TrackLibrary.TRACK_STORAGE_PATH.resolve(
+                    id + "." + TrackFormat.FILE_EXTENTION).toFile(),
+                    new Track(new MutableTrack(
+                            id,
+                            Pos.ZERO,
+                            Map.of(
+                                    new LineCheckpoint(new Vec(-5, 40, 0), new Vec(5, 40, 0), 3), 0,
+                                    new LineCheckpoint(new Vec(-5, 40, 10), new Vec(5, 40, 10), 3), 1,
+                                    new LineCheckpoint(new Vec(-5, 40, 20), new Vec(5, 40, 20), 3), 2
+                            )
+                    ), world)
+            );
+
+            return;
+        }
+
+        trackLibrary.init();
+
+        CommandManager commandManager = MinecraftServer.getCommandManager();
         commandManager.register(new BoatCommand());
+        commandManager.register(new TimeTrialCommand());
 
         InstanceManager instanceManager = MinecraftServer.getInstanceManager();
+        instanceManager.registerInstance(spawnInstance);
 
-        TestInstance testInstance = new TestInstance();
-
-        instanceManager.registerInstance(testInstance);
+        spawnInstance.setup();
 
         GlobalEventHandler globalEventHandler = MinecraftServer.getGlobalEventHandler();
-
         globalEventHandler.addListener(AsyncPlayerConfigurationEvent.class, event -> {
             final Player player = event.getPlayer();
-            event.setSpawningInstance(testInstance);
-            player.setRespawnPoint(new Pos(0, 42, 0));
+            event.setSpawningInstance(spawnInstance);
+            player.setRespawnPoint(Pos.ZERO);
         });
 
         final Vec gravity_vec = new Vec(0, -0.04, 0);
@@ -70,9 +124,13 @@ public class IceStom {
         minecraftServer.start("0.0.0.0", 25565);
     }
 
-    public static void main(String[] args) {
+    public TrackLibrary getTrackLibrary() { return trackLibrary; }
+    public TimeTrialManager getTimeTrialManager() { return timeTrialManager; }
+    public SpawnInstance getSpawnInstance() { return spawnInstance; }
+
+    public static void main(String[] args) throws IOException {
         instance = new IceStom();
-        instance.start();
+        instance.start(args);
     }
 
     public static IceStom getInstance() {

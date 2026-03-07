@@ -4,9 +4,9 @@ import io.gitlab.icestom.icestom.command.BoatCommand;
 import io.gitlab.icestom.icestom.command.TimeTrialCommand;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
-import io.gitlab.icestom.icestom.track.MutableTrack;
+import io.gitlab.icestom.icestom.track.format.MutableTrack;
 import io.gitlab.icestom.icestom.track.Track;
-import io.gitlab.icestom.icestom.track.TrackFormat;
+import io.gitlab.icestom.icestom.track.format.TrackFormat;
 import io.gitlab.icestom.icestom.track.TrackLibrary;
 import io.gitlab.icestom.icestom.track.checkpoint.*;
 import net.hollowcube.polar.AnvilPolar;
@@ -33,8 +33,6 @@ import java.util.*;
 public class IceStom {
 
     public static final String NAMESPACE = "icestom";
-
-    private static final Logger log = LoggerFactory.getLogger(IceStom.class);
 
     private static IceStom instance;
 
@@ -74,7 +72,7 @@ public class IceStom {
                     id + "." + TrackFormat.FILE_EXTENTION).toFile(),
                     new Track(new MutableTrack(
                             id,
-                            Pos.ZERO,
+                            new Pos(-14.03, 17.00, 11.82, -205.65f, 0f),
                             Map.of(
                                     new LineCheckpoint(new Vec(-5, 40, 0), new Vec(5, 40, 0), 3), 0,
                                     new LineCheckpoint(new Vec(-5, 40, 10), new Vec(5, 40, 10), 3), 1,

@@ -5,7 +5,6 @@ import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.instance.InstanceTickEvent;
 
-@SuppressWarnings("UnstableApiUsage")
 public class TimeTrialInstance extends TrackInstance {
     public TimeTrialInstance(Track track) {
         super(track);
@@ -36,7 +35,7 @@ public class TimeTrialInstance extends TrackInstance {
     }
 
     public void consume(Player player) {
-        player.setInstance(this, track.getSpawnLocation());
-        resetPlayer(player);
+        player.setInstance(this, track.getSpawnLocation())
+                .thenRun(() -> resetPlayer(player));
     }
 }

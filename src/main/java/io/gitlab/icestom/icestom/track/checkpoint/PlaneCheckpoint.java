@@ -1,14 +1,16 @@
 package io.gitlab.icestom.icestom.track.checkpoint;
 
-import io.gitlab.icestom.icestom.track.TrackFormat;
+import com.moandjiezana.toml.Toml;
+import io.gitlab.icestom.icestom.track.format.TrackData;
+import io.gitlab.icestom.icestom.track.format.serialization.PosAdapter;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
+
+import static io.gitlab.icestom.icestom.util.Expect.expect;
 
 public class PlaneCheckpoint implements Checkpoint {
 
@@ -120,11 +122,22 @@ public class PlaneCheckpoint implements Checkpoint {
         return crossed;
     }
 
+    public static Checkpoint deserialize(Toml properties) throws TrackData.TrackDeserializationException {
+        return new PlaneCheckpoint(
+                PosAdapter.deserializeVec(properties, "a"),
+                PosAdapter.deserializeVec(properties, "b"),
+                PosAdapter.deserializeVec(properties, "normal"),
+                expect(properties.getDouble("height"), new TrackData.TrackDeserializationException("Plane Checkpoint missing 'height'")).floatValue()
+        );
+    }
+
     @Override
-    public void write(TrackFormat.Writer writer) throws IOException {
-        writer.writeVec(a);
-        writer.writeVec(b);
-        writer.writeVec(upNorm);
-        writer.writeString(Double.toString(height));
+    public Map<String, Object> serialize() {
+        return Map.of(
+                "a", PosAdapter.serialize(a),
+                "b", PosAdapter.serialize(a),
+                "normal", normal,
+                "height", height
+        );
     }
 }

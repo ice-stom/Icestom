@@ -15,6 +15,7 @@ dependencies {
     implementation("net.minestom:minestom:2026.01.08-1.21.11")
     implementation("dev.hollowcube:polar:1.15.0")
     implementation("it.unimi.dsi:fastutil:8.5.13")
+    implementation("com.moandjiezana.toml:toml4j:0.7.2")
 
     implementation("ch.qos.logback:logback-classic:1.5.32")
 }

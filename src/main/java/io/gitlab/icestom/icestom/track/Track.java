@@ -2,6 +2,7 @@ package io.gitlab.icestom.icestom.track;
 
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
+import io.gitlab.icestom.icestom.track.format.TrackData;
 import net.hollowcube.polar.PolarWorld;
 import net.minestom.server.coordinate.Pos;
 import org.intellij.lang.annotations.Subst;
@@ -9,7 +10,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
-import java.util.Objects;
 
 public class Track implements TrackData {
 

@@ -12,7 +12,7 @@ public class BoatCommand extends Command {
             if (!(commandSender instanceof Player player)) return;
 
             if (player.getInstance() instanceof BoatInstance boatInstance) {
-                boatInstance.putPlayerInBoat(player, player.getPosition());
+                boatInstance.createBoat(player, player.getPosition());
             }
         });
     }

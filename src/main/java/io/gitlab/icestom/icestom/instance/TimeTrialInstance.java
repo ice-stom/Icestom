@@ -1,6 +1,7 @@
 package io.gitlab.icestom.icestom.instance;
 
 import io.gitlab.icestom.icestom.track.Track;
+import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.instance.InstanceTickEvent;
@@ -22,20 +23,30 @@ public class TimeTrialInstance extends TrackInstance {
     }
 
     public void resetPlayer(Player player) {
+        Pos spawn = track.getSpawnLocation();
         Entity vehicle = player.getVehicle();
 
         if (vehicle != null) {
             vehicle.removePassenger(player);
 
-            vehicle.getPassengers().forEach(Entity::remove);
-            vehicle.remove();
+            boolean noPlayersRemaining = vehicle.getPassengers().stream()
+                    .noneMatch(entity -> entity instanceof Player);
+
+            if (noPlayersRemaining) {
+                vehicle.getPassengers().forEach(Entity::remove);
+                vehicle.remove();
+            }
         }
 
-        putPlayerInBoat(player, track.getSpawnLocation());
+        createBoat(player, spawn);
     }
 
     public void consume(Player player) {
-        player.setInstance(this, track.getSpawnLocation())
-                .thenRun(() -> resetPlayer(player));
+        if (player.getInstance() == this) {
+            resetPlayer(player);
+        } else {
+            player.setInstance(this, track.getSpawnLocation())
+                    .thenRun(() -> resetPlayer(player));
+        }
     }
 }

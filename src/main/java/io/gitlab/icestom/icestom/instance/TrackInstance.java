@@ -66,6 +66,10 @@ public abstract class TrackInstance extends BoatInstance {
         tick++;
     }
 
+    public Track getTrack() {
+        return track;
+    }
+
     public int getTick() {
         return tick;
     }

@@ -1,6 +1,7 @@
 package io.gitlab.icestom.icestom;
 
 import io.gitlab.icestom.icestom.command.BoatCommand;
+import io.gitlab.icestom.icestom.command.DebugCommand;
 import io.gitlab.icestom.icestom.command.TimeTrialCommand;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
@@ -23,8 +24,6 @@ import net.minestom.server.event.player.PlayerPacketOutEvent;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.InstanceManager;
 import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -50,6 +49,8 @@ public class IceStom {
 
         minecraftServer = MinecraftServer.init();
 
+        MinecraftServer.setBrandName(String.format("IceStom (%s)", MinecraftServer.getBrandName()));
+
         trackLibrary = new TrackLibrary();
         timeTrialManager = new TimeTrialManager();
 
@@ -58,7 +59,6 @@ public class IceStom {
 
     @SuppressWarnings("UnstableApiUsage")
     public void start(String[] args) throws IOException {
-
         if (args.length == 2 && args[0].equals("--convert")) {
             Path path = Path.of(args[1]);
 
@@ -89,6 +89,7 @@ public class IceStom {
         CommandManager commandManager = MinecraftServer.getCommandManager();
         commandManager.register(new BoatCommand());
         commandManager.register(new TimeTrialCommand());
+        commandManager.register(new DebugCommand());
 
         InstanceManager instanceManager = MinecraftServer.getInstanceManager();
         instanceManager.registerInstance(spawnInstance);

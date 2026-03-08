@@ -1,7 +1,7 @@
 package io.gitlab.icestom.icestom.database.memory;
 
 import io.gitlab.icestom.icestom.database.TimetrialDatabase;
-import io.gitlab.icestom.icestom.trial.TimetrialResultSource;
+import io.gitlab.icestom.icestom.timetrial.TimetrialResultSource;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 

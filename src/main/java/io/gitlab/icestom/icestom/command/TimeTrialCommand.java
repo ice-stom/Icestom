@@ -49,7 +49,7 @@ public class TimeTrialCommand extends Command {
                 }
             }
 
-            commandSender.sendMessage(Component.text("Starting time trial"));
+            commandSender.sendMessage(Component.text("Starting time timetrial"));
 
             timeTrialManager.starTimeTrialing(player, track);
         }, trackArgument);

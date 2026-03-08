@@ -1,7 +1,8 @@
-package io.gitlab.icestom.icestom.trial;
+package io.gitlab.icestom.icestom.timetrial;
 
 import io.gitlab.icestom.icestom.instance.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.track.Track;
+import io.gitlab.icestom.icestom.ui.ActionBarProvider;
 import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.entity.Player;
@@ -10,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TimeTrial implements TimetrialResultSource {
+public class TimeTrial implements TimetrialResultSource, ActionBarProvider {
 
     private final Player player;
     private final Track track;
@@ -20,6 +21,8 @@ public class TimeTrial implements TimetrialResultSource {
 
     private final long msStart;
     private int checkpoint = -1;
+
+    private long recent_split = 0;
 
     public record Split(
             long ms,
@@ -85,12 +88,30 @@ public class TimeTrial implements TimetrialResultSource {
 
             long delta = local_tick.ms() - best_previous.ms();
 
+            recent_split = delta;
+
             message = message
                     .append(Component.space())
                     .append(TextFormatter.getDelta(delta));
         }
 
         player.sendMessage(message);
+    }
+
+    @Override
+    public Component getActionBar(Player player) {
+        long age = player.getInstance().getWorldAge();
+        long time = age * 50 - getMsStart();
+
+        Component text = Component.text(String.format("%.2f", (float) Math.ceil((float) time / 50) * 50 / 1000));
+
+        if (best_previous_result != null) {
+            text = text
+                    .append(Component.space())
+                    .append(TextFormatter.getDelta(recent_split));
+        }
+
+        return text;
     }
 
     public long getMsStart() { return msStart; }

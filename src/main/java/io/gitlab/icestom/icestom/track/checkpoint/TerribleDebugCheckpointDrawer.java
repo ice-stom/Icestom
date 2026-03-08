@@ -25,20 +25,26 @@ public class TerribleDebugCheckpointDrawer {
     public static void drawPlaneCheckpoint(InstanceContainer instance, PlaneCheckpoint checkpoint) {
         Vec a = checkpoint.getA();
         Vec b = checkpoint.getB();
+        Vec upNorm = checkpoint.getUp();
 
-        Vec top = new Vec(0, checkpoint.height, 0);
-        Vec aTop = a.add(top);
-        Vec bTop = b.add(top);
+        double halfHeight = checkpoint.height * 0.5;
+        Vec offset = upNorm.mul(halfHeight);
 
-        drawEdge(instance, a, b, EDGE_STEPS);
+        Vec aBottom = a.sub(offset);
+        Vec bBottom = b.sub(offset);
+        Vec aTop = a.add(offset);
+        Vec bTop = b.add(offset);
 
+        // Top and bottom edges
+        drawEdge(instance, aBottom, bBottom, EDGE_STEPS);
         drawEdge(instance, aTop, bTop, EDGE_STEPS);
 
+        // Vertical columns
         for (int i = 0; i < COLUMN_COUNT; i++) {
             double t = (double) i / (COLUMN_COUNT - 1);
-            Vec bottom = lerp(a, b, t);
-            Vec columnTop = lerp(aTop, bTop, t);
-            drawEdge(instance, bottom, columnTop, VERT_STEPS);
+            Vec bottom = lerp(aBottom, bBottom, t);
+            Vec top = lerp(aTop, bTop, t);
+            drawEdge(instance, bottom, top, VERT_STEPS);
         }
     }
 

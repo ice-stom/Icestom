@@ -4,7 +4,6 @@ import com.moandjiezana.toml.Toml;
 import io.gitlab.icestom.icestom.track.format.TrackData;
 import io.gitlab.icestom.icestom.track.format.serialization.PosAdapter;
 import net.minestom.server.coordinate.Vec;
-import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -18,8 +17,8 @@ public class PlaneCheckpoint implements Checkpoint {
     protected final Vec b;
 
     private final Vec edge;
+    private final Vec up;
     private final Vec normal;
-    private final Vec upNorm;
 
     private final double edgeLenSq;
     private final double planeD;
@@ -32,65 +31,94 @@ public class PlaneCheckpoint implements Checkpoint {
         this.height = height;
 
         this.edge = b.sub(a);
-        this.upNorm = up.normalize();
-        this.normal = edge.cross(upNorm).normalize();
+        this.up = up;
+        this.normal = edge.cross(up).normalize();
 
         this.edgeLenSq = edge.dot(edge);
         this.planeD = -normal.dot(a);
-        this.upD = -upNorm.dot(a);
+        this.upD = -up.dot(a);
     }
 
     public Vec getA() { return a; }
     public Vec getB() { return b; }
+    public Vec getUp() { return up; }
 
     @Override
-    public Map<Player, Double> detectCrosses(Map<Player, TickMovement> movements) {
-        final Map<Player, Double> crossed = new HashMap<>(movements.size() * 2);
+    public @Nullable Long detectCross(TickMovement movement) {
+        final Vec before = movement.before();
+        if (before == null) return null;
 
-        final double nx = normal.x();
-        final double ny = normal.y();
-        final double nz = normal.z();
+        final Vec current = movement.current();
 
-        final double ux = upNorm.x();
-        final double uy = upNorm.y();
-        final double uz = upNorm.z();
+        final double nx = normal.x(), ny = normal.y(), nz = normal.z();
+        final double ux = up.x(), uy = up.y(), uz = up.z();
+        final double ax = a.x(), ay = a.y(), az = a.z();
+        final double ex = edge.x(), ey = edge.y(), ez = edge.z();
 
-        final double ax = a.x();
-        final double ay = a.y();
-        final double az = a.z();
+        final double halfHeight = height * 0.5;
 
-        final double ex = edge.x();
-        final double ey = edge.y();
-        final double ez = edge.z();
+        final double bx = before.x(), by = before.y(), bz = before.z();
+        final double cx = current.x(), cy = current.y(), cz = current.z();
 
-        final double edgeLenSq = this.edgeLenSq;
-        final double planeD = this.planeD;
-        final double upD = this.upD;
-        final double height = this.height;
+        final double d0 = nx * bx + ny * by + nz * bz + planeD;
+        final double d1 = nx * cx + ny * cy + nz * cz + planeD;
 
-        for (Map.Entry<Player, TickMovement> movement : movements.entrySet()) {
+        if (d0 * d1 > 0.0) return null;
 
-            @Nullable final Vec before = movement.getValue().before();
+        final double denom = d0 - d1;
+        if (denom == 0.0) return null;
 
+        final double baDotEdge = (bx - ax) * ex + (by - ay) * ey + (bz - az) * ez;
+        final double cbDotEdge = (cx - bx) * ex + (cy - by) * ey + (cz - bz) * ez;
+
+        final double uNum = baDotEdge * denom + d0 * cbDotEdge;
+        final double uDen = edgeLenSq * denom;
+
+        if (denom > 0.0) {
+            if (uNum < 0.0 || uNum > uDen) return null;
+        } else {
+            if (uNum > 0.0 || uNum < uDen) return null;
+        }
+
+        final double hB = ux * bx + uy * by + uz * bz + upD;
+        final double hC = ux * cx + uy * cy + uz * cz + upD;
+        final double hNum = hB * denom + d0 * (hC - hB);
+
+        if (denom > 0.0) {
+            if (hNum < -halfHeight * denom || hNum > halfHeight * denom) return null;
+        } else {
+            if (hNum > -halfHeight * denom || hNum < halfHeight * denom) return null;
+        }
+
+        return (long) (50 * (d0 / denom));
+    }
+
+    // yes this is duplicated, it's faster to do it like this for a collection of movements
+    @Override
+    public <T> Map<T, Long> detectCrosses(Map<T, TickMovement> movements) {
+        final Map<T, Long> crosses = new HashMap<>();
+
+        final double nx = normal.x(), ny = normal.y(), nz = normal.z();
+        final double ux = up.x(), uy = up.y(), uz = up.z();
+        final double ax = a.x(), ay = a.y(), az = a.z();
+        final double ex = edge.x(), ey = edge.y(), ez = edge.z();
+
+        final double halfHeight = height * 0.5;
+
+        for (Map.Entry<T, TickMovement> entry : movements.entrySet()) {
+            final Vec before = entry.getValue().before();
             if (before == null) continue;
 
-            final Vec current = movement.getValue().current();
+            final Vec current = entry.getValue().current();
 
-            final double bx = before.x();
-            final double by = before.y();
-            final double bz = before.z();
-
-            final double cx = current.x();
-            final double cy = current.y();
-            final double cz = current.z();
+            final double bx = before.x(), by = before.y(), bz = before.z();
+            final double cx = current.x(), cy = current.y(), cz = current.z();
 
             final double d0 = nx * bx + ny * by + nz * bz + planeD;
             final double d1 = nx * cx + ny * cy + nz * cz + planeD;
 
-            // both on one side
             if (d0 * d1 > 0.0) continue;
 
-            // moving parallel
             final double denom = d0 - d1;
             if (denom == 0.0) continue;
 
@@ -111,22 +139,22 @@ public class PlaneCheckpoint implements Checkpoint {
             final double hNum = hB * denom + d0 * (hC - hB);
 
             if (denom > 0.0) {
-                if (hNum < 0.0 || hNum > height * denom) continue;
+                if (hNum < -halfHeight * denom || hNum > halfHeight * denom) continue;
             } else {
-                if (hNum > 0.0 || hNum < height * denom) continue;
+                if (hNum > -halfHeight * denom || hNum < halfHeight * denom) continue;
             }
 
-            crossed.put(movement.getKey(), d0 / denom);
+            crosses.put(entry.getKey(), (long) (50 * (d0 / denom)));
         }
 
-        return crossed;
+        return crosses;
     }
 
     public static Checkpoint deserialize(Toml properties) throws TrackData.TrackDeserializationException {
         return new PlaneCheckpoint(
                 PosAdapter.deserializeVec(properties, "a"),
                 PosAdapter.deserializeVec(properties, "b"),
-                PosAdapter.deserializeVec(properties, "normal"),
+                PosAdapter.deserializeVec(properties, "up"),
                 expect(properties.getDouble("height"), new TrackData.TrackDeserializationException("Plane Checkpoint missing 'height'")).floatValue()
         );
     }
@@ -135,8 +163,8 @@ public class PlaneCheckpoint implements Checkpoint {
     public Map<String, Object> serialize() {
         return Map.of(
                 "a", PosAdapter.serialize(a),
-                "b", PosAdapter.serialize(a),
-                "normal", normal,
+                "b", PosAdapter.serialize(b),
+                "up", PosAdapter.serialize(up),
                 "height", height
         );
     }

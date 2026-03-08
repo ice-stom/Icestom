@@ -6,16 +6,16 @@ import io.gitlab.icestom.icestom.track.format.TrackData;
 import net.hollowcube.polar.PolarWorld;
 import net.minestom.server.coordinate.Pos;
 import org.intellij.lang.annotations.Subst;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import java.util.Map;
+import java.util.*;
 
 public class Track implements TrackData {
 
     private final String id;
     private final Pos spawnLocation;
     private final Map<Checkpoint, Integer> checkpoints;
+
+    private final Map<Integer, List<Checkpoint>> checkpoint_lookup = new HashMap<>();
 
     private final PolarWorld world;
 
@@ -25,6 +25,19 @@ public class Track implements TrackData {
         this.checkpoints = trackData.getCheckpoints();
 
         this.world = world;
+
+        for (Map.Entry<Checkpoint, Integer> entry : checkpoints.entrySet()) {
+            Checkpoint checkpoint = entry.getKey();
+            int index = entry.getValue();
+
+            List<Checkpoint> checkpoints = checkpoint_lookup.computeIfAbsent(index, _ -> new ArrayList<>());
+
+            checkpoints.add(checkpoint);
+        }
+    }
+
+    public int wrapCheckpointIndex(int checkpoint) {
+        return checkpoint % checkpoints.size();
     }
 
     @Override
@@ -36,9 +49,9 @@ public class Track implements TrackData {
     @Override
     public Map<Checkpoint, Integer> getCheckpoints() { return checkpoints; }
 
-    public PolarWorld getWorld() { return world; }
-
-    public @Nullable Integer getCheckpointNumber(@NotNull Checkpoint checkpoint) {
-        return checkpoints.get(checkpoint);
+    public List<Checkpoint> getCheckpoints(int index) {
+        return checkpoint_lookup.get(index);
     }
+
+    public PolarWorld getWorld() { return world; }
 }

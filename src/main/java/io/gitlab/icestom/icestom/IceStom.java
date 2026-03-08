@@ -3,6 +3,9 @@ package io.gitlab.icestom.icestom;
 import io.gitlab.icestom.icestom.command.BoatCommand;
 import io.gitlab.icestom.icestom.command.DebugCommand;
 import io.gitlab.icestom.icestom.command.TimeTrialCommand;
+import io.gitlab.icestom.icestom.command.TrackCommand;
+import io.gitlab.icestom.icestom.database.TimetrialDatabase;
+import io.gitlab.icestom.icestom.database.memory.MemoryTimetrialDatabase;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
 import io.gitlab.icestom.icestom.track.format.MutableTrack;
@@ -42,6 +45,8 @@ public class IceStom {
 
     private final SpawnInstance spawnInstance;
 
+    private final TimetrialDatabase timetrialDatabase;
+
     IceStom() {
         System.setProperty("minestom.chunk-view-distance", "8");
         System.setProperty("minestom.entity-view-distance", "8");
@@ -55,6 +60,8 @@ public class IceStom {
         timeTrialManager = new TimeTrialManager();
 
         spawnInstance = new SpawnInstance();
+
+        timetrialDatabase = new MemoryTimetrialDatabase();
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -74,9 +81,11 @@ public class IceStom {
                             id,
                             new Pos(-14.03, 17.00, 11.82, -205.65f, 0f),
                             Map.of(
-                                    new LineCheckpoint(new Vec(-5, 40, 0), new Vec(5, 40, 0), 3), 0,
-                                    new LineCheckpoint(new Vec(-5, 40, 10), new Vec(5, 40, 10), 3), 1,
-                                    new LineCheckpoint(new Vec(-5, 40, 20), new Vec(5, 40, 20), 3), 2
+                                    new LineCheckpoint(new Vec(-34.5, 17 ,-21.5), new Vec(-22.5, 17, -21.5), 3), 0,
+                                    new LineCheckpoint(new Vec(-17.5, 17, -41.5), new Vec(-9.5, 17, -33.5), 3), 1,
+                                    new LineCheckpoint(new Vec(22.5, 17, -53.5), new Vec(14.5, 17, -44.5), 3), 2,
+                                    new LineCheckpoint(new Vec(40.5, 17, -1.5), new Vec(32.5, 17, -9.5), 3), 3,
+                                    new LineCheckpoint(new Vec(0.5, 17, 18.5), new Vec(-0.5, 17, 7.5), 3), 4
                             )
                     ), world)
             );
@@ -90,6 +99,7 @@ public class IceStom {
         commandManager.register(new BoatCommand());
         commandManager.register(new TimeTrialCommand());
         commandManager.register(new DebugCommand());
+        commandManager.register(new TrackCommand());
 
         InstanceManager instanceManager = MinecraftServer.getInstanceManager();
         instanceManager.registerInstance(spawnInstance);
@@ -126,6 +136,8 @@ public class IceStom {
     public TrackLibrary getTrackLibrary() { return trackLibrary; }
     public TimeTrialManager getTimeTrialManager() { return timeTrialManager; }
     public SpawnInstance getSpawnInstance() { return spawnInstance; }
+
+    public TimetrialDatabase getTimetrialDatabase() { return timetrialDatabase; }
 
     public static void main(String[] args) throws IOException {
         instance = new IceStom();

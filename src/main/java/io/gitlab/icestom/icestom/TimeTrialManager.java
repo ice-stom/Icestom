@@ -1,6 +1,6 @@
 package io.gitlab.icestom.icestom;
 
-import io.gitlab.icestom.icestom.instance.TimeTrialInstance;
+import io.gitlab.icestom.icestom.instance.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.track.Track;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
@@ -10,45 +10,44 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 public class TimeTrialManager {
-    private final Map<String, TimeTrialInstance> trials = new HashMap<>();
+    private final Map<String, TimeTrialingInstance> trials = new HashMap<>();
 
-    public void startTimeTrial(Player player, Track track) {
-        endTimeTrial(player);
+    public void starTimeTrialing(Player player, Track track) {
+        quitTimeTrialing(player);
 
-        @Nullable TimeTrialInstance instance = trials.get(track.getId());
+        @Nullable TimeTrialingInstance instance = trials.get(track.getId());
 
         if (instance == null) {
-            instance = new TimeTrialInstance(track);
+            instance = new TimeTrialingInstance(track);
 
             MinecraftServer.getInstanceManager().registerInstance(instance);
+
+            trials.put(track.getId(), instance);
         }
 
         instance.consume(player);
     }
 
-    public void endTimeTrial(Player player) {
-        if (!(player.getInstance() instanceof TimeTrialInstance timeTrialInstance)) return;
+    public void quitTimeTrialing(Player player) {
+        if (!(player.getInstance() instanceof TimeTrialingInstance timeTrialingInstance)) return;
+
+        timeTrialingInstance.drop(player);
 
         IceStom.getInstance().getSpawnInstance().consume(player);
 
-        if (timeTrialInstance.getPlayers().isEmpty()) {
-            destroyTimeTrial(timeTrialInstance);
+        if (timeTrialingInstance.getPlayers().isEmpty()) {
+            destroyInstance(timeTrialingInstance);
         }
     }
 
-    public void destroyTimeTrial(@NotNull TimeTrialInstance instance) {
+    public void destroyInstance(@NotNull TimeTrialingInstance instance) {
         for (Player player : instance.getPlayers()) {
+            instance.drop(player);
             IceStom.getInstance().getSpawnInstance().consume(player);
         }
 
+        trials.remove(instance.getTrack().getId());
+
         MinecraftServer.getInstanceManager().unregisterInstance(instance);
-    }
-
-    public void destroyTimeTrial(String id) {
-        @Nullable TimeTrialInstance instance = trials.remove(id);
-
-        if (instance != null) {
-            destroyTimeTrial(instance);
-        }
     }
 }

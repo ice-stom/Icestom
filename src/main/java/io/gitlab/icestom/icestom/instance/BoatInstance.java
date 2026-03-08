@@ -6,14 +6,13 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.EventListener;
 import net.minestom.server.event.player.PlayerPacketEvent;
-import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.network.packet.client.play.ClientTeleportConfirmPacket;
 import net.minestom.server.world.DimensionType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
 
-public abstract class BoatInstance extends InstanceContainer {
+public abstract class BoatInstance extends IceStomInstance {
     public BoatInstance(Key key) {
         super(UUID.randomUUID(), DimensionType.OVERWORLD, key);
     }

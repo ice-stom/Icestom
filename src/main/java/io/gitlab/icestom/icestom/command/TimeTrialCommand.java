@@ -2,7 +2,7 @@ package io.gitlab.icestom.icestom.command;
 
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.TimeTrialManager;
-import io.gitlab.icestom.icestom.instance.TimeTrialInstance;
+import io.gitlab.icestom.icestom.instance.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.TrackLibrary;
 import net.kyori.adventure.text.Component;
@@ -42,16 +42,16 @@ public class TimeTrialCommand extends Command {
                 return;
             }
 
-            if (player.getInstance() instanceof TimeTrialInstance timeTrialInstance) {
-                if (timeTrialInstance.getTrack() == track) {
-                    timeTrialInstance.resetPlayer(player);
+            if (player.getInstance() instanceof TimeTrialingInstance timeTrialingInstance) {
+                if (timeTrialingInstance.getTrack() == track) {
+                    timeTrialingInstance.resetPlayer(player);
                     return;
                 }
             }
 
             commandSender.sendMessage(Component.text("Starting time trial"));
 
-            timeTrialManager.startTimeTrial(player, track);
+            timeTrialManager.starTimeTrialing(player, track);
         }, trackArgument);
     }
 

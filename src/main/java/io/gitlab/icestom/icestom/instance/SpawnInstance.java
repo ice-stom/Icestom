@@ -2,11 +2,8 @@ package io.gitlab.icestom.icestom.instance;
 
 import io.gitlab.icestom.icestom.IceStom;
 import net.hollowcube.polar.PolarLoader;
-import net.hollowcube.polar.PolarWorld;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
-import net.minestom.server.coordinate.Area;
-import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
@@ -14,10 +11,7 @@ import net.minestom.server.entity.EntityType;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.metadata.display.AbstractDisplayMeta;
 import net.minestom.server.entity.metadata.display.TextDisplayMeta;
-import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.instance.LightingChunk;
-import net.minestom.server.instance.block.Block;
-import net.minestom.server.instance.generator.GenerationUnit;
 import net.minestom.server.world.DimensionType;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -27,15 +21,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
 
-@SuppressWarnings("UnstableApiUsage")
-public class SpawnInstance extends InstanceContainer {
+public class SpawnInstance extends IceStomInstance {
 
     private static final Logger log = LoggerFactory.getLogger(SpawnInstance.class);
 
     public SpawnInstance() {
         super(UUID.randomUUID(), DimensionType.OVERWORLD, Key.key(IceStom.NAMESPACE, "spawn"));
 
-        PolarLoader polarLoader = null;
+        PolarLoader polarLoader;
         try (@Nullable InputStream stream = getClass().getResourceAsStream("/world.polar")) {
             if (stream == null) {
                 log.error("Failed to load spawn world: no resource found");
@@ -44,7 +37,7 @@ public class SpawnInstance extends InstanceContainer {
 
             polarLoader = new PolarLoader(stream);
         } catch (IOException exception) {
-            log.error("Failed to load spawn world: " + exception.toString());
+            log.error("Failed to load spawn world: " + exception);
             return;
         }
 

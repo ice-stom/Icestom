@@ -1,5 +1,6 @@
-package io.gitlab.icestom.icestom;
+package io.gitlab.icestom.icestom.timetrial;
 
+import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.instance.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.track.Track;
 import net.minestom.server.MinecraftServer;

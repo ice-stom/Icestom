@@ -3,6 +3,7 @@ package io.gitlab.icestom.icestom.instance;
 import io.gitlab.icestom.icestom.entity.Boat;
 import net.kyori.adventure.key.Key;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.EventListener;
 import net.minestom.server.event.player.PlayerPacketEvent;
@@ -15,6 +16,22 @@ import java.util.UUID;
 public abstract class BoatInstance extends IceStomInstance {
     public BoatInstance(Key key) {
         super(UUID.randomUUID(), DimensionType.OVERWORLD, key);
+    }
+
+    public void removeBoat(Player player) {
+        Entity vehicle = player.getVehicle();
+
+        if (vehicle != null) {
+            vehicle.removePassenger(player);
+
+            boolean noPlayersRemaining = vehicle.getPassengers().stream()
+                    .noneMatch(entity -> entity instanceof Player);
+
+            if (noPlayersRemaining) {
+                vehicle.getPassengers().forEach(Entity::remove);
+                vehicle.remove();
+            }
+        }
     }
 
     @SuppressWarnings("UnstableApiUsage")

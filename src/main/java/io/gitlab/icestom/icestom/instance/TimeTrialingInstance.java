@@ -11,7 +11,6 @@ import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.coordinate.Pos;
-import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
@@ -134,24 +133,8 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
 
     @Override
     public void resetPlayer(Player player) {
-        Pos spawn = track.getSpawnLocation();
-        Entity vehicle = player.getVehicle();
-
-        if (vehicle != null) {
-            vehicle.removePassenger(player);
-
-            boolean noPlayersRemaining = vehicle.getPassengers().stream()
-                    .noneMatch(entity -> entity instanceof Player);
-
-            if (noPlayersRemaining) {
-                vehicle.getPassengers().forEach(Entity::remove);
-                vehicle.remove();
-            }
-        }
-
         endTimeTrial(player);
-
-        createBoat(player, spawn);
+        super.resetPlayer(player);
     }
 
     public @Nullable TimeTrial getTimeTrial(Player player) {

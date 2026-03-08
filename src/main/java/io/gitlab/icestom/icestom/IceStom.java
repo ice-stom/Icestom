@@ -4,7 +4,12 @@ import io.gitlab.icestom.icestom.command.*;
 import io.gitlab.icestom.icestom.database.TimetrialDatabase;
 import io.gitlab.icestom.icestom.database.memory.MemoryTimetrialDatabase;
 import io.gitlab.icestom.icestom.entity.Boat;
+import io.gitlab.icestom.icestom.event.Event;
+import io.gitlab.icestom.icestom.event.EventManager;
+import io.gitlab.icestom.icestom.event.stage.Stage;
+import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
+import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
 import io.gitlab.icestom.icestom.track.format.MutableTrack;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.format.TrackFormat;
@@ -18,12 +23,14 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.EventListener;
 import net.minestom.server.event.GlobalEventHandler;
-import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
-import net.minestom.server.event.player.PlayerPacketOutEvent;
+import net.minestom.server.event.player.*;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.InstanceManager;
 import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -39,6 +46,7 @@ public class IceStom {
 
     private final TrackLibrary trackLibrary;
     private final TimeTrialManager timeTrialManager;
+    private final EventManager eventManager;
 
     private final SpawnInstance spawnInstance;
 
@@ -55,6 +63,7 @@ public class IceStom {
 
         trackLibrary = new TrackLibrary();
         timeTrialManager = new TimeTrialManager();
+        eventManager = new EventManager();
 
         spawnInstance = new SpawnInstance();
 
@@ -98,6 +107,7 @@ public class IceStom {
         commandManager.register(new DebugCommand());
         commandManager.register(new TrackCommand());
         commandManager.register(new SpawnCommand());
+        commandManager.register(new EventCommand());
 
         InstanceManager instanceManager = MinecraftServer.getInstanceManager();
         instanceManager.registerInstance(spawnInstance);
@@ -107,8 +117,37 @@ public class IceStom {
         GlobalEventHandler globalEventHandler = MinecraftServer.getGlobalEventHandler();
         globalEventHandler.addListener(AsyncPlayerConfigurationEvent.class, event -> {
             final Player player = event.getPlayer();
+
+            @Nullable Event active_event = eventManager.getEvent(player);
+
+            if (active_event != null) {
+                @Nullable Stage<?> current_stage = active_event.getCurrentStage();
+
+                if (current_stage != null) {
+                    event.setSpawningInstance(current_stage.getInstance());
+
+                    EventListener<@NotNull PlayerSpawnEvent> listener = EventListener.builder(PlayerSpawnEvent.class)
+                            .filter(e -> e.getPlayer() == player)
+                            .handler(_ -> {
+                                current_stage.getInstance().consume(player);
+                            })
+                            .expireCount(1)
+                            .build();
+
+                    globalEventHandler.addListener(listener);
+
+                    return;
+                }
+            }
+
             event.setSpawningInstance(spawnInstance);
-            player.setRespawnPoint(Pos.ZERO);
+        });
+
+        globalEventHandler.addListener(PlayerDisconnectEvent.class,playerDisconnectEvent -> {
+            final Player player = playerDisconnectEvent.getPlayer();
+            if (player.getInstance() instanceof PlayerHolder playerHolder) {
+                playerHolder.drop(player);
+            }
         });
 
         final Vec gravity_vec = new Vec(0, -0.04, 0);
@@ -133,6 +172,8 @@ public class IceStom {
 
     public TrackLibrary getTrackLibrary() { return trackLibrary; }
     public TimeTrialManager getTimeTrialManager() { return timeTrialManager; }
+    public EventManager getEventManager() { return eventManager; }
+
     public SpawnInstance getSpawnInstance() { return spawnInstance; }
 
     public TimetrialDatabase getTimetrialDatabase() { return timetrialDatabase; }

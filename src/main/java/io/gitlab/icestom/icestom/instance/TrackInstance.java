@@ -8,6 +8,7 @@ import io.gitlab.icestom.icestom.track.checkpoint.TerribleDebugCheckpointDrawer;
 import io.gitlab.icestom.icestom.track.checkpoint.TickMovement;
 import net.hollowcube.polar.PolarLoader;
 import net.kyori.adventure.key.Key;
+import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Player;
 import net.minestom.server.instance.LightingChunk;
@@ -15,7 +16,7 @@ import net.minestom.server.instance.LightingChunk;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class TrackInstance extends BoatInstance {
+public abstract class TrackInstance extends BoatInstance implements SpawnLocation {
 
     protected final Track track;
     private final Map<Player, Vec> last_tick_positions = new HashMap<>();
@@ -51,6 +52,20 @@ public abstract class TrackInstance extends BoatInstance {
         }
 
         onPlayerMovements(movementMap);
+    }
+
+    @Override
+    public void resetPlayer(Player player) {
+        Pos spawn = track.getSpawnLocation();
+
+        removeBoat(player);
+
+        createBoat(player, spawn);
+    }
+
+    @Override
+    public void drop(Player player) {
+        removeBoat(player);
     }
 
     protected abstract void onPlayerMovements(Map<Player, TickMovement> movements);

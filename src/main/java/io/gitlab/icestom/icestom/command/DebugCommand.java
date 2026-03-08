@@ -37,10 +37,10 @@ public class DebugCommand extends Command {
             super("instancelist");
 
             setDefaultExecutor((commandSender, _) -> {
-                Component text = Component.text("Instances:\n");
+                Component text = Component.text("Instances:");
 
                 for (Instance instance : MinecraftServer.getInstanceManager().getInstances()) {
-                    text = text.append(Component.text(" - " + instance.getClass().getSimpleName() + "\n"));
+                    text = text.append(Component.text("\n - " + instance.getClass().getSimpleName()));
                 }
 
                 commandSender.sendMessage(text);

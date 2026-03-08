@@ -1,7 +1,7 @@
 package io.gitlab.icestom.icestom.command;
 
 import io.gitlab.icestom.icestom.IceStom;
-import io.gitlab.icestom.icestom.TimeTrialManager;
+import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
 import io.gitlab.icestom.icestom.instance.TimeTrialingInstance;
 import net.kyori.adventure.text.Component;
@@ -12,7 +12,7 @@ import net.minestom.server.instance.Instance;
 
 public class SpawnCommand extends Command {
 
-    private static TimeTrialManager timeTrialManager = IceStom.getInstance().getTimeTrialManager();
+    private static final TimeTrialManager timeTrialManager = IceStom.getInstance().getTimeTrialManager();
 
     public SpawnCommand() {
         super("spawn");

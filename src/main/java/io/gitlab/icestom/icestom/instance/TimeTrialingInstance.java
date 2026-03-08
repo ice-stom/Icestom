@@ -17,7 +17,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public class TimeTrialingInstance extends TrackInstance implements ActionBarProvider {
+public class TimeTrialingInstance extends TrackInstance implements SpawnLocation, ActionBarProvider {
     private final Map<Player, TimeTrial> timeTrials = new HashMap<>();
 
     public TimeTrialingInstance(Track track) {
@@ -127,6 +127,12 @@ public class TimeTrialingInstance extends TrackInstance implements ActionBarProv
         }
     }
 
+    @Override
+    public Pos spawnLocation(Player player) {
+        return track.getSpawnLocation();
+    }
+
+    @Override
     public void resetPlayer(Player player) {
         Pos spawn = track.getSpawnLocation();
         Entity vehicle = player.getVehicle();
@@ -173,15 +179,7 @@ public class TimeTrialingInstance extends TrackInstance implements ActionBarProv
         return Component.text("At ").append(Component.text(track.getId(), NamedTextColor.GOLD));
     }
 
-    public void consume(Player player) {
-        if (player.getInstance() == this) {
-            resetPlayer(player);
-        } else {
-            player.setInstance(this, track.getSpawnLocation())
-                    .thenRun(() -> resetPlayer(player));
-        }
-    }
-
+    @Override
     public void drop(Player player) {
         endTimeTrial(player);
     }

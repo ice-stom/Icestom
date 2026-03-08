@@ -13,7 +13,7 @@ public class TimeTrialManager {
     private final Map<String, TimeTrialingInstance> trials = new HashMap<>();
 
     public void starTimeTrialing(Player player, Track track) {
-        quitTimeTrialing(player);
+        stopTimeTrialing(player);
 
         @Nullable TimeTrialingInstance instance = trials.get(track.getId());
 
@@ -28,7 +28,7 @@ public class TimeTrialManager {
         instance.consume(player);
     }
 
-    public void quitTimeTrialing(Player player) {
+    public void stopTimeTrialing(Player player) {
         if (!(player.getInstance() instanceof TimeTrialingInstance timeTrialingInstance)) return;
 
         timeTrialingInstance.drop(player);

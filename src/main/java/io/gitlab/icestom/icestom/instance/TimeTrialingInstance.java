@@ -1,11 +1,12 @@
 package io.gitlab.icestom.icestom.instance;
 
 import io.gitlab.icestom.icestom.IceStom;
+import io.gitlab.icestom.icestom.timetrial.Split;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.TickMovement;
-import io.gitlab.icestom.icestom.timetrial.TimeTrial;
-import io.gitlab.icestom.icestom.timetrial.TimetrialResultSource;
+import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
+import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.ui.ActionBarProvider;
 import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
@@ -17,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 public class TimeTrialingInstance extends TrackInstance implements SpawnLocation, ActionBarProvider {
-    private final Map<Player, TimeTrial> timeTrials = new HashMap<>();
+    private final Map<Player, TimedLap> timeTrials = new HashMap<>();
 
     public TimeTrialingInstance(Track track) {
         super(track);
@@ -46,28 +47,28 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
             Player player = entry.getKey();
             TickMovement movement = entry.getValue();
 
-            @Nullable TimeTrial timeTrial = getTimeTrial(player);
+            @Nullable TimedLap timedLap = getTimeTrial(player);
 
-            if (timeTrial != null) {
-                int next_no = track.wrapCheckpointIndex(timeTrial.getCheckpoint() + 1);
+            if (timedLap != null) {
+                int next_no = track.wrapCheckpointIndex(timedLap.getCheckpoint() + 1);
                 Collection<Checkpoint> checkpoints = track.getCheckpoints(next_no);
 
                 for (Checkpoint checkpoint : checkpoints) {
                     @Nullable Long tick_delta = checkpoint.detectCross(movement);
 
                     if (tick_delta != null) {
-                        timeTrial.nextCheckpoint(new TimeTrial.Split(
+                        timedLap.nextCheckpoint(new Split(
                                 getWorldAge() * 50,
                                 tick_delta,
                                 next_no
                         ));
 
                         if (next_no == 0) {
-                            TimeTrial completed = endTimeTrial(player);
+                            TimedLap completed = endTimeTrial(player);
 
                             long time = completed.getTime();
 
-                            @Nullable TimetrialResultSource best = IceStom.getInstance().getTimetrialDatabase().getBestTime(player, track.getId());
+                            @Nullable TimedLapResultSource best = IceStom.getInstance().getTimetrialDatabase().getBestTime(player, track.getId());
 
                             if (best != null) {
                                 if (time < best.getTime()) {
@@ -114,14 +115,15 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
 
                 long tick_delta = entry.getValue();
 
-                @Nullable TimetrialResultSource best_result = IceStom.getInstance().getTimetrialDatabase().getBestTime(player, track.getId());
+                @Nullable TimedLapResultSource best_result = IceStom.getInstance().getTimetrialDatabase().getBestTime(player, track.getId());
 
-                TimeTrial timeTrial = new TimeTrial(player, track, best_result, new TimeTrial.Split(
+                TimedLap timedLap = new TimedLap(track, best_result, new Split(
                         getWorldAge() * 50,
                         tick_delta,
                         0
                 ));
-                timeTrials.put(player, timeTrial);
+
+                timeTrials.put(player, timedLap);
             }
         }
     }
@@ -137,26 +139,26 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
         super.resetPlayer(player);
     }
 
-    public @Nullable TimeTrial getTimeTrial(Player player) {
+    public @Nullable TimedLap getTimeTrial(Player player) {
         return timeTrials.get(player);
     }
 
-    public TimeTrial endTimeTrial(Player player) {
-        @Nullable TimeTrial timeTrial = getTimeTrial(player);
+    public TimedLap endTimeTrial(Player player) {
+        @Nullable TimedLap timedLap = getTimeTrial(player);
 
-        if (timeTrial != null) {
+        if (timedLap != null) {
             timeTrials.remove(player);
         }
 
-        return timeTrial;
+        return timedLap;
     }
 
     @Override
     public Component getActionBar(Player player) {
-        @Nullable TimeTrial timeTrial = getTimeTrial(player);
+        @Nullable TimedLap timedLap = getTimeTrial(player);
 
-        if (timeTrial != null) {
-            return timeTrial.getActionBar(player);
+        if (timedLap != null) {
+            return timedLap.getActionBar(player);
         }
 
         return Component.text("At ").append(Component.text(track.getId(), NamedTextColor.GOLD));

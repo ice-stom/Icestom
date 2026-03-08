@@ -3,7 +3,7 @@ package io.gitlab.icestom.icestom.util;
 import java.util.HashMap;
 
 public class CooldownManager<K> {
-    private HashMap<K, Long> expires_at = new HashMap<>();
+    private final HashMap<K, Long> expires_at = new HashMap<>();
 
     public void addCooldown(K k, long duration_ms) {
         expires_at.put(k, System.currentTimeMillis() + duration_ms);

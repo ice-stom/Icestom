@@ -1,9 +1,6 @@
 package io.gitlab.icestom.icestom;
 
-import io.gitlab.icestom.icestom.command.BoatCommand;
-import io.gitlab.icestom.icestom.command.DebugCommand;
-import io.gitlab.icestom.icestom.command.TimeTrialCommand;
-import io.gitlab.icestom.icestom.command.TrackCommand;
+import io.gitlab.icestom.icestom.command.*;
 import io.gitlab.icestom.icestom.database.TimetrialDatabase;
 import io.gitlab.icestom.icestom.database.memory.MemoryTimetrialDatabase;
 import io.gitlab.icestom.icestom.entity.Boat;
@@ -100,6 +97,7 @@ public class IceStom {
         commandManager.register(new TimeTrialCommand());
         commandManager.register(new DebugCommand());
         commandManager.register(new TrackCommand());
+        commandManager.register(new SpawnCommand());
 
         InstanceManager instanceManager = MinecraftServer.getInstanceManager();
         instanceManager.registerInstance(spawnInstance);

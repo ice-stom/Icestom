@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
 
-public class SpawnInstance extends IceStomInstance {
+public class SpawnInstance extends IceStomInstance implements SpawnLocation {
 
     private static final Logger log = LoggerFactory.getLogger(SpawnInstance.class);
 
@@ -59,7 +59,8 @@ public class SpawnInstance extends IceStomInstance {
         entity.setInstance(this, new Pos(0, 2, 0));
     }
 
-    public void consume(Player player) {
-        player.setInstance(this, Pos.ZERO);
+    @Override
+    public Pos spawnLocation(Player player) {
+        return Pos.ZERO;
     }
 }

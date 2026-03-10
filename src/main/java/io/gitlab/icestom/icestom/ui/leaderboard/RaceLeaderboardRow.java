@@ -13,9 +13,6 @@ public record RaceLeaderboardRow(
         int completedLaps,
         int completedPits,
 
-        int teamColorA,
-        int teamColorB,
-
         boolean pit,
         boolean dnf
 ) {}

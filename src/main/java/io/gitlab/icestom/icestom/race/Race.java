@@ -69,7 +69,7 @@ public class Race extends TrackInstance implements Stage<TrackInstance>, ActionB
 
                 Component text = TextFormatter.getTime(lap.getTime());
 
-                if (flap != null) {
+                if (previous_flap != null) {
                     text = text.append(Component.space()).append(TextFormatter.getDelta(lap.getTime() - previous_flap.getTime()));
                 }
 

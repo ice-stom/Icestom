@@ -161,6 +161,10 @@ public class Race extends TrackInstance implements Stage<TrackInstance>, ActionB
 
     }
 
+    public Map<UUID, RaceParticipation> getParticipants() {
+        return racers;
+    }
+
     @Override
     public void consume(Player player) {
         super.consume(player);

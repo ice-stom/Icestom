@@ -2,6 +2,7 @@ package io.gitlab.icestom.icestom.race;
 
 import io.gitlab.icestom.icestom.event.stage.Stage;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
+import io.gitlab.icestom.icestom.race.leaderboard.Leaderboard;
 import io.gitlab.icestom.icestom.timetrial.Split;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResult;
@@ -24,7 +25,85 @@ public class Race extends TrackInstance implements Stage<TrackInstance>, ActionB
     private final int totalLaps;
     private final int totalPits;
 
+    private final Leaderboard leaderboard;
+
     private final Map<UUID, RaceParticipation> racers = new LinkedHashMap<>();
+
+    public Race(Track track, int totalLaps, int totalPits) {
+        super(track);
+        this.totalLaps = totalLaps;
+        this.totalPits = totalPits;
+
+        this.leaderboard = new Leaderboard(this);
+    }
+
+    @Override
+    protected void onPlayerMovements(Map<Player, TickMovement> movements) {
+        Map<Integer, Map<Player, TickMovement>> grouped = new HashMap<>();
+
+        for (Map.Entry<Player, TickMovement> entry : movements.entrySet()) {
+            Player player = entry.getKey();
+            TickMovement movement = entry.getValue();
+
+            @Nullable RaceParticipation participation = racers.get(player.getUuid());
+
+            if (participation != null) {
+                grouped
+                        .computeIfAbsent(participation.getNextExpected(), _ -> new HashMap<>())
+                        .put(player, movement);
+            }
+        }
+
+        for (Map.Entry<Integer, Map<Player, TickMovement>> integerMapEntry : grouped.entrySet()) {
+            int checkpoint_index = integerMapEntry.getKey();
+
+            for (Checkpoint checkpoint : track.getCheckpoints(checkpoint_index)) {
+                Map<Player, Long> crosses = checkpoint.detectCrosses(integerMapEntry.getValue());
+
+                crosses.forEach((player, tick_delta) -> {
+                    @Nullable RaceParticipation participation = racers.get(player.getUuid());
+
+                    if (participation != null) {
+                        participation.nextCheckpoint(new Split(
+                                getWorldAge() * 50,
+                                tick_delta,
+                                checkpoint_index
+                        ));
+
+                        // TODO: leaderboard
+                    }
+                });
+            }
+        }
+
+    }
+
+    public int getTotalLaps() { return totalLaps; }
+    public int getTotalPits() { return totalPits; }
+    public Leaderboard getLeaderboard() { return leaderboard; }
+
+    public Map<UUID, RaceParticipation> getParticipants() { return racers; }
+
+    @Override
+    public void consume(Player player) {
+        super.consume(player);
+        racers.computeIfAbsent(player.getUuid(), _ -> new RaceParticipation(player));
+    }
+
+    @Override
+    public TrackInstance getInstance() {
+        return this;
+    }
+
+    @Override
+    public Pos spawnLocation(Player player) {
+        return track.getSpawnLocation();
+    }
+
+    @Override
+    public Component getActionBar(Player player) {
+        return Component.text("Racing ").append(Component.text(track.getId(), NamedTextColor.GOLD));
+    }
 
     public class RaceParticipation {
         private final List<Split> splits = new ArrayList<>();
@@ -112,77 +191,5 @@ public class Race extends TrackInstance implements Stage<TrackInstance>, ActionB
         public List<Split> getSplits() {
             return splits;
         }
-    }
-
-    public Race(Track track, int totalLaps, int totalPits) {
-        super(track);
-        this.totalLaps = totalLaps;
-        this.totalPits = totalPits;
-    }
-
-    @Override
-    protected void onPlayerMovements(Map<Player, TickMovement> movements) {
-        Map<Integer, Map<Player, TickMovement>> grouped = new HashMap<>();
-
-        for (Map.Entry<Player, TickMovement> entry : movements.entrySet()) {
-            Player player = entry.getKey();
-            TickMovement movement = entry.getValue();
-
-            @Nullable RaceParticipation participation = racers.get(player.getUuid());
-
-            if (participation != null) {
-                grouped
-                        .computeIfAbsent(participation.getNextExpected(), _ -> new HashMap<>())
-                        .put(player, movement);
-            }
-        }
-
-        for (Map.Entry<Integer, Map<Player, TickMovement>> integerMapEntry : grouped.entrySet()) {
-            int checkpoint_index = integerMapEntry.getKey();
-
-            for (Checkpoint checkpoint : track.getCheckpoints(checkpoint_index)) {
-                Map<Player, Long> crosses = checkpoint.detectCrosses(integerMapEntry.getValue());
-
-                crosses.forEach((player, tick_delta) -> {
-                    @Nullable RaceParticipation participation = racers.get(player.getUuid());
-
-                    if (participation != null) {
-                        participation.nextCheckpoint(new Split(
-                                getWorldAge() * 50,
-                                tick_delta,
-                                checkpoint_index
-                        ));
-
-                        // TODO: leaderboard
-                    }
-                });
-            }
-        }
-
-    }
-
-    public Map<UUID, RaceParticipation> getParticipants() {
-        return racers;
-    }
-
-    @Override
-    public void consume(Player player) {
-        super.consume(player);
-        racers.computeIfAbsent(player.getUuid(), _ -> new RaceParticipation(player));
-    }
-
-    @Override
-    public TrackInstance getInstance() {
-        return this;
-    }
-
-    @Override
-    public Pos spawnLocation(Player player) {
-        return track.getSpawnLocation();
-    }
-
-    @Override
-    public Component getActionBar(Player player) {
-        return Component.text("Racing ").append(Component.text(track.getId(), NamedTextColor.GOLD));
     }
 }

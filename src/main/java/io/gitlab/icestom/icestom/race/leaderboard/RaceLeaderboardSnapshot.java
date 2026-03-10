@@ -1,4 +1,6 @@
-package io.gitlab.icestom.icestom.ui.leaderboard;
+package io.gitlab.icestom.icestom.race.leaderboard;
+
+import io.gitlab.icestom.icestom.ui.leaderboard.RaceLeaderboardRow;
 
 import java.util.List;
 import java.util.UUID;

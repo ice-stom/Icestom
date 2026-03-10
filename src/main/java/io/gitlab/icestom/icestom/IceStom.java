@@ -15,6 +15,7 @@ import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.format.TrackFormat;
 import io.gitlab.icestom.icestom.track.TrackLibrary;
 import io.gitlab.icestom.icestom.track.checkpoint.*;
+import io.gitlab.icestom.icestom.ui.leaderboard.manager.PlayerLeaderboardManager;
 import net.hollowcube.polar.AnvilPolar;
 import net.hollowcube.polar.PolarWorld;
 import net.minestom.server.MinecraftServer;
@@ -47,6 +48,7 @@ public class IceStom {
     private final TrackLibrary trackLibrary;
     private final TimeTrialManager timeTrialManager;
     private final EventManager eventManager;
+    private final PlayerLeaderboardManager playerLeaderboardManager;
 
     private final SpawnInstance spawnInstance;
 
@@ -64,6 +66,7 @@ public class IceStom {
         trackLibrary = new TrackLibrary();
         timeTrialManager = new TimeTrialManager();
         eventManager = new EventManager();
+        playerLeaderboardManager = new PlayerLeaderboardManager();
 
         spawnInstance = new SpawnInstance();
 

@@ -1,5 +1,6 @@
-package io.gitlab.icestom.icestom.ui.leaderboard;
+package io.gitlab.icestom.icestom.race.leaderboard;
 
+import io.gitlab.icestom.icestom.ui.leaderboard.RaceLeaderboardRow;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;

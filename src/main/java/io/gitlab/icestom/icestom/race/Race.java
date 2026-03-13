@@ -2,7 +2,7 @@ package io.gitlab.icestom.icestom.race;
 
 import io.gitlab.icestom.icestom.event.stage.Stage;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
-import io.gitlab.icestom.icestom.race.leaderboard.Leaderboard;
+import io.gitlab.icestom.icestom.race.scoreboard.RaceScoreboardProvider;
 import io.gitlab.icestom.icestom.timetrial.Split;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResult;
@@ -11,6 +11,7 @@ import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.TickMovement;
 import io.gitlab.icestom.icestom.ui.ActionBarProvider;
+import io.gitlab.icestom.icestom.ui.scoreboard.ScoreboardHolder;
 import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -21,6 +22,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 public class Race extends TrackInstance implements Stage<TrackInstance>, ActionBarProvider {
+
+    private final ScoreboardHolder<RaceScoreboardProvider> scoreboardHolder = new ScoreboardHolder<>(RaceScoreboardProvider.class);
 
     private final int totalLaps;
     private final int totalPits;
@@ -64,18 +67,21 @@ public class Race extends TrackInstance implements Stage<TrackInstance>, ActionB
                     @Nullable RaceParticipation participation = racers.get(player.getUuid());
 
                     if (participation != null) {
-                        participation.nextCheckpoint(new Split(
+                        Split split = new Split(
                                 getWorldAge() * 50,
                                 tick_delta,
                                 checkpoint_index
-                        ));
+                        );
 
-                        // TODO: leaderboard
+                        participation.nextCheckpoint(split);
+
+                        leaderboard.update(player.getUuid(), split);
                     }
                 });
             }
         }
 
+        scoreboardHolder.getProviders().forEach(provider -> provider.dispatchRaceLeaderboard(this));
     }
 
     public int getTotalLaps() { return totalLaps; }
@@ -83,11 +89,19 @@ public class Race extends TrackInstance implements Stage<TrackInstance>, ActionB
     public Leaderboard getLeaderboard() { return leaderboard; }
 
     public Map<UUID, RaceParticipation> getParticipants() { return racers; }
+    public @Nullable RaceParticipation getParticipant(UUID uuid) { return racers.get(uuid); }
 
     @Override
     public void consume(Player player) {
         super.consume(player);
+
+        scoreboardHolder.init(player);
+        scoreboardHolder.getProviders().forEach(provider -> provider.dispatchRaceLeaderboard(this));
+
+        // TODO: participation
+
         racers.computeIfAbsent(player.getUuid(), _ -> new RaceParticipation(player));
+        leaderboard.addPlayer(player);
     }
 
     @Override
@@ -184,6 +198,17 @@ public class Race extends TrackInstance implements Stage<TrackInstance>, ActionB
             return lap;
         }
 
+        public long deltaTo(RaceParticipation other) {
+            int max_checkpoint = Math.min(getSplits().size(), other.getSplits().size()) - 1;
+
+            if (max_checkpoint < 0) return 0;
+
+            Split local = getSplits().get(max_checkpoint);
+            Split foreign = getSplits().get(max_checkpoint);
+
+            return local.ms() - foreign.ms();
+        }
+
         public int getNextExpected() {
             return track.wrapCheckpointIndex(nextExpected);
         }
@@ -191,5 +216,11 @@ public class Race extends TrackInstance implements Stage<TrackInstance>, ActionB
         public List<Split> getSplits() {
             return splits;
         }
+
+        public int getGlobalCheckpointIndex() { return globalCheckpointIndex; }
+
+        public int getCompletedLaps() { return completedLaps; }
+
+        public int getCompletedPits() { return completedPits; }
     }
 }

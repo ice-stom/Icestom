@@ -4,6 +4,7 @@ import io.gitlab.icestom.icestom.command.*;
 import io.gitlab.icestom.icestom.database.TimetrialDatabase;
 import io.gitlab.icestom.icestom.database.memory.MemoryTimetrialDatabase;
 import io.gitlab.icestom.icestom.entity.Boat;
+import io.gitlab.icestom.icestom.entity.IceStomPlayer;
 import io.gitlab.icestom.icestom.event.Event;
 import io.gitlab.icestom.icestom.event.EventManager;
 import io.gitlab.icestom.icestom.event.stage.Stage;
@@ -15,7 +16,8 @@ import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.format.TrackFormat;
 import io.gitlab.icestom.icestom.track.TrackLibrary;
 import io.gitlab.icestom.icestom.track.checkpoint.*;
-import io.gitlab.icestom.icestom.ui.leaderboard.manager.PlayerLeaderboardManager;
+import io.gitlab.icestom.icestom.ui.scoreboard.manager.PlayerScoreboardManager;
+import me.lucko.spark.minestom.SparkMinestom;
 import net.hollowcube.polar.AnvilPolar;
 import net.hollowcube.polar.PolarWorld;
 import net.minestom.server.MinecraftServer;
@@ -48,7 +50,7 @@ public class IceStom {
     private final TrackLibrary trackLibrary;
     private final TimeTrialManager timeTrialManager;
     private final EventManager eventManager;
-    private final PlayerLeaderboardManager playerLeaderboardManager;
+    private final PlayerScoreboardManager playerScoreboardManager;
 
     private final SpawnInstance spawnInstance;
 
@@ -66,7 +68,7 @@ public class IceStom {
         trackLibrary = new TrackLibrary();
         timeTrialManager = new TimeTrialManager();
         eventManager = new EventManager();
-        playerLeaderboardManager = new PlayerLeaderboardManager();
+        playerScoreboardManager = new PlayerScoreboardManager();
 
         spawnInstance = new SpawnInstance();
 
@@ -101,6 +103,14 @@ public class IceStom {
 
             return;
         }
+
+        Path directory = Path.of("spark");
+        SparkMinestom.builder(directory)
+                .commands(true)
+                .permissionHandler((_, _) -> true)
+                .enable();
+
+        MinecraftServer.getConnectionManager().setPlayerProvider(IceStomPlayer::new);
 
         trackLibrary.init();
 
@@ -176,6 +186,8 @@ public class IceStom {
     public TrackLibrary getTrackLibrary() { return trackLibrary; }
     public TimeTrialManager getTimeTrialManager() { return timeTrialManager; }
     public EventManager getEventManager() { return eventManager; }
+
+    public PlayerScoreboardManager getPlayerLeaderboardManager() { return playerScoreboardManager; }
 
     public SpawnInstance getSpawnInstance() { return spawnInstance; }
 

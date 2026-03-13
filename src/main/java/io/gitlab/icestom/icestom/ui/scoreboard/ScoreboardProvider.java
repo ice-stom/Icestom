@@ -1,8 +1,8 @@
-package io.gitlab.icestom.icestom.ui.leaderboard;
+package io.gitlab.icestom.icestom.ui.scoreboard;
 
 import net.minestom.server.entity.Player;
 
-interface LeaderboardProvider {
+public interface ScoreboardProvider {
     void startViewing(Player viewer);
     void stopViewing(Player viewer);
 }

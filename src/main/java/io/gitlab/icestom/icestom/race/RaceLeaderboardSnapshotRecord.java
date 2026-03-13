@@ -1,6 +1,6 @@
-package io.gitlab.icestom.icestom.race.leaderboard;
+package io.gitlab.icestom.icestom.race;
 
-import io.gitlab.icestom.icestom.ui.leaderboard.RaceLeaderboardRow;
+import io.gitlab.icestom.icestom.race.scoreboard.RaceScoreboardRow;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -12,9 +12,9 @@ public class RaceLeaderboardSnapshotRecord implements RaceLeaderboardSnapshot {
     private final int totalLaps;
     private final int totalPits;
     @Nullable private final UUID flapHolder;
-    private final List<RaceLeaderboardRow> rows;
+    private final List<RaceScoreboardRow> rows;
 
-    public RaceLeaderboardSnapshotRecord(String trackName, int totalLaps, int totalPits, @Nullable UUID flapHolder, List<RaceLeaderboardRow> rows) {
+    public RaceLeaderboardSnapshotRecord(String trackName, int totalLaps, int totalPits, @Nullable UUID flapHolder, List<RaceScoreboardRow> rows) {
         this.trackName = trackName;
         this.totalLaps = totalLaps;
         this.totalPits = totalPits;
@@ -43,7 +43,7 @@ public class RaceLeaderboardSnapshotRecord implements RaceLeaderboardSnapshot {
     }
 
     @Override
-    public List<RaceLeaderboardRow> getRows() {
+    public List<RaceScoreboardRow> getRows() {
         return rows;
     }
 }

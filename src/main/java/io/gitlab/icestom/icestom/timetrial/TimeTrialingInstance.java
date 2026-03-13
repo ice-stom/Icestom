@@ -1,13 +1,16 @@
-package io.gitlab.icestom.icestom.instance;
+package io.gitlab.icestom.icestom.timetrial;
 
 import io.gitlab.icestom.icestom.IceStom;
-import io.gitlab.icestom.icestom.timetrial.Split;
+import io.gitlab.icestom.icestom.instance.SpawnLocation;
+import io.gitlab.icestom.icestom.instance.TrackInstance;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.TickMovement;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.ui.ActionBarProvider;
+import io.gitlab.icestom.icestom.ui.scoreboard.ScoreboardHolder;
+import io.gitlab.icestom.icestom.ui.scoreboard.TimeTrialScoreboardProvider;
 import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -18,6 +21,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 public class TimeTrialingInstance extends TrackInstance implements SpawnLocation, ActionBarProvider {
+    private final ScoreboardHolder<TimeTrialScoreboardProvider> scoreboardHolder = new ScoreboardHolder<>(TimeTrialScoreboardProvider.class);
+
     private final Map<Player, TimedLap> timeTrials = new HashMap<>();
 
     public TimeTrialingInstance(Track track) {
@@ -47,7 +52,7 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
             Player player = entry.getKey();
             TickMovement movement = entry.getValue();
 
-            @Nullable TimedLap timedLap = getTimeTrial(player);
+            @Nullable TimedLap timedLap = getTimedLap(player);
 
             if (timedLap != null) {
                 int next_no = track.wrapCheckpointIndex(timedLap.getCheckpoint() + 1);
@@ -72,13 +77,15 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
 
                             if (best != null) {
                                 if (time < best.getTime()) {
+                                    long improvement = time - best.getTime();
+
                                     player.sendMessage(Component.empty()
                                             .append(Component.text("Beat your record on "))
                                             .append(Component.text(track.getId()))
                                             .append(Component.text(" in "))
                                             .append(TextFormatter.getTime(time))
                                             .append(Component.text(" by "))
-                                            .append(TextFormatter.getDelta(tick_delta))
+                                            .append(TextFormatter.getDelta(improvement))
                                     );
 
                                     IceStom.getInstance().getTimetrialDatabase().updateBestTime(player, track.getId(), completed);
@@ -93,6 +100,8 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
 
                                 IceStom.getInstance().getTimetrialDatabase().updateBestTime(player, track.getId(), completed);
                             }
+
+                            scoreboardHolder.getProviders().forEach(provider -> provider.dispatchTimeTrialLeaderboard(this));
 
                             not_started_tt.put(player, movement);
                         }
@@ -139,12 +148,12 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
         super.resetPlayer(player);
     }
 
-    public @Nullable TimedLap getTimeTrial(Player player) {
+    public @Nullable TimedLap getTimedLap(Player player) {
         return timeTrials.get(player);
     }
 
     public TimedLap endTimeTrial(Player player) {
-        @Nullable TimedLap timedLap = getTimeTrial(player);
+        @Nullable TimedLap timedLap = getTimedLap(player);
 
         if (timedLap != null) {
             timeTrials.remove(player);
@@ -155,13 +164,21 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
 
     @Override
     public Component getActionBar(Player player) {
-        @Nullable TimedLap timedLap = getTimeTrial(player);
+        @Nullable TimedLap timedLap = getTimedLap(player);
 
         if (timedLap != null) {
             return timedLap.getActionBar(player);
         }
 
         return Component.text("At ").append(Component.text(track.getId(), NamedTextColor.GOLD));
+    }
+
+    @Override
+    public void consume(Player player) {
+        super.consume(player);
+
+        scoreboardHolder.init(player);
+        scoreboardHolder.getProviders().forEach(provider -> provider.dispatchTimeTrialLeaderboard(this));
     }
 
     @Override

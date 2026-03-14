@@ -1,7 +1,7 @@
 package io.gitlab.icestom.icestom.ui.scoreboard.manager;
 
 import io.gitlab.icestom.icestom.ui.scoreboard.ScoreboardProvider;
-import io.gitlab.icestom.icestom.ui.scoreboard.VanillaScoreboardProvider;
+import io.gitlab.icestom.icestom.ui.scoreboard.VanillaScoreboard;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.GlobalEventHandler;
@@ -18,7 +18,7 @@ public class PlayerScoreboardManager {
     private final Map<Player, Map<ScoreboardProviderType, Boolean>> scoreboards = new HashMap<>();
 
     public enum ScoreboardProviderType {
-        VANILLA("Vanilla Leaderboard", VanillaScoreboardProvider.class);
+        VANILLA("Vanilla Leaderboard", VanillaScoreboard.class);
 
         private final String name;
         private final Class<? extends ScoreboardProvider> provider;

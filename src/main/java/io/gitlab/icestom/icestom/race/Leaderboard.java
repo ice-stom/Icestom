@@ -28,51 +28,56 @@ public class Leaderboard {
 
     public void update(UUID player, Split latest) {
         Race.RaceParticipation participation = race.getParticipant(player);
-
         assert participation != null;
 
         RaceScoreboardRow row = playerRows.get(player);
+        int currentPosition = leaderboard.indexOf(row);
+        int newPos = currentPosition;
 
-        int current_position = leaderboard.indexOf(row);
-        int new_pos = current_position;
+        while (newPos > 0) {
+            RaceScoreboardRow aheadRow = leaderboard.get(newPos - 1);
+            Race.RaceParticipation aheadParticipation = race.getParticipant(aheadRow.getPlayer());
+            assert aheadParticipation != null;
 
-        Race.RaceParticipation next_row_participant = participation;
-        while (new_pos > 0) {
-            RaceScoreboardRow next_row = leaderboard.get(new_pos - 1);
-            next_row_participant = race.getParticipant(next_row.getPlayer());
-            assert next_row_participant != null;
+            int checkpointLead = aheadParticipation.getGlobalCheckpointIndex() - participation.getGlobalCheckpointIndex();
 
-            int behind = next_row_participant.getGlobalCheckpointIndex() - participation.getGlobalCheckpointIndex();
-            Split next = next_row_participant.getSplits().getLast();
+            if (checkpointLead > 0) break;
 
-            if (behind > 0) break;
-            if (behind == 0 && next.ms() < latest.ms()) break;
+            if (checkpointLead == 0) {
+                if (aheadParticipation.getSplits().isEmpty() || latest == null) break;
+                if (aheadParticipation.getSplits().getLast().ms() < latest.ms()) break;
+            }
 
-            new_pos--;
+            newPos--;
         }
 
-        leaderboard.remove(current_position);
-        leaderboard.add(new_pos, row);
+        leaderboard.remove(currentPosition);
+        leaderboard.add(newPos, row);
 
         row.setCompletedLaps(participation.getCompletedLaps());
         row.setCompletedPits(participation.getCompletedPits());
 
-        row.setDelta(participation.deltaTo(next_row_participant));
+        if (newPos > 0) {
+            RaceScoreboardRow aheadRow = leaderboard.get(newPos - 1);
+            Race.RaceParticipation aheadParticipation = race.getParticipant(aheadRow.getPlayer());
+            assert aheadParticipation != null;
+            row.setDelta(participation.deltaTo(aheadParticipation));
+        } else {
+            row.setDelta(0);
+        }
 
-        RaceScoreboardRow next = row;
-
-        for (int i = new_pos + 1; i < current_position + 1; i++) {
+        RaceScoreboardRow prev = row;
+        for (int i = newPos + 1; i <= currentPosition; i++) {
             RaceScoreboardRow current = leaderboard.get(i);
 
-            Race.RaceParticipation ahead = race.getParticipant(next.getPlayer());
-            Race.RaceParticipation behind = race.getParticipant(current.getPlayer());
+            Race.RaceParticipation aheadP = race.getParticipant(prev.getPlayer());
+            Race.RaceParticipation behindP = race.getParticipant(current.getPlayer());
 
-            assert ahead != null;
-            assert behind != null;
+            assert aheadP != null;
+            assert behindP != null;
 
-            current.setDelta(behind.deltaTo(ahead));
-
-            next = current;
+            current.setDelta(behindP.deltaTo(aheadP));
+            prev = current;
         }
     }
 

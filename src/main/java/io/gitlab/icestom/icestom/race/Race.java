@@ -150,6 +150,8 @@ public class Race extends TrackInstance implements Stage<TrackInstance>, ActionB
 
             int this_checkpoint = nextExpected;
 
+            splits.add(split);
+
             nextExpected++;
 
             globalCheckpointIndex++;
@@ -204,9 +206,18 @@ public class Race extends TrackInstance implements Stage<TrackInstance>, ActionB
             if (max_checkpoint < 0) return 0;
 
             Split local = getSplits().get(max_checkpoint);
-            Split foreign = getSplits().get(max_checkpoint);
+            Split foreign = other.getSplits().get(max_checkpoint);
 
-            return local.ms() - foreign.ms();
+            long delta = local.ms() - foreign.ms();
+
+            if (delta < 0) {
+                // when someone overtakes, the most recent shared checkpoint is when the overtaken driver was still in the lead
+                // its pretty much impossible to guess a deltas for a checkpoint that doesn't exist yet
+                // can't really do much about this so just assume 0 for now.
+                return 0;
+            }
+
+            return delta;
         }
 
         public int getNextExpected() {

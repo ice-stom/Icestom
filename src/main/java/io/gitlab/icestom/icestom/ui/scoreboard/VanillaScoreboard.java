@@ -7,8 +7,11 @@ import io.gitlab.icestom.icestom.race.scoreboard.RaceScoreboardRow;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.race.Race;
 import io.gitlab.icestom.icestom.track.Track;
+import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.object.ObjectContents;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.scoreboard.Sidebar;
 import org.jetbrains.annotations.Nullable;
@@ -16,16 +19,18 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
-public class VanillaScoreboardProvider implements RaceScoreboardProvider, TimeTrialScoreboardProvider {
+public class VanillaScoreboard implements RaceScoreboardProvider, TimeTrialScoreboardProvider {
 
     private final Map<Player, Sidebar> sidebars = new HashMap<>();
+    private final Map<UUID, String> name = new HashMap<>();
 
     @Override
     public void startViewing(Player viewer) {
         Sidebar sidebar = new Sidebar(Component.text("Title"));
 
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 15; i++) {
             sidebar.createLine(new Sidebar.ScoreboardLine(String.valueOf(i), Component.empty(), 0, Sidebar.NumberFormat.blank()));
         }
 
@@ -45,6 +50,21 @@ public class VanillaScoreboardProvider implements RaceScoreboardProvider, TimeTr
         });
     }
 
+    private Component sidebarLeaderboardEntry(RaceScoreboardRow row) {
+        String username = name.computeIfAbsent(row.getPlayer(), uuid -> {
+            Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid);
+
+            if (player == null) return "<unknown>";
+
+            return player.getUsername();
+        });
+
+        return Component.object(ObjectContents.playerHead(row.getPlayer()))
+                .append(Component.text(" "))
+                .append(TextFormatter.getDelta(row.getDelta()))
+                .append(Component.text(" " + username));
+    }
+
     @Override
     public void dispatchRaceLeaderboard(Race race) {
         Leaderboard leaderboard = race.getLeaderboard();
@@ -60,7 +80,7 @@ public class VanillaScoreboardProvider implements RaceScoreboardProvider, TimeTr
 
                 if (sidebar == null) return;
 
-                sidebar.updateLineContent(String.valueOf(i), Component.text(row.getPlayer().toString()).append(Component.space()).append(Component.text(row.getCompletedLaps())));
+                sidebar.updateLineContent(String.valueOf(i), sidebarLeaderboardEntry(row));
             }
         }
     }

@@ -4,7 +4,9 @@ import com.moandjiezana.toml.Toml;
 import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.LineCheckpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.PlaneCheckpoint;
+import io.gitlab.icestom.icestom.track.format.serialization.PosAdapter;
 import net.minestom.server.coordinate.Pos;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -14,6 +16,7 @@ public interface TrackData {
     String getId();
     Pos getSpawnLocation();
     Map<Checkpoint, Integer> getCheckpoints();
+    List<Pos> getGridLocations();
 
     class TrackDeserializationException extends Exception {
         public TrackDeserializationException(String message) {
@@ -46,6 +49,14 @@ public interface TrackData {
                     checkpoints.add(checkpointMap);
                 });
 
+        Map<String, List<Double>> grid_locations = new HashMap<>();
+        map.put("grid", grid_locations);
+
+        int i = 0;
+        for (Pos gridLocation : getGridLocations()) {
+            grid_locations.put(String.valueOf(i), PosAdapter.serialize(gridLocation));
+            i++;
+        }
         return map;
     }
 
@@ -68,6 +79,17 @@ public interface TrackData {
             }, index);
         }
 
+        Toml grid_data = expect(toml.getTable("grid"), new TrackDeserializationException("Missing grid locations"));
+        List<Pos> grid_locations = new ArrayList<>();
+
+        for (int i = 0; i < grid_data.entrySet().size(); i++) {
+            @Nullable Pos pos = PosAdapter.deserializePos(grid_data, String.valueOf(i));
+
+            if (pos == null) throw new TrackDeserializationException("Missing grid location index " + i);
+
+            grid_locations.add(pos);
+        }
+
         return new TrackData() {
             @Override
             public String getId() { return id; }
@@ -77,6 +99,11 @@ public interface TrackData {
 
             @Override
             public Map<Checkpoint, Integer> getCheckpoints() { return checkpoints; }
+
+            @Override
+            public List<Pos> getGridLocations() {
+                return grid_locations;
+            }
         };
     }
 }

@@ -97,6 +97,16 @@ public class IceStom {
                                     new LineCheckpoint(new Vec(22.5, 17, -53.5), new Vec(14.5, 17, -44.5), 3), 2,
                                     new LineCheckpoint(new Vec(40.5, 17, -1.5), new Vec(32.5, 17, -9.5), 3), 3,
                                     new LineCheckpoint(new Vec(0.5, 17, 18.5), new Vec(-0.5, 17, 7.5), 3), 4
+                            ),
+                            List.of(
+                                    new Pos(-30.5, 17.00, -18.5, -180, 0),
+                                    new Pos(-26.5, 17.00, -17.5, -180, 0),
+                                    new Pos(-30.5, 17.00, -16.5, -180, 0),
+                                    new Pos(-26.5, 17.00, -15.5, -180, 0),
+                                    new Pos(-30.5, 17.00, -14.5, -180, 0),
+                                    new Pos(-26.5, 17.00, -13.5, -180, 0),
+                                    new Pos(-30.5, 17.00, -12.5, -180, 0),
+                                    new Pos(-26.5, 17.00, -11.5, -180, 0)
                             )
                     ), world)
             );

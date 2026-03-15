@@ -14,6 +14,7 @@ public class Track implements TrackData {
     private final String id;
     private final Pos spawnLocation;
     private final Map<Checkpoint, Integer> checkpoints;
+    private final List<Pos> gridLocations;
 
     private final Map<Integer, List<Checkpoint>> checkpoint_lookup = new HashMap<>();
 
@@ -23,6 +24,7 @@ public class Track implements TrackData {
         this.id = trackData.getId();
         this.spawnLocation = trackData.getSpawnLocation();
         this.checkpoints = trackData.getCheckpoints();
+        this.gridLocations = trackData.getGridLocations();
 
         this.world = world;
 
@@ -48,6 +50,11 @@ public class Track implements TrackData {
 
     @Override
     public Map<Checkpoint, Integer> getCheckpoints() { return checkpoints; }
+
+    @Override
+    public List<Pos> getGridLocations() {
+        return gridLocations;
+    }
 
     public List<Checkpoint> getCheckpoints(int index) {
         return checkpoint_lookup.get(index);

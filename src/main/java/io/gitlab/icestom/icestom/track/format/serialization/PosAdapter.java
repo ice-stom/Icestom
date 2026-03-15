@@ -10,6 +10,8 @@ public class PosAdapter {
     public static Pos deserializePos(Toml toml, String key) {
         List<Double> e = toml.getList(key);
 
+        if (e == null) return null;
+
         return new Pos(
                 e.get(0),
                 e.get(1),

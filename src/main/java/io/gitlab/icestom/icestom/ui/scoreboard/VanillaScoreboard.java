@@ -28,7 +28,7 @@ public class VanillaScoreboard implements RaceScoreboardProvider, TimeTrialScore
 
     @Override
     public void startViewing(Player viewer) {
-        Sidebar sidebar = new Sidebar(Component.text("Title"));
+        Sidebar sidebar = new Sidebar(Component.empty());
 
         for (int i = 0; i < 15; i++) {
             sidebar.createLine(new Sidebar.ScoreboardLine(String.valueOf(i), Component.empty(), 0, Sidebar.NumberFormat.blank()));
@@ -59,7 +59,9 @@ public class VanillaScoreboard implements RaceScoreboardProvider, TimeTrialScore
             return player.getUsername();
         });
 
-        return Component.object(ObjectContents.playerHead(row.getPlayer()))
+        return Component.object(ObjectContents
+                        .playerHead(row.getPlayer())
+                )
                 .append(Component.text(" "))
                 .append(TextFormatter.getDelta(row.getDelta()))
                 .append(Component.text(" " + username));
@@ -72,13 +74,15 @@ public class VanillaScoreboard implements RaceScoreboardProvider, TimeTrialScore
         RaceLeaderboardSnapshot snapshot = leaderboard.getSnapshot();
 
         List<RaceScoreboardRow> rows = snapshot.getRows();
-        for (int i = 0; i < rows.size(); i++) {
-            RaceScoreboardRow row = rows.get(i);
+        for (Player player : race.getPlayers()) {
+            @Nullable Sidebar sidebar = sidebars.get(player);
 
-            for (Player player : race.getPlayers()) {
-                @Nullable Sidebar sidebar = sidebars.get(player);
+            if (sidebar == null) continue;
 
-                if (sidebar == null) return;
+            sidebar.setTitle(Component.text("Race at " + race.getTrack().getId()));
+
+            for (int i = 0; i < rows.size(); i++) {
+                RaceScoreboardRow row = rows.get(i);
 
                 sidebar.updateLineContent(String.valueOf(i), sidebarLeaderboardEntry(row));
             }

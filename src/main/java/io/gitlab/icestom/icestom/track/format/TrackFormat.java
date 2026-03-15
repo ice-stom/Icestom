@@ -50,7 +50,7 @@ public class TrackFormat {
                 entry = zis.getNextEntry();
             }
         } catch (TrackData.TrackDeserializationException e) {
-            throw new RuntimeException(e);
+            throw new TrackLoadException("Failed to deserialize track: " + e.getMessage());
         }
 
         if (trackData == null) throw new TrackLoadException("Failed to load manifest");

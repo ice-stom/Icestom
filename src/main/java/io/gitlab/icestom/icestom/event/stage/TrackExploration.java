@@ -26,7 +26,7 @@ public class TrackExploration extends TrackInstance implements Stage<TrackInstan
 
     @Override
     public Pos spawnLocation(Player player) {
-        return Pos.ZERO;
+        return track.getSpawnLocation();
     }
 
     @Override

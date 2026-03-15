@@ -1,5 +1,7 @@
 package io.gitlab.icestom.icestom.race;
 
+import io.gitlab.icestom.icestom.entity.Boat;
+import io.gitlab.icestom.icestom.entity.GridBoatHolder;
 import io.gitlab.icestom.icestom.event.stage.Stage;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
 import io.gitlab.icestom.icestom.race.scoreboard.RaceScoreboardProvider;
@@ -15,11 +17,13 @@ import io.gitlab.icestom.icestom.ui.scoreboard.ScoreboardHolder;
 import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Race extends TrackInstance implements Stage<TrackInstance>, ActionBarProvider {
 
@@ -31,6 +35,7 @@ public class Race extends TrackInstance implements Stage<TrackInstance>, ActionB
     private final Leaderboard leaderboard;
 
     private final Map<UUID, RaceParticipation> racers = new LinkedHashMap<>();
+    private final List<UUID> start_order = new ArrayList<>();
 
     public Race(Track track, int totalLaps, int totalPits) {
         super(track);
@@ -57,6 +62,8 @@ public class Race extends TrackInstance implements Stage<TrackInstance>, ActionB
             }
         }
 
+        AtomicBoolean updated = new AtomicBoolean(false);
+
         for (Map.Entry<Integer, Map<Player, TickMovement>> integerMapEntry : grouped.entrySet()) {
             int checkpoint_index = integerMapEntry.getKey();
 
@@ -76,12 +83,13 @@ public class Race extends TrackInstance implements Stage<TrackInstance>, ActionB
                         participation.nextCheckpoint(split);
 
                         leaderboard.update(player.getUuid(), split);
+                        updated.set(true);
                     }
                 });
             }
         }
 
-        scoreboardHolder.getProviders().forEach(provider -> provider.dispatchRaceLeaderboard(this));
+        if (updated.get()) scoreboardHolder.getProviders().forEach(provider -> provider.dispatchRaceLeaderboard(this));
     }
 
     public int getTotalLaps() { return totalLaps; }
@@ -92,16 +100,26 @@ public class Race extends TrackInstance implements Stage<TrackInstance>, ActionB
     public @Nullable RaceParticipation getParticipant(UUID uuid) { return racers.get(uuid); }
 
     @Override
-    public void consume(Player player) {
-        super.consume(player);
+    public void resetPlayer(Player player) {
+        gridPlayer(player);
+    }
 
+    @Override
+    public void consume(Player player) {
         scoreboardHolder.init(player);
-        scoreboardHolder.getProviders().forEach(provider -> provider.dispatchRaceLeaderboard(this));
 
         // TODO: participation
 
-        racers.computeIfAbsent(player.getUuid(), _ -> new RaceParticipation(player));
+        racers.computeIfAbsent(player.getUuid(), player_id -> {
+            start_order.add(player_id);
+            return new RaceParticipation(player);
+        });
         leaderboard.addPlayer(player);
+
+        super.consume(player);
+
+        MinecraftServer.getSchedulerManager()
+                .scheduleNextTick(() -> scoreboardHolder.getProviders().forEach(provider -> provider.dispatchRaceLeaderboard(this)));
     }
 
     @Override
@@ -117,6 +135,38 @@ public class Race extends TrackInstance implements Stage<TrackInstance>, ActionB
     @Override
     public Component getActionBar(Player player) {
         return Component.text("Racing ").append(Component.text(track.getId(), NamedTextColor.GOLD));
+    }
+
+    public @Nullable Pos getGridLocation(Player player) {
+        @Nullable RaceParticipation participation = getParticipant(player.getUuid());
+
+        if (participation != null) {
+            int starting_pos = start_order.indexOf(player.getUuid());
+
+            if (starting_pos == -1) return null;
+
+            List<Pos> grid_locations = track.getGridLocations();
+
+            if (starting_pos >= grid_locations.size()) {
+                return track.getSpawnLocation();
+            }
+
+            return track.getGridLocations().get(starting_pos);
+        }
+
+        return null;
+    }
+
+    public void gridPlayer(Player player) {
+        Pos grid_location = getGridLocation(player);
+
+        if (grid_location == null) return;
+
+        Boat boat = createBoat(player, grid_location);
+
+        GridBoatHolder holder = new GridBoatHolder(this, grid_location);
+
+        holder.addPassenger(boat);
     }
 
     public class RaceParticipation {

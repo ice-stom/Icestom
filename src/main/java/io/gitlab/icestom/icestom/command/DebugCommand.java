@@ -1,6 +1,7 @@
 package io.gitlab.icestom.icestom.command;
 
 import io.gitlab.icestom.icestom.instance.TrackInstance;
+import io.gitlab.icestom.icestom.race.Race;
 import io.gitlab.icestom.icestom.track.Track;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -20,6 +21,7 @@ public class DebugCommand extends Command {
         addSubcommand(new ToGrid());
         addSubcommand(new EscapeGrid());
         addSubcommand(new InstanceList());
+        addSubcommand(new StartRace());
     }
 
     public static class LetMeOutCommand extends Command {
@@ -94,6 +96,18 @@ public class DebugCommand extends Command {
                 }
 
                 commandSender.sendMessage(text);
+            });
+        }
+    }
+
+    public static class StartRace extends Command {
+        public StartRace() {
+            super("startrace");
+
+            setDefaultExecutor((commandSender, _) -> {
+                if (!(commandSender instanceof Player player)) return;
+
+                if (player.getInstance() instanceof Race race) race.startCountdown();
             });
         }
     }

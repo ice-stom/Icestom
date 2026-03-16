@@ -35,7 +35,7 @@ public class Event {
         @Nullable Stage<?> currentStage = getCurrentStage();
 
         if (currentStage != null) {
-            currentStage.getInstance().consume(player);
+            currentStage.getInstance(player).consume(player);
         }
     }
 
@@ -57,7 +57,7 @@ public class Event {
         @Nullable Stage<?> currentStage = getCurrentStage();
 
         if (player.getInstance() == currentStage && currentStage != null) {
-            currentStage.getInstance().drop(player);
+            currentStage.drop(player);
         }
 
         IceStom.getInstance().getSpawnInstance().consume(player);
@@ -67,13 +67,8 @@ public class Event {
         @Nullable Stage<?> current = getCurrentStage();
 
         if (current != null) {
-            Instance instance = current.getInstance();
-
-            for (Player player : instance.getPlayers()) {
-                current.getInstance().drop(player);
-            }
-
-            MinecraftServer.getInstanceManager().unregisterInstance(instance);
+            current.getPlayers().forEach(current::drop);
+            current.unregister();
         }
 
         currentStage++;
@@ -82,11 +77,10 @@ public class Event {
 
         if (next == null) return;
 
-        MinecraftServer.getInstanceManager().registerInstance(next.getInstance());
+        next.register();
 
-        PlayerHolder holder = next.getInstance();
         for (Player participant : getOnlineParticipants()) {
-            holder.consume(participant);
+            next.consume(participant);
         }
     }
 

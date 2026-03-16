@@ -8,10 +8,11 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
-public class TrackExploration extends TrackInstance implements Stage<TrackInstance>, ActionBarProvider {
+public class TrackExploration extends TrackInstance implements SingleInstanceStage<TrackInstance>, ActionBarProvider {
     public TrackExploration(Track track) {
         super(track);
     }
@@ -20,7 +21,12 @@ public class TrackExploration extends TrackInstance implements Stage<TrackInstan
     protected void onPlayerMovements(Map<Player, TickMovement> movements) {}
 
     @Override
-    public TrackInstance getInstance(Player player) {
+    protected boolean shouldTrackPlayer(Player player) {
+        return false;
+    }
+
+    @Override
+    public TrackInstance getInstance() {
         return this;
     }
 
@@ -30,7 +36,7 @@ public class TrackExploration extends TrackInstance implements Stage<TrackInstan
     }
 
     @Override
-    public Component getActionBar(Player player) {
+    public @Nullable Component getActionBar(Player player) {
         return Component.text("Exploring ").append(Component.text(track.getId(), NamedTextColor.GOLD));
     }
 }

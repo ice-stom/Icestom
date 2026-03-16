@@ -138,6 +138,11 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
     }
 
     @Override
+    protected boolean shouldTrackPlayer(Player player) {
+        return true;
+    }
+
+    @Override
     public Pos spawnLocation(Player player) {
         return track.getSpawnLocation();
     }
@@ -163,7 +168,7 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
     }
 
     @Override
-    public Component getActionBar(Player player) {
+    public @Nullable Component getActionBar(Player player) {
         @Nullable TimedLap timedLap = getTimedLap(player);
 
         if (timedLap != null) {
@@ -184,5 +189,6 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
     @Override
     public void drop(Player player) {
         endTimeTrial(player);
+        removeBoat(player);
     }
 }

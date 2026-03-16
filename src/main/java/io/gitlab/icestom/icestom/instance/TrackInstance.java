@@ -12,6 +12,7 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Player;
 import net.minestom.server.instance.LightingChunk;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -43,8 +44,13 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
         Map<Player, TickMovement> movementMap = new HashMap<>();
 
         for (Player player : getPlayers()) {
+            if (!shouldTrackPlayer(player)) {
+                last_tick_positions.remove(player);
+                continue;
+            };
+
             Vec current = player.getPosition().asVec();
-            Vec last = last_tick_positions.get(player);
+            @Nullable Vec last = last_tick_positions.get(player);
 
             movementMap.put(player, new TickMovement(last, current));
 
@@ -69,6 +75,7 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
     }
 
     protected abstract void onPlayerMovements(Map<Player, TickMovement> movements);
+    protected abstract boolean shouldTrackPlayer(Player player);
 
     public Track getTrack() {
         return track;

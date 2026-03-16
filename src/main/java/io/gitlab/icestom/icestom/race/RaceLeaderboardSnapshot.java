@@ -16,6 +16,8 @@ public interface RaceLeaderboardSnapshot {
 
     List<RaceScoreboardRow> getRows();
 
+    int getPosition(UUID player);
+
     default long getDelta(RaceScoreboardRow self, RaceScoreboardRow other) {
         return self.getDelta() - other.getDelta();
     }

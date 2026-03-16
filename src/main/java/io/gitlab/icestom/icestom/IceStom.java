@@ -20,6 +20,7 @@ import io.gitlab.icestom.icestom.ui.scoreboard.manager.PlayerScoreboardManager;
 import me.lucko.spark.minestom.SparkMinestom;
 import net.hollowcube.polar.AnvilPolar;
 import net.hollowcube.polar.PolarWorld;
+import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
 import net.minestom.server.coordinate.Pos;
@@ -147,12 +148,12 @@ public class IceStom {
                 @Nullable Stage<?> current_stage = active_event.getCurrentStage();
 
                 if (current_stage != null) {
-                    event.setSpawningInstance(current_stage.getInstance());
+                    event.setSpawningInstance(current_stage.getInstance(player));
 
                     EventListener<@NotNull PlayerSpawnEvent> listener = EventListener.builder(PlayerSpawnEvent.class)
                             .filter(e -> e.getPlayer() == player)
                             .handler(_ -> {
-                                current_stage.getInstance().consume(player);
+                                current_stage.getInstance(player).consume(player);
                             })
                             .expireCount(1)
                             .build();
@@ -190,7 +191,7 @@ public class IceStom {
             }
         });
 
-        minecraftServer.start("0.0.0.0", 25565);
+        minecraftServer.start("0.0.0.0", 60102);
     }
 
     public TrackLibrary getTrackLibrary() { return trackLibrary; }

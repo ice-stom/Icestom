@@ -21,7 +21,7 @@ public class TimedLap implements TimedLapResultSource, ActionBarProvider {
     private long msStart;
     private int checkpoint = -1;
 
-    private long recent_split = 0;
+    private long recentSplit = 0;
 
     public TimedLap(Track track, @Nullable TimedLapResultSource bestPreviousResult, Split split) {
 
@@ -59,14 +59,20 @@ public class TimedLap implements TimedLapResultSource, ActionBarProvider {
         if (best_previous_result != null) {
             Split best_previous = best_previous_result.getSplits().get(split.checkpoint_no());
 
-            recent_split = local_tick.ms() - best_previous.ms();
+            recentSplit = local_tick.ms() - best_previous.ms();
         }
 
         return false;
     }
 
+    public long getCurrentTime(long worldAge) {
+        if (splits.isEmpty()) return 0;
+
+        return worldAge * 50 - getMsStart();
+    }
+
     @Override
-    public Component getActionBar(Player player) {
+    public @Nullable Component getActionBar(Player player) {
         long age = player.getInstance().getWorldAge();
         long time = age * 50 - getMsStart();
 
@@ -75,7 +81,7 @@ public class TimedLap implements TimedLapResultSource, ActionBarProvider {
         if (best_previous_result != null) {
             text = text
                     .append(Component.space())
-                    .append(TextFormatter.getDelta(recent_split));
+                    .append(TextFormatter.getDelta(recentSplit));
         }
 
         return text;
@@ -83,6 +89,8 @@ public class TimedLap implements TimedLapResultSource, ActionBarProvider {
 
     public long getMsStart() { return msStart; }
     public int getCheckpoint() { return checkpoint; }
+
+    public long getRecentSplit() { return recentSplit; }
 
     @Override
     public List<Split> getSplits() { return splits; }

@@ -20,7 +20,7 @@ public class TrackExploration extends TrackInstance implements Stage<TrackInstan
     protected void onPlayerMovements(Map<Player, TickMovement> movements) {}
 
     @Override
-    public TrackInstance getInstance() {
+    public TrackInstance getInstance(Player player) {
         return this;
     }
 

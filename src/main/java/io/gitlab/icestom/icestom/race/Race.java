@@ -123,7 +123,7 @@ public class Race extends TrackInstance implements Stage<TrackInstance>, ActionB
     }
 
     @Override
-    public TrackInstance getInstance() {
+    public TrackInstance getInstance(Player player) {
         return this;
     }
 

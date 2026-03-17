@@ -12,10 +12,12 @@ import net.minestom.server.event.player.PlayerPacketEvent;
 import net.minestom.server.network.packet.client.play.ClientTeleportConfirmPacket;
 import net.minestom.server.world.DimensionType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public abstract class BoatInstance extends IceStomInstance {
 
@@ -26,13 +28,9 @@ public abstract class BoatInstance extends IceStomInstance {
     }
 
     public void removeBoat(Player player) {
-        boats.computeIfPresent(player, (_, boat) -> {
-            MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
-                this.removeBoat(player, boat);
-            });
+        @Nullable Boat boat = boats.remove(player);
 
-            return null;
-        });
+        if (boat != null) removeBoat(player, boat);
     }
 
     public void removeBoat(Player player, Boat boat) {
@@ -57,12 +55,12 @@ public abstract class BoatInstance extends IceStomInstance {
         removeBoat(player);
 
         Boat boat = new Boat();
-        boat.setInstance(this, pos);
 
         if (player.getInstance() == this) {
             EventListener<@NotNull PlayerPacketEvent> listener = EventListener.builder(PlayerPacketEvent.class)
                     .filter(e -> e.getPlayer() == player && e.getPacket() instanceof ClientTeleportConfirmPacket)
                     .handler(_ -> {
+                        boat.setInstance(this, pos);
                         boat.addPassenger(player);
                     })
                     .expireCount(1)
@@ -70,6 +68,7 @@ public abstract class BoatInstance extends IceStomInstance {
 
             eventNode().addListener(listener);
         } else {
+            boat.setInstance(this, pos);
             boat.addPassenger(player);
         }
 

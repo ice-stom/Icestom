@@ -3,6 +3,7 @@ package io.gitlab.icestom.icestom.timetrial;
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.instance.SpawnLocation;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
+import io.gitlab.icestom.icestom.timetrial.event.LapCompletedEvent;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.TickMovement;
@@ -14,6 +15,7 @@ import io.gitlab.icestom.icestom.ui.scoreboard.TimeTrialScoreboardProvider;
 import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
@@ -75,31 +77,12 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
 
                             @Nullable TimedLapResultSource best = IceStom.getInstance().getTimetrialDatabase().getBestTime(player, track.getId());
 
-                            if (best != null) {
-                                if (time < best.getTime()) {
-                                    long improvement = time - best.getTime();
+                            boolean personal_record = best == null || time < best.getTime();
 
-                                    player.sendMessage(Component.empty()
-                                            .append(Component.text("Beat your record on "))
-                                            .append(Component.text(track.getId()))
-                                            .append(Component.text(" in "))
-                                            .append(TextFormatter.getTime(time))
-                                            .append(Component.text(" by "))
-                                            .append(TextFormatter.getDelta(improvement))
-                                    );
+                            if (personal_record) IceStom.getInstance().getTimetrialDatabase().updateBestTime(player, track.getId(), completed);
 
-                                    IceStom.getInstance().getTimetrialDatabase().updateBestTime(player, track.getId(), completed);
-                                }
-                            } else {
-                                player.sendMessage(Component.empty()
-                                        .append(Component.text("Completed "))
-                                        .append(Component.text(track.getId()))
-                                        .append(Component.text(" in "))
-                                        .append(TextFormatter.getTime(time))
-                                );
-
-                                IceStom.getInstance().getTimetrialDatabase().updateBestTime(player, track.getId(), completed);
-                            }
+                            MinecraftServer.getGlobalEventHandler()
+                                    .call(new LapCompletedEvent(timedLap, player, best == null ? null : time - best.getTime()));
 
                             scoreboardHolder.getProviders().forEach(provider -> provider.dispatchTimeTrialLeaderboard(this));
 

@@ -305,6 +305,8 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
 
             globalCheckpointIndex++;
 
+
+
             if (completed) {
                 TimedLapResultSource lap = newLap(split);
                 nextExpected = track.wrapCheckpointIndex(1);

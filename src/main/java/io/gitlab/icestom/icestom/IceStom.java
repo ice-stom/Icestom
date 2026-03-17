@@ -3,6 +3,7 @@ package io.gitlab.icestom.icestom;
 import io.gitlab.icestom.icestom.command.*;
 import io.gitlab.icestom.icestom.database.TimetrialDatabase;
 import io.gitlab.icestom.icestom.database.memory.MemoryTimetrialDatabase;
+import io.gitlab.icestom.icestom.debug.PerfHud;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
 import io.gitlab.icestom.icestom.event.Event;
@@ -17,10 +18,10 @@ import io.gitlab.icestom.icestom.track.format.TrackFormat;
 import io.gitlab.icestom.icestom.track.TrackLibrary;
 import io.gitlab.icestom.icestom.track.checkpoint.*;
 import io.gitlab.icestom.icestom.ui.scoreboard.manager.PlayerScoreboardManager;
+import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsPacket;
 import me.lucko.spark.minestom.SparkMinestom;
 import net.hollowcube.polar.AnvilPolar;
 import net.hollowcube.polar.PolarWorld;
-import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
 import net.minestom.server.coordinate.Pos;
@@ -30,18 +31,25 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.event.EventListener;
 import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.*;
+import net.minestom.server.event.server.ServerTickMonitorEvent;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.InstanceManager;
+import net.minestom.server.network.packet.server.common.PluginMessagePacket;
 import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 
 public class IceStom {
 
+    private static final Logger log = LoggerFactory.getLogger(IceStom.class);
     public static final String NAMESPACE = "icestom";
 
     private static IceStom instance;
@@ -56,6 +64,8 @@ public class IceStom {
     private final SpawnInstance spawnInstance;
 
     private final TimetrialDatabase timetrialDatabase;
+
+    private final PerfHud perfHud = new PerfHud();
 
     IceStom() {
         System.setProperty("minestom.chunk-view-distance", "8");
@@ -108,6 +118,38 @@ public class IceStom {
                                     new Pos(-26.5, 17.00, -13.5, -180, 0),
                                     new Pos(-30.5, 17.00, -12.5, -180, 0),
                                     new Pos(-26.5, 17.00, -11.5, -180, 0)
+                            ),
+                            List.of()
+                    ), world)
+            );
+
+            TrackFormat.saveTrack(TrackLibrary.TRACK_STORAGE_PATH.resolve(
+                            id + "_obu." + TrackFormat.FILE_EXTENTION).toFile(),
+                    new Track(new MutableTrack(
+                            id + "_obu",
+                            new Pos(81.5, 12.00, -47.5, 15, 0),
+                            Map.of(
+                                    new LineCheckpoint(new Vec(59.5, 9.00, 25.5), new Vec(51.5, 9.00, 19.5), 3), 0,
+                                    new LineCheckpoint(new Vec( 57.5, 9.00, 31.5), new Vec(49.5, 9.00, 27.5), 3), 1,
+                                    new LineCheckpoint(new Vec(28.5, 9.00, 75.5), new Vec(22.5, 9.00, 69.5), 3), 2,
+                                    new LineCheckpoint(new Vec(-8.5, 9.00, 102.5), new Vec(-12.5, 9.00, 93.5), 3), 3,
+                                    new LineCheckpoint(new Vec(-52.5, 9.00, 69.5), new Vec(-43.5, 9.00, 54.5), 3), 4
+                            ),
+                            List.of(
+                                    new Pos(-30.5, 17.00, -18.5, -180, 0),
+                                    new Pos(-26.5, 17.00, -17.5, -180, 0),
+                                    new Pos(-30.5, 17.00, -16.5, -180, 0),
+                                    new Pos(-26.5, 17.00, -15.5, -180, 0),
+                                    new Pos(-30.5, 17.00, -14.5, -180, 0),
+                                    new Pos(-26.5, 17.00, -13.5, -180, 0),
+                                    new Pos(-30.5, 17.00, -12.5, -180, 0),
+                                    new Pos(-26.5, 17.00, -11.5, -180, 0)
+                            ),
+                            List.of(
+                                    new OpenBoatUtilsPacket.DefaultSlipperinessPacket(0.98f),
+                                    new OpenBoatUtilsPacket.StepHeightPacket(1.1f),
+                                    new OpenBoatUtilsPacket.StepWhileFallingPacket(true),
+                                    new OpenBoatUtilsPacket.AirControlPacket(true)
                             )
                     ), world)
             );
@@ -167,6 +209,37 @@ public class IceStom {
             event.setSpawningInstance(spawnInstance);
         });
 
+        globalEventHandler.addListener(PlayerSpawnEvent.class, playerSpawnEvent -> {
+            perfHud.addViewer(playerSpawnEvent.getPlayer());
+        });
+
+        globalEventHandler.addListener(ServerTickMonitorEvent.class, perfHud::onTick);
+
+        final PluginMessagePacket set_interpolation_packet = new OpenBoatUtilsPacket.InterpolationCompatPacket(true).toPacket();
+
+        globalEventHandler.addListener(PlayerPluginMessageEvent.class, playerPluginMessageEvent -> {
+            final Player player = playerPluginMessageEvent.getPlayer();
+
+            if (playerPluginMessageEvent.getIdentifier().equals(OpenBoatUtilsPacket.getChannel())) {
+                try {
+                    DataInputStream in = new DataInputStream(new ByteArrayInputStream(playerPluginMessageEvent.getMessage()));
+                    short packetId = in.readShort();
+
+                    if (packetId == 0) {
+                        int version = in.readInt();
+
+                        // TODO: probably validate this?
+
+                        ((IceStomPlayer) player).setOpenBoatUtilsVersion(version);
+                        player.sendPacket(set_interpolation_packet);
+
+                    }
+                } catch (IOException e) {
+                    log.error("Failed OpenBoatUtils Handshake: {}", String.valueOf(e));
+                }
+            }
+        });
+
         globalEventHandler.addListener(PlayerDisconnectEvent.class,playerDisconnectEvent -> {
             final Player player = playerDisconnectEvent.getPlayer();
             if (player.getInstance() instanceof PlayerHolder playerHolder) {
@@ -174,19 +247,15 @@ public class IceStom {
             }
         });
 
-        final Vec gravity_vec = new Vec(0, -0.04, 0);
-
         globalEventHandler.addListener(PlayerPacketOutEvent.class, playerPacketOutEvent -> {
             Player player = playerPacketOutEvent.getPlayer();
             Instance instanceContainer = player.getInstance();
 
-            if (playerPacketOutEvent.getPacket() instanceof EntityVelocityPacket(int entityId, Vec velocity)) {
+            if (playerPacketOutEvent.getPacket() instanceof EntityVelocityPacket(int entityId, Vec _)) {
                 Entity entity = instanceContainer.getEntityById(entityId);
 
-                if (entity instanceof Boat boat) {
-                    if (!boat.getPassengers().isEmpty() && velocity.samePoint(gravity_vec)) {
-                        playerPacketOutEvent.setCancelled(true);
-                    }
+                if (entity instanceof Boat) {
+                    playerPacketOutEvent.setCancelled(true);
                 }
             }
         });

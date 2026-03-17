@@ -76,7 +76,9 @@ public class TimedLap implements TimedLapResultSource, ActionBarProvider {
         long age = player.getInstance().getWorldAge();
         long time = age * 50 - getMsStart();
 
-        Component text = Component.text(String.format("%.2f", (float) Math.ceil((float) time / 50) * 50 / 1000));
+        float t_seconds = (float) Math.ceil((float) time / 50) * 50 / 1000;
+
+        Component text = Component.text(String.format("%.2f", t_seconds));
 
         if (best_previous_result != null) {
             text = text

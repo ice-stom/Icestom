@@ -6,10 +6,22 @@ import net.minestom.server.network.packet.server.play.SetPassengersPacket;
 import net.minestom.server.network.player.GameProfile;
 import net.minestom.server.network.player.PlayerConnection;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class IceStomPlayer extends Player {
+
+    private Integer openBoatUtilsVersion = null;
+
     public IceStomPlayer(@NotNull PlayerConnection playerConnection, GameProfile profile) {
         super(playerConnection, profile);
+    }
+
+    public void setOpenBoatUtilsVersion(Integer openBoatUtilsVersion) {
+        this.openBoatUtilsVersion = openBoatUtilsVersion;
+    }
+
+    public @Nullable Integer getOpenBoatUtilsVersion() {
+        return openBoatUtilsVersion;
     }
 
     @Override

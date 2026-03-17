@@ -5,6 +5,7 @@ import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.LineCheckpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.PlaneCheckpoint;
 import io.gitlab.icestom.icestom.track.format.serialization.PosAdapter;
+import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsPacket;
 import net.minestom.server.coordinate.Pos;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,6 +18,7 @@ public interface TrackData {
     Pos getSpawnLocation();
     Map<Checkpoint, Integer> getCheckpoints();
     List<Pos> getGridLocations();
+    List<OpenBoatUtilsPacket> getOpenBoatUtilsPackets();
 
     class TrackDeserializationException extends Exception {
         public TrackDeserializationException(String message) {
@@ -57,6 +59,15 @@ public interface TrackData {
             grid_locations.put(String.valueOf(i), PosAdapter.serialize(gridLocation));
             i++;
         }
+
+        List<Map<String, Object>> openboatutils_packets = new ArrayList<>();
+        map.put("openboatutils", openboatutils_packets);
+
+        getOpenBoatUtilsPackets()
+                .forEach(packet -> {
+                    openboatutils_packets.add(packet.toMap());
+                });
+
         return map;
     }
 
@@ -90,6 +101,13 @@ public interface TrackData {
             grid_locations.add(pos);
         }
 
+        List<Toml> openboatutils_data = expect(toml.getTables("openboatutils"), new TrackDeserializationException("Missing openboatutils entry"));
+        List<OpenBoatUtilsPacket> openboatutils_packets = new ArrayList<>();
+
+        for (Toml packet : openboatutils_data) {
+            openboatutils_packets.add(OpenBoatUtilsPacket.fromMap(packet.toMap()));
+        }
+
         return new TrackData() {
             @Override
             public String getId() { return id; }
@@ -104,6 +122,9 @@ public interface TrackData {
             public List<Pos> getGridLocations() {
                 return grid_locations;
             }
+
+            @Override
+            public List<OpenBoatUtilsPacket> getOpenBoatUtilsPackets() { return openboatutils_packets; }
         };
     }
 }

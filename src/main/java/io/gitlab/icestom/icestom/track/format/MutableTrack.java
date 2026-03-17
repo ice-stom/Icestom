@@ -1,6 +1,7 @@
 package io.gitlab.icestom.icestom.track.format;
 
 import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
+import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsPacket;
 import net.minestom.server.coordinate.Pos;
 
 import java.util.List;
@@ -12,12 +13,14 @@ public class MutableTrack implements TrackData {
     public Pos spawnLocation;
     public Map<Checkpoint, Integer> checkpoints;
     public List<Pos> gridLocations;
+    public List<OpenBoatUtilsPacket> openBoatUtilsPackets;
 
-    public MutableTrack(String id, Pos spawnLocation, Map<Checkpoint, Integer> checkpoints, List<Pos> gridLocations) {
+    public MutableTrack(String id, Pos spawnLocation, Map<Checkpoint, Integer> checkpoints, List<Pos> gridLocations, List<OpenBoatUtilsPacket> openBoatUtilsPackets) {
         this.id = id;
         this.spawnLocation = spawnLocation;
         this.checkpoints = checkpoints;
         this.gridLocations = gridLocations;
+        this.openBoatUtilsPackets = openBoatUtilsPackets;
     }
 
     public MutableTrack(TrackData track) {
@@ -38,5 +41,10 @@ public class MutableTrack implements TrackData {
     @Override
     public List<Pos> getGridLocations() {
         return gridLocations;
+    }
+
+    @Override
+    public List<OpenBoatUtilsPacket> getOpenBoatUtilsPackets() {
+        return openBoatUtilsPackets;
     }
 }

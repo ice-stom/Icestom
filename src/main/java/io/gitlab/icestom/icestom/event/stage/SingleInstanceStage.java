@@ -12,7 +12,7 @@ public interface SingleInstanceStage<I extends InstanceContainer & PlayerHolder>
     @Override
     default I getInstance(Player player) {
         return getInstance();
-    };
+    }
 
     @Override
     default void register() {
@@ -22,5 +22,5 @@ public interface SingleInstanceStage<I extends InstanceContainer & PlayerHolder>
     @Override
     default void unregister() {
         MinecraftServer.getInstanceManager().unregisterInstance(getInstance());
-    };
+    }
 }

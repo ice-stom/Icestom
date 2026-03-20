@@ -2,7 +2,7 @@ package io.gitlab.icestom.icestom.race;
 
 import io.gitlab.icestom.icestom.race.scoreboard.RaceScoreboardRow;
 import io.gitlab.icestom.icestom.timetrial.Split;
-import net.minestom.server.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
@@ -10,7 +10,7 @@ public class Leaderboard {
 
     private final Race race;
     private final List<RaceScoreboardRow> leaderboard = new ArrayList<>();
-    private final Map<UUID, RaceScoreboardRow> playerRows = new HashMap<>();
+    private final Map<Race.RaceParticipant, RaceScoreboardRow> playerRows = new HashMap<>();
 
     public Leaderboard(Race race) {
         this.race = race;
@@ -26,20 +26,17 @@ public class Leaderboard {
         );
     }
 
-    public void update(UUID player, Split latest) {
-        Race.RaceParticipation participation = race.getParticipant(player);
-        assert participation != null;
-
-        RaceScoreboardRow row = playerRows.get(player);
+    public void update(@NotNull Race.RaceParticipant participant, Split latest) {
+        RaceScoreboardRow row = playerRows.get(participant);
         int currentPosition = leaderboard.indexOf(row);
         int newPos = currentPosition;
 
         while (newPos > 0) {
             RaceScoreboardRow aheadRow = leaderboard.get(newPos - 1);
-            Race.RaceParticipation aheadParticipation = race.getParticipant(aheadRow.getPlayer());
+            Race.RaceParticipant aheadParticipation = aheadRow.getParticipant();
             assert aheadParticipation != null;
 
-            int checkpointLead = aheadParticipation.getGlobalCheckpointIndex() - participation.getGlobalCheckpointIndex();
+            int checkpointLead = aheadParticipation.getGlobalCheckpointIndex() - participant.getGlobalCheckpointIndex();
 
             if (checkpointLead > 0) break;
 
@@ -54,14 +51,14 @@ public class Leaderboard {
         leaderboard.remove(currentPosition);
         leaderboard.add(newPos, row);
 
-        row.setCompletedLaps(participation.getCompletedLaps());
-        row.setCompletedPits(participation.getCompletedPits());
+        row.setCompletedLaps(participant.getCompletedLaps());
+        row.setCompletedPits(participant.getCompletedPits());
 
         if (newPos > 0) {
             RaceScoreboardRow aheadRow = leaderboard.get(newPos - 1);
-            Race.RaceParticipation aheadParticipation = race.getParticipant(aheadRow.getPlayer());
+            Race.RaceParticipant aheadParticipation = aheadRow.getParticipant();
             assert aheadParticipation != null;
-            row.setDelta(participation.deltaTo(aheadParticipation));
+            row.setDelta(participant.deltaTo(aheadParticipation));
         } else {
             row.setDelta(0);
         }
@@ -70,8 +67,8 @@ public class Leaderboard {
         for (int i = newPos + 1; i <= currentPosition; i++) {
             RaceScoreboardRow current = leaderboard.get(i);
 
-            Race.RaceParticipation aheadP = race.getParticipant(prev.getPlayer());
-            Race.RaceParticipation behindP = race.getParticipant(current.getPlayer());
+            Race.RaceParticipant aheadP = prev.getParticipant();
+            Race.RaceParticipant behindP = current.getParticipant();
 
             assert aheadP != null;
             assert behindP != null;
@@ -81,11 +78,11 @@ public class Leaderboard {
         }
     }
 
-    public void addPlayer(Player player) {
-        if (playerRows.containsKey(player.getUuid())) return;
+    public void addParticipant(Race.RaceParticipant participant) {
+        if (playerRows.containsKey(participant)) return;
 
         RaceScoreboardRow row = new RaceScoreboardRow(
-                player.getUuid(),
+                participant,
                 0,
                 null,
                 -1,
@@ -95,6 +92,6 @@ public class Leaderboard {
         );
 
         leaderboard.add(row);
-        playerRows.put(player.getUuid(), row);
+        playerRows.put(participant, row);
     }
 }

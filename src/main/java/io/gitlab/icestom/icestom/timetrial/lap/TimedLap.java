@@ -19,7 +19,7 @@ public class TimedLap implements TimedLapResultSource, ActionBarProvider {
     private final List<Split> splits = new ArrayList<>();
 
     private long msStart;
-    private int checkpoint = -1;
+    private int lastReachedCheckpoint = -1;
 
     private long recentSplit = 0;
 
@@ -28,7 +28,7 @@ public class TimedLap implements TimedLapResultSource, ActionBarProvider {
         this.track = track;
         this.best_previous_result = bestPreviousResult;
 
-        nextCheckpoint(split);
+        advanceCheckpoint(split);
     }
 
     public TimedLap(Track track, @Nullable TimedLapResultSource bestPreviousResult) {
@@ -36,33 +36,41 @@ public class TimedLap implements TimedLapResultSource, ActionBarProvider {
         this.best_previous_result = bestPreviousResult;
     }
 
-    public boolean nextCheckpoint(Split split) {
-        int next = track.wrapCheckpointIndex(checkpoint + 1);
+    public boolean advanceCheckpoint(Split split) {
+        int this_checkpoint_index = track.wrapCheckpointIndex(lastReachedCheckpoint + 1);
 
-        if (split.checkpoint_no() != next) throw new RuntimeException("Wrong checkpoint number sent to timetrial");
+        if (split.checkpoint_no() != this_checkpoint_index) throw new RuntimeException("Wrong checkpoint number sent to timed lap");
 
-        if (checkpoint == -1) {
+        if (lastReachedCheckpoint == -1) {
             msStart = split.ms();
         }
 
-        Split local_tick = split.offset(msStart);
+        Split local_split = split.offset(msStart);
 
-        splits.add(local_tick);
+        splits.add(local_split);
 
-        if (next == 0 && checkpoint != -1) {
-            checkpoint = -1;
+        if (this_checkpoint_index == getFinalCheckpointIndex() && lastReachedCheckpoint != -1) {
+            lastReachedCheckpoint = -1;
             return true;
         }
 
-        checkpoint++;
+        lastReachedCheckpoint++;
 
         if (best_previous_result != null) {
-            Split best_previous = best_previous_result.getSplits().get(split.checkpoint_no());
+            Split best_previous = best_previous_result.splits().get(split.checkpoint_no());
 
-            recentSplit = local_tick.ms() - best_previous.ms();
+            recentSplit = local_split.ms() - best_previous.ms();
         }
 
         return false;
+    }
+
+    public int getFinalCheckpointIndex() {
+        if (!track.getLooped()) {
+            return track.getCheckpoints().size() - 1;
+        }
+
+        return 0;
     }
 
     public long getCurrentTime(long worldAge) {
@@ -90,10 +98,10 @@ public class TimedLap implements TimedLapResultSource, ActionBarProvider {
     }
 
     public long getMsStart() { return msStart; }
-    public int getCheckpoint() { return checkpoint; }
+    public int getLastReachedCheckpoint() { return lastReachedCheckpoint; }
 
     public long getRecentSplit() { return recentSplit; }
 
     @Override
-    public List<Split> getSplits() { return splits; }
+    public List<Split> splits() { return splits; }
 }

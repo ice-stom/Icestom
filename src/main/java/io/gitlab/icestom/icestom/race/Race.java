@@ -3,8 +3,9 @@ package io.gitlab.icestom.icestom.race;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.GridBoatHolder;
 import io.gitlab.icestom.icestom.event.stage.SingleInstanceStage;
-import io.gitlab.icestom.icestom.event.stage.Stage;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
+import io.gitlab.icestom.icestom.race.event.RaceCheckpointReachedEvent;
+import io.gitlab.icestom.icestom.race.event.RaceLapCompletedEvent;
 import io.gitlab.icestom.icestom.race.scoreboard.RaceScoreboardProvider;
 import io.gitlab.icestom.icestom.timetrial.Split;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
@@ -19,7 +20,6 @@ import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.title.Title;
@@ -29,20 +29,21 @@ import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Race extends TrackInstance implements SingleInstanceStage<TrackInstance>, ActionBarProvider {
 
-    private final ScoreboardHolder<RaceScoreboardProvider> scoreboardHolder = new ScoreboardHolder<>(RaceScoreboardProvider.class);
+    private static final ScoreboardHolder<RaceScoreboardProvider> scoreboardHolder = new ScoreboardHolder<>(RaceScoreboardProvider.class);
 
     private final int totalLaps;
     private final int totalPits;
 
     private final Leaderboard leaderboard;
 
-    private final Map<UUID, RaceParticipation> racers = new LinkedHashMap<>();
+    private final Map<UUID, RaceParticipant> participants = new LinkedHashMap<>();
     private final List<UUID> start_order = new ArrayList<>();
 
     private RaceState raceState = RaceState.GRID;
@@ -64,7 +65,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
             Player player = entry.getKey();
             TickMovement movement = entry.getValue();
 
-            @Nullable RaceParticipation participation = racers.get(player.getUuid());
+            @Nullable Race.RaceParticipant participation = getParticipant(player);
 
             if (participation != null) {
                 grouped
@@ -82,7 +83,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
                 Map<Player, Long> crosses = checkpoint.detectCrosses(integerMapEntry.getValue());
 
                 crosses.forEach((player, tick_delta) -> {
-                    @Nullable RaceParticipation participation = racers.get(player.getUuid());
+                    @Nullable Race.RaceParticipant participation = getParticipant(player);
 
                     if (participation != null) {
                         Split split = new Split(
@@ -93,7 +94,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
 
                         participation.nextCheckpoint(split);
 
-                        leaderboard.update(player.getUuid(), split);
+                        leaderboard.update(participation, split);
                         updated.set(true);
                     }
                 });
@@ -105,7 +106,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
 
     @Override
     protected boolean shouldTrackPlayer(Player player) {
-        return getParticipants().containsKey(player.getUuid()) && raceState == RaceState.RACE;
+        return getParticipants().containsKey(getParticipationId(player)) && raceState == RaceState.RACE;
     }
 
     public void startCountdown() {
@@ -131,14 +132,20 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
         raceState = RaceState.RACE;
 
         for (UUID uuid : start_order) {
-            Player player = getPlayerByUuid(uuid);
+            @Nullable RaceParticipant participant = getParticipant(uuid);
 
-            if (player != null) {
+            if (participant != null) {
+                Player player = participant.getCurrentPlayer();
+
                 if (player.getVehicle() instanceof Boat boat && boat.getVehicle() instanceof GridBoatHolder holder) {
                     holder.remove();
                 }
             }
         }
+    }
+
+    public UUID getParticipationId(Player player) {
+        return player.getUuid();
     }
 
     @Override
@@ -159,11 +166,17 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
         // TODO: participation
 
         if (raceState == RaceState.GRID) {
-            racers.computeIfAbsent(player.getUuid(), player_id -> {
-                start_order.add(player_id);
-                return new RaceParticipation(player);
-            });
-            leaderboard.addPlayer(player);
+            @Nullable UUID participation_id = getParticipationId(player);
+
+            if (participation_id != null) {
+                RaceParticipant participant = participants.computeIfAbsent(participation_id, player_id -> {
+                    start_order.add(player_id);
+                    return new RaceParticipant(this, participation_id, player);
+                });
+
+                leaderboard.addParticipant(participant);
+            }
+
         }
 
         super.consume(player);
@@ -192,6 +205,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
 
     @Override
     public void drop(Player player) {
+        scoreboardHolder.uninit(player);
         player.setGameMode(GameMode.SURVIVAL);
         super.drop(player);
     }
@@ -208,12 +222,12 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
 
     @Override
     public @Nullable Component getActionBar(Player player) {
-        @Nullable RaceParticipation participation = getParticipant(player.getUuid());
+        @Nullable Race.RaceParticipant participation = getParticipant(player);
 
         if (participation != null) {
             TimedLap lap = participation.getCurrentLap();
 
-            int pos = leaderboard.getSnapshot().getPosition(player.getUuid()) + 1;
+            int pos = leaderboard.getSnapshot().getPosition(participation) + 1;
 
             Component text = Component.empty()
                     .append(Component.text("P")
@@ -236,7 +250,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
     }
 
     public @Nullable Pos getGridLocation(Player player) {
-        @Nullable RaceParticipation participation = getParticipant(player.getUuid());
+        @Nullable Race.RaceParticipant participation = getParticipant(player.getUuid());
 
         if (participation != null) {
             int starting_pos = start_order.indexOf(player.getUuid());
@@ -259,8 +273,13 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
     public int getTotalPits() { return totalPits; }
     public Leaderboard getLeaderboard() { return leaderboard; }
 
-    public Map<UUID, RaceParticipation> getParticipants() { return racers; }
-    public @Nullable RaceParticipation getParticipant(UUID uuid) { return racers.get(uuid); }
+    public Map<UUID, RaceParticipant> getParticipants() { return participants; }
+    public @Nullable Race.RaceParticipant getParticipant(UUID uuid) { return participants.get(uuid); }
+    public @Nullable Race.RaceParticipant getParticipant(Player player) {
+        @Nullable UUID participation_id = getParticipationId(player);
+        if (participation_id == null) return null;
+        return getParticipant(participation_id);
+    }
 
     public enum RaceState {
         GRID,
@@ -268,11 +287,14 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
         RACE
     }
 
-    public class RaceParticipation {
+    public class RaceParticipant {
         private final List<Split> splits = new ArrayList<>();
         private final List<TimedLapResultSource> pastLaps = new ArrayList<>();
 
-        private final Player player;
+        private final UUID id;
+        private final Race race;
+
+        @NotNull private Player currentPlayer;
 
         private TimedLapResultSource flap = null;
 
@@ -283,8 +305,10 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
         private int completedLaps = 0;
         private final int completedPits = 0;
 
-        RaceParticipation(Player player) {
-            this.player = player;
+        RaceParticipant(Race race, UUID id, @NonNull Player currentPlayer) {
+            this.id = id;
+            this.race = race;
+            this.currentPlayer = currentPlayer;
             currentLap = new TimedLap(
                     track,
                     null
@@ -292,10 +316,9 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
         }
 
         public void nextCheckpoint(Split split) {
-
             TimedLapResultSource previous_flap = flap;
 
-            boolean completed = currentLap.nextCheckpoint(split);
+            boolean completed = currentLap.advanceCheckpoint(split);
 
             int this_checkpoint = nextExpected;
 
@@ -305,27 +328,15 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
 
             globalCheckpointIndex++;
 
-
-
             if (completed) {
-                TimedLapResultSource lap = newLap(split);
+                TimedLapResultSource result = newLap(split);
                 nextExpected = track.wrapCheckpointIndex(1);
 
-                Component text = TextFormatter.getTimeFloored(lap.getTime());
-
-                if (previous_flap != null) {
-                    text = text.append(Component.space()).append(TextFormatter.getDelta(lap.getTime() - previous_flap.getTime()));
-                }
-
-                player.sendMessage(text);
+                MinecraftServer.getGlobalEventHandler()
+                        .call(new RaceLapCompletedEvent(this, race, result, previous_flap));
             } else {
-                Component text = Component.text(String.format("%s (%s) ", this_checkpoint, globalCheckpointIndex));
-
-                if (flap != null) {
-                    text = text.append(TextFormatter.getDelta(currentLap.getSplitTime(this_checkpoint) - previous_flap.getSplitTime(this_checkpoint)));
-                }
-
-                player.sendMessage(text);
+                MinecraftServer.getGlobalEventHandler()
+                        .call(new RaceCheckpointReachedEvent(this, race, currentLap, this_checkpoint));
             }
         }
 
@@ -349,7 +360,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
             return lap;
         }
 
-        public long deltaTo(RaceParticipation other) {
+        public long deltaTo(RaceParticipant other) {
             int max_checkpoint = Math.min(getSplits().size(), other.getSplits().size()) - 1;
 
             if (max_checkpoint < 0) return 0;
@@ -360,7 +371,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
             long delta = local.ms() - foreign.ms();
 
             if (delta < 0) {
-                // when someone overtakes, the most recent shared checkpoint is when the overtaken driver was still in the lead
+                // when someone overtakes, the most recent shared checkpoint is when the overtaken driver was still in the lead.
                 // its pretty much impossible to guess a deltas for a checkpoint that doesn't exist yet
                 // can't really do much about this so just assume 0 for now.
                 return 0;
@@ -384,5 +395,13 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
         public int getCompletedLaps() { return completedLaps; }
 
         public int getCompletedPits() { return completedPits; }
+
+        public @NotNull Player getCurrentPlayer() { return currentPlayer; }
+
+        public void setCurrentPlayer(@NonNull Player currentPlayer) { this.currentPlayer = currentPlayer; }
+
+        public UUID getId() {
+            return id;
+        }
     }
 }

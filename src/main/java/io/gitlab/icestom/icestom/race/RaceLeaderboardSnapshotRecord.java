@@ -1,6 +1,7 @@
 package io.gitlab.icestom.icestom.race;
 
 import io.gitlab.icestom.icestom.race.scoreboard.RaceScoreboardRow;
+import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -13,11 +14,11 @@ public class RaceLeaderboardSnapshotRecord implements RaceLeaderboardSnapshot {
     private final String trackName;
     private final int totalLaps;
     private final int totalPits;
-    @Nullable private final UUID flapHolder;
+    @Nullable private final Race.RaceParticipant flapHolder;
     private final List<RaceScoreboardRow> rows;
-    private final Map<UUID, Integer> positions;
+    private final Map<Race.RaceParticipant, Integer> positions;
 
-    public RaceLeaderboardSnapshotRecord(String trackName, int totalLaps, int totalPits, @Nullable UUID flapHolder, List<RaceScoreboardRow> rows) {
+    public RaceLeaderboardSnapshotRecord(String trackName, int totalLaps, int totalPits, @Nullable Race.RaceParticipant flapHolder, List<RaceScoreboardRow> rows) {
         this.trackName = trackName;
         this.totalLaps = totalLaps;
         this.totalPits = totalPits;
@@ -29,7 +30,7 @@ public class RaceLeaderboardSnapshotRecord implements RaceLeaderboardSnapshot {
         for (int i = 0; i < rows.size(); i++) {
             RaceScoreboardRow row = rows.get(i);
 
-            positions.put(row.getPlayer(), i);
+            positions.put(row.getParticipant(), i);
         }
     }
 
@@ -49,7 +50,7 @@ public class RaceLeaderboardSnapshotRecord implements RaceLeaderboardSnapshot {
     }
 
     @Override
-    public @Nullable UUID getFlapHolder() {
+    public @Nullable Race.RaceParticipant getFlapHolder() {
         return flapHolder;
     }
 
@@ -59,7 +60,7 @@ public class RaceLeaderboardSnapshotRecord implements RaceLeaderboardSnapshot {
     }
 
     @Override
-    public int getPosition(UUID player) {
-        return positions.getOrDefault(player, -1);
+    public int getPosition(Race.RaceParticipant participant) {
+        return positions.getOrDefault(participant, -1);
     }
 }

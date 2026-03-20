@@ -51,7 +51,7 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
             if (!shouldTrackPlayer(player)) {
                 last_tick_positions.remove(player);
                 continue;
-            };
+            }
 
             Vec current = player.getPosition().asVec();
             @Nullable Vec last = last_tick_positions.get(player);

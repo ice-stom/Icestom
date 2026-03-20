@@ -4,22 +4,11 @@ import io.gitlab.icestom.icestom.timetrial.Split;
 
 import java.util.List;
 
-public class TimedLapResult implements TimedLapResultSource {
-
-    private final List<Split> splits;
-
-    public TimedLapResult(List<Split> splits) {
-        this.splits = splits;
-    }
-
-    @Override
-    public List<Split> getSplits() {
-        return splits;
-    }
+public record TimedLapResult(List<Split> splits) implements TimedLapResultSource {
 
     public static TimedLapResult freeze(TimedLapResultSource timedLapResultSource) {
         return new TimedLapResult(
-                timedLapResultSource.getSplits()
+                timedLapResultSource.splits()
         );
     }
 }

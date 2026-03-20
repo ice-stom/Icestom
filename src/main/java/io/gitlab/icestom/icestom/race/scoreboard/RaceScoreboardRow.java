@@ -1,11 +1,11 @@
 package io.gitlab.icestom.icestom.race.scoreboard;
 
+import io.gitlab.icestom.icestom.race.Race;
+import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.UUID;
-
 public class RaceScoreboardRow {
-    private final UUID player;
+    private final Race.RaceParticipant participant;
     private long delta;
 
     @Nullable private Long flapTime;
@@ -16,9 +16,9 @@ public class RaceScoreboardRow {
     private boolean pit;
     private boolean dnf;
 
-    public RaceScoreboardRow(UUID player, long delta,
+    public RaceScoreboardRow(Race.RaceParticipant participant, long delta,
                              @Nullable Long flapTime, int completedLaps, int completedPits, boolean pit, boolean dnf) {
-        this.player = player;
+        this.participant = participant;
         this.delta = delta;
         this.flapTime = flapTime;
         this.completedLaps = completedLaps;
@@ -27,8 +27,8 @@ public class RaceScoreboardRow {
         this.dnf = dnf;
     }
 
-    public UUID getPlayer() {
-        return player;
+    public Race.RaceParticipant getParticipant() {
+        return participant;
     }
 
     public long getDelta() {

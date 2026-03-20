@@ -40,7 +40,6 @@ public class VanillaScoreboard implements RaceScoreboardProvider, TimeTrialScore
     }
 
 
-    // TODO: implement this so no memory leak :D
     @Override
     public void stopViewing(Player viewer) {
         sidebars.computeIfPresent(viewer, (player, sidebar) -> {
@@ -51,7 +50,9 @@ public class VanillaScoreboard implements RaceScoreboardProvider, TimeTrialScore
     }
 
     private Component sidebarLeaderboardEntry(RaceScoreboardRow row) {
-        String username = name.computeIfAbsent(row.getPlayer(), uuid -> {
+        UUID id = row.getParticipant().getCurrentPlayer().getUuid();
+
+        String username = name.computeIfAbsent(id, uuid -> {
             Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid);
 
             if (player == null) return "<unknown>";
@@ -59,9 +60,7 @@ public class VanillaScoreboard implements RaceScoreboardProvider, TimeTrialScore
             return player.getUsername();
         });
 
-        return Component.object(ObjectContents
-                        .playerHead(row.getPlayer())
-                )
+        return Component.object(ObjectContents.playerHead(id))
                 .append(Component.text(" "))
                 .append(TextFormatter.getDelta(row.getDelta()))
                 .append(Component.text(" " + username));

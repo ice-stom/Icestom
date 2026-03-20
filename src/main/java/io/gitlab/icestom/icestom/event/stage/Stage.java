@@ -14,7 +14,7 @@ public interface Stage<I extends InstanceContainer & PlayerHolder> extends Playe
     @Override
     default void drop(Player player) {
         getInstance(player).drop(player);
-    };
+    }
 
     void register();
     void unregister();

@@ -5,6 +5,7 @@ import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.track.format.TrackData;
 import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsPacket;
 import net.hollowcube.polar.PolarWorld;
+import net.kyori.adventure.text.Component;
 import net.minestom.server.coordinate.Pos;
 import org.intellij.lang.annotations.Subst;
 
@@ -13,6 +14,8 @@ import java.util.*;
 public class Track implements TrackData {
 
     private final String id;
+    private final Component name;
+    private final boolean looped;
     private final Pos spawnLocation;
     private final Map<Checkpoint, Integer> checkpoints;
     private final List<Pos> gridLocations;
@@ -24,6 +27,8 @@ public class Track implements TrackData {
 
     public Track(TrackData trackData, PolarWorld world) {
         this.id = trackData.getId();
+        this.name = trackData.getName();
+        this.looped = trackData.getLooped();
         this.spawnLocation = trackData.getSpawnLocation();
         this.checkpoints = trackData.getCheckpoints();
         this.gridLocations = trackData.getGridLocations();
@@ -47,6 +52,12 @@ public class Track implements TrackData {
 
     @Override
     public @Subst(IceStom.NAMESPACE) String getId() { return id; }
+
+    @Override
+    public Component getName() { return name; }
+
+    @Override
+    public boolean getLooped() { return looped; }
 
     @Override
     public Pos getSpawnLocation() { return spawnLocation; }

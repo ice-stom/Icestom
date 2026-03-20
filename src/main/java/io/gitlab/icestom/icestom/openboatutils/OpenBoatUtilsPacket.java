@@ -44,6 +44,7 @@ public sealed interface OpenBoatUtilsPacket
         OpenBoatUtilsPacket.ClearCollisionEntityTypeFilterPacket {
 
     short getPacketId();
+    short getVersion();
 
     default PacketByteBuf write() throws IOException {
         return new PacketByteBuf()
@@ -114,6 +115,7 @@ public sealed interface OpenBoatUtilsPacket
     }
 
     final class ResetPacket implements OpenBoatUtilsPacket {
+        public short getVersion() { return 16; }
         public short getPacketId() { return 0; }
     }
 
@@ -125,6 +127,7 @@ public sealed interface OpenBoatUtilsPacket
             this.step_height = step_height;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 1; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -140,6 +143,7 @@ public sealed interface OpenBoatUtilsPacket
             this.slipperiness = slipperiness;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 2; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -157,6 +161,7 @@ public sealed interface OpenBoatUtilsPacket
             this.block_ids = block_ids;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 3; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -173,6 +178,7 @@ public sealed interface OpenBoatUtilsPacket
             this.fall_damage = fall_damage;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 4; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -188,6 +194,7 @@ public sealed interface OpenBoatUtilsPacket
             this.water_elevation = water_elevation;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 5; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -203,6 +210,7 @@ public sealed interface OpenBoatUtilsPacket
             this.air_control = air_control;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 6; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -218,6 +226,7 @@ public sealed interface OpenBoatUtilsPacket
             this.jump_force = jump_force;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 7; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -233,6 +242,7 @@ public sealed interface OpenBoatUtilsPacket
             this.mode_id = mode_id;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 8; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -248,6 +258,7 @@ public sealed interface OpenBoatUtilsPacket
             this.gravity = gravity;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 9; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -263,6 +274,7 @@ public sealed interface OpenBoatUtilsPacket
             this.acceleration = acceleration;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 10; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -278,6 +290,7 @@ public sealed interface OpenBoatUtilsPacket
             this.acceleration = acceleration;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 11; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -293,6 +306,7 @@ public sealed interface OpenBoatUtilsPacket
             this.acceleration = acceleration;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 12; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -308,6 +322,7 @@ public sealed interface OpenBoatUtilsPacket
             this.acceleration = acceleration;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 13; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -323,6 +338,7 @@ public sealed interface OpenBoatUtilsPacket
             this.enabled = enabled;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 14; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -331,6 +347,7 @@ public sealed interface OpenBoatUtilsPacket
     }
 
     final class ResendVersionPacket implements OpenBoatUtilsPacket {
+        public short getVersion() { return 16; }
         public short getPacketId() { return 15; }
     }
 
@@ -342,6 +359,7 @@ public sealed interface OpenBoatUtilsPacket
             this.enabled = enabled;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 16; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -357,6 +375,7 @@ public sealed interface OpenBoatUtilsPacket
             this.enabled = enabled;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 17; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -372,6 +391,7 @@ public sealed interface OpenBoatUtilsPacket
             this.mode_id = mode_id;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 18; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -387,6 +407,7 @@ public sealed interface OpenBoatUtilsPacket
             this.ticks = ticks;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 19; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -402,6 +423,7 @@ public sealed interface OpenBoatUtilsPacket
             this.enabled = enabled;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 20; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -417,6 +439,7 @@ public sealed interface OpenBoatUtilsPacket
             this.force = force;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 21; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -432,6 +455,7 @@ public sealed interface OpenBoatUtilsPacket
             this.block_ids = block_ids;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 22; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -440,6 +464,7 @@ public sealed interface OpenBoatUtilsPacket
     }
 
     final class ClearSlipperinessPacket implements OpenBoatUtilsPacket {
+        public short getVersion() { return 16; }
         public short getPacketId() { return 23; }
     }
 
@@ -451,6 +476,7 @@ public sealed interface OpenBoatUtilsPacket
             this.mode_ids = mode_ids;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 24; }
         public PacketByteBuf write() throws IOException {
             PacketByteBuf buf = OpenBoatUtilsPacket.super.write();
@@ -468,6 +494,7 @@ public sealed interface OpenBoatUtilsPacket
             this.mode_ids = mode_ids;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 25; }
         public PacketByteBuf write() throws IOException {
             PacketByteBuf buf = OpenBoatUtilsPacket.super.write();
@@ -489,6 +516,7 @@ public sealed interface OpenBoatUtilsPacket
             this.block_ids = block_ids;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 26; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -506,6 +534,7 @@ public sealed interface OpenBoatUtilsPacket
             this.mode = mode;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 27; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -521,6 +550,7 @@ public sealed interface OpenBoatUtilsPacket
             this.enabled = enabled;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 28; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -536,6 +566,7 @@ public sealed interface OpenBoatUtilsPacket
             this.enabled = enabled;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 29; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -551,6 +582,7 @@ public sealed interface OpenBoatUtilsPacket
             this.resolution = resolution;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 30; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -566,6 +598,7 @@ public sealed interface OpenBoatUtilsPacket
             this.entity_ids = entity_ids;
         }
 
+        public short getVersion() { return 16; }
         public short getPacketId() { return 31; }
         public PacketByteBuf write() throws IOException {
             return OpenBoatUtilsPacket.super.write()
@@ -574,6 +607,7 @@ public sealed interface OpenBoatUtilsPacket
     }
 
     final class ClearCollisionEntityTypeFilterPacket implements OpenBoatUtilsPacket {
+        public short getVersion() { return 16; }
         public short getPacketId() { return 32; }
     }
 

@@ -6,6 +6,8 @@ import io.gitlab.icestom.icestom.track.checkpoint.LineCheckpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.PlaneCheckpoint;
 import io.gitlab.icestom.icestom.track.format.serialization.PosAdapter;
 import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsPacket;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.json.JSONComponentSerializer;
 import net.minestom.server.coordinate.Pos;
 import org.jetbrains.annotations.Nullable;
 
@@ -14,7 +16,11 @@ import java.util.*;
 import static io.gitlab.icestom.icestom.util.Expect.expect;
 
 public interface TrackData {
+    static int VERSION() { return 1; }
+
     String getId();
+    Component getName();
+    boolean getLooped();
     Pos getSpawnLocation();
     Map<Checkpoint, Integer> getCheckpoints();
     List<Pos> getGridLocations();
@@ -29,8 +35,12 @@ public interface TrackData {
     default Map<String, Object> serialize() {
         Map<String, Object> map = new LinkedHashMap<>();
 
+        map.put("version", VERSION());
+
         map.put("id", getId());
         map.put("spawn_location", getSpawnLocation());
+        map.put("name", JSONComponentSerializer.json().serialize(getName()));
+        map.put("looped", getLooped());
 
         List<Map<String, Object>> checkpoints = new ArrayList<>();
         map.put("checkpoints", checkpoints);
@@ -74,6 +84,8 @@ public interface TrackData {
     static TrackData deserialize(Toml toml) throws TrackDeserializationException {
 
         String id = expect(toml.getString("id"), new TrackDeserializationException("Missing id"));
+        Component name = JSONComponentSerializer.json().deserialize(expect(toml.getString("name"), new TrackDeserializationException("Missing name")));
+        boolean looped = expect(toml.getBoolean("looped"), new TrackDeserializationException("Missing looped"));
         Pos spawn_location = expect(toml.getTable("spawn_location").to(Pos.class), new TrackDeserializationException("Missing id"));
 
         List<Toml> checkpoint_data = expect(toml.getTables("checkpoints"), new TrackDeserializationException("Missing checkpoints"));
@@ -111,6 +123,12 @@ public interface TrackData {
         return new TrackData() {
             @Override
             public String getId() { return id; }
+
+            @Override
+            public Component getName() { return name; }
+
+            @Override
+            public boolean getLooped() { return looped; }
 
             @Override
             public Pos getSpawnLocation() { return spawn_location; }

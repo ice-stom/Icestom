@@ -5,13 +5,13 @@ import io.gitlab.icestom.icestom.timetrial.Split;
 import java.util.List;
 
 public interface TimedLapResultSource {
-    List<Split> getSplits();
+    List<Split> splits();
 
     default long getSplitTime(int index) {
-        return getSplits().get(index).ms();
+        return splits().get(index).ms();
     }
 
     default long getTime() {
-        return getSplits().getLast().ms();
+        return splits().getLast().ms();
     }
 }

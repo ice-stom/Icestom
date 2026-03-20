@@ -12,7 +12,6 @@ import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.ui.ActionBarProvider;
 import io.gitlab.icestom.icestom.ui.scoreboard.ScoreboardHolder;
 import io.gitlab.icestom.icestom.ui.scoreboard.TimeTrialScoreboardProvider;
-import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.MinecraftServer;
@@ -23,7 +22,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 public class TimeTrialingInstance extends TrackInstance implements SpawnLocation, ActionBarProvider {
-    private final ScoreboardHolder<TimeTrialScoreboardProvider> scoreboardHolder = new ScoreboardHolder<>(TimeTrialScoreboardProvider.class);
+    private static final ScoreboardHolder<TimeTrialScoreboardProvider> scoreboardHolder = new ScoreboardHolder<>(TimeTrialScoreboardProvider.class);
 
     private final Map<Player, TimedLap> timeTrials = new HashMap<>();
 
@@ -57,14 +56,14 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
             @Nullable TimedLap timedLap = getTimedLap(player);
 
             if (timedLap != null) {
-                int next_no = track.wrapCheckpointIndex(timedLap.getCheckpoint() + 1);
+                int next_no = track.wrapCheckpointIndex(timedLap.getLastReachedCheckpoint() + 1);
                 Collection<Checkpoint> checkpoints = track.getCheckpoints(next_no);
 
                 for (Checkpoint checkpoint : checkpoints) {
                     @Nullable Long tick_delta = checkpoint.detectCross(movement);
 
                     if (tick_delta != null) {
-                        timedLap.nextCheckpoint(new Split(
+                        timedLap.advanceCheckpoint(new Split(
                                 getWorldAge() * 50,
                                 tick_delta,
                                 next_no
@@ -173,5 +172,7 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
     public void drop(Player player) {
         endTimeTrial(player);
         removeBoat(player);
+
+        scoreboardHolder.uninit(player);
     }
 }

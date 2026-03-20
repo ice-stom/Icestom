@@ -22,6 +22,8 @@ import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsPacket;
 import me.lucko.spark.minestom.SparkMinestom;
 import net.hollowcube.polar.AnvilPolar;
 import net.hollowcube.polar.PolarWorld;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
 import net.minestom.server.coordinate.Pos;
@@ -49,8 +51,12 @@ import java.util.*;
 
 public class IceStom {
 
-    private static final Logger log = LoggerFactory.getLogger(IceStom.class);
+    // https://github.com/o7Moon/OpenBoatUtils/wiki/Version-IDs
+    // TODO: work out the actual versions packets were introduced in, rn just forcing latest
+    private static final short MIN_OPENBOATUTILS_VERSION = 16;
     public static final String NAMESPACE = "icestom";
+
+    private static final Logger log = LoggerFactory.getLogger(IceStom.class);
 
     private static IceStom instance;
 
@@ -101,6 +107,8 @@ public class IceStom {
                     id + "." + TrackFormat.FILE_EXTENTION).toFile(),
                     new Track(new MutableTrack(
                             id,
+                            Component.text("Track named " + id, NamedTextColor.RED),
+                            true,
                             new Pos(-14.03, 17.00, 11.82, -205.65f, 0f),
                             Map.of(
                                     new LineCheckpoint(new Vec(-34.5, 17 ,-21.5), new Vec(-22.5, 17, -21.5), 3), 0,
@@ -127,6 +135,8 @@ public class IceStom {
                             id + "_obu." + TrackFormat.FILE_EXTENTION).toFile(),
                     new Track(new MutableTrack(
                             id + "_obu",
+                            Component.text("Track named " + id + "_obu", NamedTextColor.RED),
+                            true,
                             new Pos(81.5, 12.00, -47.5, 15, 0),
                             Map.of(
                                     new LineCheckpoint(new Vec(59.5, 9.00, 25.5), new Vec(51.5, 9.00, 19.5), 3), 0,
@@ -228,7 +238,20 @@ public class IceStom {
                     if (packetId == 0) {
                         int version = in.readInt();
 
-                        // TODO: probably validate this?
+                        if (version < MIN_OPENBOATUTILS_VERSION) {
+                            player.sendMessage(Component.text("WARNING: Your version of OpenBoatUtils is out of date! Please update for OpenBoatUtils to function."));
+                            return;
+                        }
+
+                        if (version == 12) {
+                            player.sendMessage(Component.text("WARNING: Your version of OpenBoatUtils is broken! (Ref: 0.4.4_1.21.3; 'broken') Please update for OpenBoatUtils to function."));
+                            return;
+                        }
+
+                        if (version == 8) {
+                            player.sendMessage(Component.text("WARNING: Your version of OpenBoatUtils is broken! (Ref: 0.4.2; broken air control) Please update for OpenBoatUtils to function."));
+                            return;
+                        }
 
                         ((IceStomPlayer) player).setOpenBoatUtilsVersion(version);
                         player.sendPacket(set_interpolation_packet);
@@ -273,7 +296,7 @@ public class IceStom {
 
     public TimetrialDatabase getTimetrialDatabase() { return timetrialDatabase; }
 
-    public static void main(String[] args) throws IOException {
+    static void main(String[] args) throws IOException {
         instance = new IceStom();
         instance.start(args);
     }

@@ -37,7 +37,7 @@ public class SpawnInstance extends IceStomInstance implements SpawnLocation {
 
             polarLoader = new PolarLoader(stream);
         } catch (IOException exception) {
-            log.error("Failed to load spawn world: " + exception);
+            log.error("Failed to load spawn world: {}", String.valueOf(exception));
             return;
         }
 

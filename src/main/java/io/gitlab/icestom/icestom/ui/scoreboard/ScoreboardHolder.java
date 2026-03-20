@@ -10,9 +10,9 @@ import java.util.Map;
 
 public class ScoreboardHolder<T extends ScoreboardProvider> {
 
-    private final Class<T> type;
+    private static final PlayerScoreboardManager manager = IceStom.getInstance().getPlayerLeaderboardManager();
 
-    private final PlayerScoreboardManager manager = IceStom.getInstance().getPlayerLeaderboardManager();
+    private final Class<T> type;
     private final Map<PlayerScoreboardManager.ScoreboardProviderType, ScoreboardProvider> providers = new HashMap<>();
 
     public ScoreboardHolder(Class<T> type) {
@@ -28,6 +28,12 @@ public class ScoreboardHolder<T extends ScoreboardProvider> {
 
         for (ScoreboardProvider provider : providers.values()) {
             provider.startViewing(player);
+        }
+    }
+
+    public void uninit(Player player) {
+        for (ScoreboardProvider provider : providers.values()) {
+            provider.stopViewing(player);
         }
     }
 

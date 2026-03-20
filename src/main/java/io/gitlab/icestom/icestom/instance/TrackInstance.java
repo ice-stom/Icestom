@@ -24,7 +24,7 @@ import java.util.Map;
 public abstract class TrackInstance extends BoatInstance implements SpawnLocation {
 
     protected final Track track;
-    private final Map<Player, Vec> last_tick_positions = new HashMap<>();
+    private final Map<Player, Vec> lastTickPositions = new HashMap<>();
 
     public TrackInstance(Track track) {
         super(Key.key(IceStom.NAMESPACE, "track/" + track.getId()));
@@ -49,16 +49,16 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
 
         for (Player player : getPlayers()) {
             if (!shouldTrackPlayer(player)) {
-                last_tick_positions.remove(player);
+                lastTickPositions.remove(player);
                 continue;
             }
 
             Vec current = player.getPosition().asVec();
-            @Nullable Vec last = last_tick_positions.get(player);
+            @Nullable Vec last = lastTickPositions.get(player);
 
             movementMap.put(player, new TickMovement(last, current));
 
-            last_tick_positions.put(player, current);
+            lastTickPositions.put(player, current);
         }
 
         onPlayerMovements(movementMap);

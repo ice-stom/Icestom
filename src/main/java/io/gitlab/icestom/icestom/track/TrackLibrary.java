@@ -8,7 +8,6 @@ import java.io.*;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class TrackLibrary {
 
@@ -24,12 +23,20 @@ public class TrackLibrary {
     }
 
     private void loadTracks() {
-        boolean is_empty = TRACK_STORAGE_PATH.toFile().mkdirs();
+        boolean created = TRACK_STORAGE_PATH.toFile().mkdirs();
 
-        if (is_empty) return;
+        if (created) return;
 
-        for (File file : Objects.requireNonNull(TRACK_STORAGE_PATH.toFile().listFiles())) {
-            if (file.getName().endsWith("." + TrackFormat.FILE_EXTENTION)) {
+        File dir = TRACK_STORAGE_PATH.toFile();
+        File[] files = dir.listFiles();
+
+        if (files == null) {
+            log.error("Failed to list files in tracks directory");
+            return;
+        }
+
+        for (File file : files) {
+            if (file.getName().endsWith("." + TrackFormat.FILE_EXTENSION)) {
                 log.info("Loading {}", file.getAbsolutePath());
 
                 try {

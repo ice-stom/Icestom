@@ -104,7 +104,7 @@ public class IceStom {
             String id = path.getFileName().toString();
 
             TrackFormat.saveTrack(TrackLibrary.TRACK_STORAGE_PATH.resolve(
-                    id + "." + TrackFormat.FILE_EXTENTION).toFile(),
+                    id + "." + TrackFormat.FILE_EXTENSION).toFile(),
                     new Track(new MutableTrack(
                             id,
                             Component.text("Track named " + id, NamedTextColor.RED),
@@ -132,7 +132,7 @@ public class IceStom {
             );
 
             TrackFormat.saveTrack(TrackLibrary.TRACK_STORAGE_PATH.resolve(
-                            id + "_obu." + TrackFormat.FILE_EXTENTION).toFile(),
+                            id + "_obu." + TrackFormat.FILE_EXTENSION).toFile(),
                     new Track(new MutableTrack(
                             id + "_obu",
                             Component.text("Track named " + id + "_obu", NamedTextColor.RED),

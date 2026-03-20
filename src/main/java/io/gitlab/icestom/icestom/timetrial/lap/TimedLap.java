@@ -66,7 +66,7 @@ public class TimedLap implements TimedLapResultSource, ActionBarProvider {
     }
 
     public int getFinalCheckpointIndex() {
-        if (!track.getLooped()) {
+        if (!track.isLooped()) {
             return track.getCheckpoints().size() - 1;
         }
 

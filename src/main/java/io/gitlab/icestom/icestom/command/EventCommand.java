@@ -13,7 +13,7 @@ import java.util.List;
 
 public class EventCommand extends Command {
 
-    private static final EventManager eventManger = IceStom.getInstance().getEventManager();
+    private static final EventManager eventManager = IceStom.getInstance().getEventManager();
 
     public EventCommand() {
         super("event");
@@ -29,7 +29,7 @@ public class EventCommand extends Command {
             setDefaultExecutor((commandSender, commandContext) -> {
                 Component text = Component.text("Events:");
 
-                for (Event event : eventManger.getEvents()) {
+                for (Event event : eventManager.getEvents()) {
                     text = text.append(Component.text("\n - " + event.getId()));
                 }
 
@@ -47,7 +47,7 @@ public class EventCommand extends Command {
 //                        new TrackExploration(IceStom.getInstance().getTrackLibrary().getTracks().values().stream().findFirst().get()),
                         new Race(IceStom.getInstance().getTrackLibrary().getTracks().values().stream().findFirst().get(), 10, 2)
                 ));
-                eventManger.addEvent(event);
+                eventManager.addEvent(event);
 
                 for (Player player : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
                     event.addPlayer(player);

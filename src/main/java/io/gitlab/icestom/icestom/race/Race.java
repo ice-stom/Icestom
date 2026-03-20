@@ -44,7 +44,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
     private final Leaderboard leaderboard;
 
     private final Map<UUID, RaceParticipant> participants = new LinkedHashMap<>();
-    private final List<UUID> start_order = new ArrayList<>();
+    private final List<UUID> startOrder = new ArrayList<>();
 
     private RaceState raceState = RaceState.GRID;
     private int countdown = 0;
@@ -131,7 +131,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
     public void startRace() {
         raceState = RaceState.RACE;
 
-        for (UUID uuid : start_order) {
+        for (UUID uuid : startOrder) {
             @Nullable RaceParticipant participant = getParticipant(uuid);
 
             if (participant != null) {
@@ -170,7 +170,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
 
             if (participation_id != null) {
                 RaceParticipant participant = participants.computeIfAbsent(participation_id, player_id -> {
-                    start_order.add(player_id);
+                    startOrder.add(player_id);
                     return new RaceParticipant(this, participation_id, player);
                 });
 
@@ -253,7 +253,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
         @Nullable Race.RaceParticipant participation = getParticipant(player.getUuid());
 
         if (participation != null) {
-            int starting_pos = start_order.indexOf(player.getUuid());
+            int starting_pos = startOrder.indexOf(player.getUuid());
 
             if (starting_pos == -1) return null;
 

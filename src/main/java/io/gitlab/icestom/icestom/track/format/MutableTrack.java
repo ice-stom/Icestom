@@ -31,7 +31,7 @@ public class MutableTrack implements TrackData {
     public MutableTrack(TrackData track) {
         id = track.getId();
         name = track.getName();
-        looped = track.getLooped();
+        looped = track.isLooped();
         spawnLocation = track.getSpawnLocation();
         checkpoints = track.getCheckpoints();
         gridLocations = track.getGridLocations();
@@ -45,7 +45,7 @@ public class MutableTrack implements TrackData {
     public Component getName() { return name; }
 
     @Override
-    public boolean getLooped() { return looped; }
+    public boolean isLooped() { return looped; }
 
     @Override
     public Pos getSpawnLocation() { return spawnLocation; }

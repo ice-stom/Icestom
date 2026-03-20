@@ -40,7 +40,7 @@ public abstract class BoatInstance extends IceStomInstance {
 
         for (Entity passenger : boat.getPassengers()) {
             if (passenger instanceof Player) {
-                boat.removePassenger(player);
+                boat.removePassenger(passenger);
             }
         }
 

@@ -28,7 +28,7 @@ public class Track implements TrackData {
     public Track(TrackData trackData, PolarWorld world) {
         this.id = trackData.getId();
         this.name = trackData.getName();
-        this.looped = trackData.getLooped();
+        this.looped = trackData.isLooped();
         this.spawnLocation = trackData.getSpawnLocation();
         this.checkpoints = trackData.getCheckpoints();
         this.gridLocations = trackData.getGridLocations();
@@ -57,7 +57,7 @@ public class Track implements TrackData {
     public Component getName() { return name; }
 
     @Override
-    public boolean getLooped() { return looped; }
+    public boolean isLooped() { return looped; }
 
     @Override
     public Pos getSpawnLocation() { return spawnLocation; }

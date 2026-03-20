@@ -62,7 +62,11 @@ public class PlayerScoreboardManager {
     public Set<ScoreboardProviderType> getScoreboardTypes(Player player) {
         Set<ScoreboardProviderType> types = new HashSet<>();
 
-        scoreboards.get(player).forEach((providerType, enabled) ->  {
+        var scoreboardProviders = scoreboards.get(player);
+
+        assert scoreboardProviders != null;
+
+        scoreboardProviders.forEach((providerType, enabled) ->  {
             if (enabled) types.add(providerType);
         });
 

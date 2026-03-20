@@ -93,7 +93,7 @@ public class VanillaScoreboard implements RaceScoreboardProvider, TimeTrialScore
         for (Player player : instance.getPlayers()) {
             @Nullable Sidebar sidebar = sidebars.get(player);
 
-            if (sidebar == null) return;
+            if (sidebar == null) continue;
 
             sidebar.addViewer(player);
 

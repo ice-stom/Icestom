@@ -16,7 +16,7 @@ import java.util.zip.ZipOutputStream;
 
 public class TrackFormat {
 
-    public static final String FILE_EXTENTION = "stomtrack";
+    public static final String FILE_EXTENSION = "stomtrack";
 
     private static final TomlWriter tomlWriter = new TomlWriter.Builder()
             .build();

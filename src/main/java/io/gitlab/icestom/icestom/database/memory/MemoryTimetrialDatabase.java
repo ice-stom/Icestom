@@ -7,23 +7,24 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class MemoryTimetrialDatabase implements TimetrialDatabase {
 
     private final Map<PlayerTrackKey, TimedLapResultSource> bestTime = new HashMap<>();
 
     record PlayerTrackKey(
-            Player player,
+            UUID player,
             String trackId
     ) {}
 
     @Override
-    public void updateBestTime(Player player, String track_id, TimedLapResultSource resultSource) {
+    public void updateBestTime(UUID player, String track_id, TimedLapResultSource resultSource) {
         bestTime.put(new PlayerTrackKey(player, track_id), resultSource);
     }
 
     @Override
-    public @Nullable TimedLapResultSource getBestTime(Player player, String track_id) {
+    public @Nullable TimedLapResultSource getBestTime(UUID player, String track_id) {
         return bestTime.get(new PlayerTrackKey(player, track_id));
     }
 }

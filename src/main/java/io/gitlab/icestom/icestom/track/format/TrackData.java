@@ -16,11 +16,11 @@ import java.util.*;
 import static io.gitlab.icestom.icestom.util.Expect.expect;
 
 public interface TrackData {
-    static int VERSION() { return 1; }
+    int VERSION = 1;
 
     String getId();
     Component getName();
-    boolean getLooped();
+    boolean isLooped();
     Pos getSpawnLocation();
     Map<Checkpoint, Integer> getCheckpoints();
     List<Pos> getGridLocations();
@@ -35,12 +35,12 @@ public interface TrackData {
     default Map<String, Object> serialize() {
         Map<String, Object> map = new LinkedHashMap<>();
 
-        map.put("version", VERSION());
+        map.put("version", VERSION);
 
         map.put("id", getId());
         map.put("spawn_location", getSpawnLocation());
         map.put("name", JSONComponentSerializer.json().serialize(getName()));
-        map.put("looped", getLooped());
+        map.put("looped", isLooped());
 
         List<Map<String, Object>> checkpoints = new ArrayList<>();
         map.put("checkpoints", checkpoints);
@@ -128,7 +128,7 @@ public interface TrackData {
             public Component getName() { return name; }
 
             @Override
-            public boolean getLooped() { return looped; }
+            public boolean isLooped() { return looped; }
 
             @Override
             public Pos getSpawnLocation() { return spawn_location; }

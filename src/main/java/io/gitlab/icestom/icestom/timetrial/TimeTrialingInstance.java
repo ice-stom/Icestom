@@ -74,11 +74,11 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
 
                             long time = completed.getTime();
 
-                            @Nullable TimedLapResultSource best = IceStom.getInstance().getTimetrialDatabase().getBestTime(player, track.getId());
+                            @Nullable TimedLapResultSource best = IceStom.getInstance().getTimetrialDatabase().getBestTime(player.getUuid(), track.getId());
 
                             boolean personal_record = best == null || time < best.getTime();
 
-                            if (personal_record) IceStom.getInstance().getTimetrialDatabase().updateBestTime(player, track.getId(), completed);
+                            if (personal_record) IceStom.getInstance().getTimetrialDatabase().updateBestTime(player.getUuid(), track.getId(), completed);
 
                             MinecraftServer.getGlobalEventHandler()
                                     .call(new LapCompletedEvent(timedLap, player, best == null ? null : time - best.getTime()));
@@ -106,7 +106,7 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
 
                 long tick_delta = entry.getValue();
 
-                @Nullable TimedLapResultSource best_result = IceStom.getInstance().getTimetrialDatabase().getBestTime(player, track.getId());
+                @Nullable TimedLapResultSource best_result = IceStom.getInstance().getTimetrialDatabase().getBestTime(player.getUuid(), track.getId());
 
                 TimedLap timedLap = new TimedLap(track, best_result, new Split(
                         getWorldAge() * 50,

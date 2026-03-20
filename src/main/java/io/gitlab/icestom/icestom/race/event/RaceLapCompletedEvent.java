@@ -3,6 +3,7 @@ package io.gitlab.icestom.icestom.race.event;
 import io.gitlab.icestom.icestom.race.Race;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class RaceLapCompletedEvent implements RaceParticipantEvent {
 
@@ -33,7 +34,7 @@ public class RaceLapCompletedEvent implements RaceParticipantEvent {
         return result;
     }
 
-    public @NotNull TimedLapResultSource getPreviousBestResult() {
+    public @Nullable TimedLapResultSource getPreviousBestResult() {
         return previousBest;
     }
 }

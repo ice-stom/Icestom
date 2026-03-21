@@ -3,15 +3,15 @@ package io.gitlab.icestom.icestom.timetrial;
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.instance.SpawnLocation;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
-import io.gitlab.icestom.icestom.timetrial.event.LapCompletedEvent;
+import io.gitlab.icestom.icestom.timetrial.event.TimeTrialLapCompletedEvent;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.TickMovement;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.ui.ActionBarProvider;
-import io.gitlab.icestom.icestom.ui.scoreboard.ScoreboardHolder;
-import io.gitlab.icestom.icestom.ui.scoreboard.TimeTrialScoreboardProvider;
+import io.gitlab.icestom.icestom.ui.InterfaceHolder;
+import io.gitlab.icestom.icestom.timetrial.ui.TimeTrialInterfaceProvider;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.MinecraftServer;
@@ -22,7 +22,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 public class TimeTrialingInstance extends TrackInstance implements SpawnLocation, ActionBarProvider {
-    private static final ScoreboardHolder<TimeTrialScoreboardProvider> scoreboardHolder = new ScoreboardHolder<>(TimeTrialScoreboardProvider.class);
+    private static final InterfaceHolder<TimeTrialInterfaceProvider> INTERFACE_HOLDER = new InterfaceHolder<>(TimeTrialInterfaceProvider.class);
 
     private final Map<Player, TimedLap> timeTrials = new HashMap<>();
 
@@ -81,9 +81,9 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
                             if (personal_record) IceStom.getInstance().getTimetrialDatabase().updateBestTime(player.getUuid(), track.getId(), completed);
 
                             MinecraftServer.getGlobalEventHandler()
-                                    .call(new LapCompletedEvent(timedLap, player, best == null ? null : time - best.getTime()));
+                                    .call(new TimeTrialLapCompletedEvent(this, timedLap, player, best == null ? null : time - best.getTime()));
 
-                            scoreboardHolder.getProviders().forEach(provider -> provider.dispatchTimeTrialLeaderboard(this));
+                            INTERFACE_HOLDER.getProviders().forEach(provider -> provider.dispatchTimeTrialLeaderboard(this));
 
                             not_started_tt.put(player, movement);
                         }
@@ -164,8 +164,8 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
     public void consume(Player player) {
         super.consume(player);
 
-        scoreboardHolder.init(player);
-        scoreboardHolder.getProviders().forEach(provider -> provider.dispatchTimeTrialLeaderboard(this));
+        INTERFACE_HOLDER.addViewer(player);
+        INTERFACE_HOLDER.getProviders().forEach(provider -> provider.dispatchTimeTrialLeaderboard(this));
     }
 
     @Override
@@ -173,6 +173,6 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
         endTimeTrial(player);
         removeBoat(player);
 
-        scoreboardHolder.uninit(player);
+        INTERFACE_HOLDER.removeViewer(player);
     }
 }

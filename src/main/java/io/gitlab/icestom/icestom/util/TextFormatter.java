@@ -18,10 +18,6 @@ public class TextFormatter {
         return Component.text(DECIMAL_FORMAT.format(seconds));
     }
 
-    public static Component getTimeFloored(long ms) {
-        return getTime(Math.floorDiv(ms, 50) * 50);
-    }
-
     public static Component getDelta(long ms) {
         if (ms == 0) {
             return Component.text("=", NamedTextColor.YELLOW).append(getTime(0));

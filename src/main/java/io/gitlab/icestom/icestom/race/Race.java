@@ -4,9 +4,11 @@ import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.GridBoatHolder;
 import io.gitlab.icestom.icestom.event.stage.SingleInstanceStage;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
+import io.gitlab.icestom.icestom.leaderboard.LeaderboardParticipant;
 import io.gitlab.icestom.icestom.race.event.RaceCheckpointReachedEvent;
 import io.gitlab.icestom.icestom.race.event.RaceLapCompletedEvent;
-import io.gitlab.icestom.icestom.race.scoreboard.RaceScoreboardProvider;
+import io.gitlab.icestom.icestom.race.ui.RaceInterfaceProvider;
+import io.gitlab.icestom.icestom.race.ui.RaceLeaderboardRow;
 import io.gitlab.icestom.icestom.timetrial.Split;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResult;
@@ -15,7 +17,7 @@ import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.TickMovement;
 import io.gitlab.icestom.icestom.ui.ActionBarProvider;
-import io.gitlab.icestom.icestom.ui.scoreboard.ScoreboardHolder;
+import io.gitlab.icestom.icestom.ui.InterfaceHolder;
 import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
@@ -36,12 +38,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Race extends TrackInstance implements SingleInstanceStage<TrackInstance>, ActionBarProvider {
 
-    private static final ScoreboardHolder<RaceScoreboardProvider> scoreboardHolder = new ScoreboardHolder<>(RaceScoreboardProvider.class);
+    private static final InterfaceHolder<RaceInterfaceProvider> INTERFACE_HOLDER = new InterfaceHolder<>(RaceInterfaceProvider.class);
 
     private final int totalLaps;
     private final int totalPits;
 
-    private final Leaderboard leaderboard;
+    private final RaceLeaderboard<RaceLeaderboardRow> raceLeaderboard;
 
     private final Map<UUID, RaceParticipant> participants = new LinkedHashMap<>();
     private final List<UUID> startOrder = new ArrayList<>();
@@ -54,7 +56,15 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
         this.totalLaps = totalLaps;
         this.totalPits = totalPits;
 
-        this.leaderboard = new Leaderboard(this);
+        this.raceLeaderboard = new RaceLeaderboard<>(participant -> new RaceLeaderboardRow(
+                participant,
+                0,
+                null,
+                -1,
+                -1,
+                false,
+                false
+        ), this);
     }
 
     @Override
@@ -94,14 +104,14 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
 
                         participation.nextCheckpoint(split);
 
-                        leaderboard.update(participation, split);
+                        raceLeaderboard.update(participation, split);
                         updated.set(true);
                     }
                 });
             }
         }
 
-        if (updated.get()) scoreboardHolder.getProviders().forEach(provider -> provider.dispatchRaceLeaderboard(this));
+        if (updated.get()) INTERFACE_HOLDER.getProviders().forEach(provider -> provider.dispatchRaceLeaderboard(this));
     }
 
     @Override
@@ -161,7 +171,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
 
     @Override
     public void consume(Player player) {
-        scoreboardHolder.init(player);
+        INTERFACE_HOLDER.addViewer(player);
 
         // TODO: participation
 
@@ -174,7 +184,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
                     return new RaceParticipant(this, participation_id, player);
                 });
 
-                leaderboard.addParticipant(participant);
+                raceLeaderboard.addParticipant(participant);
             }
 
         }
@@ -182,7 +192,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
         super.consume(player);
 
         MinecraftServer.getSchedulerManager()
-                .scheduleNextTick(() -> scoreboardHolder.getProviders().forEach(provider -> provider.dispatchRaceLeaderboard(this)));
+                .scheduleNextTick(() -> INTERFACE_HOLDER.getProviders().forEach(provider -> provider.dispatchRaceLeaderboard(this)));
     }
 
     @Override
@@ -205,7 +215,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
 
     @Override
     public void drop(Player player) {
-        scoreboardHolder.uninit(player);
+        INTERFACE_HOLDER.removeViewer(player);
         player.setGameMode(GameMode.SURVIVAL);
         super.drop(player);
     }
@@ -227,7 +237,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
         if (participation != null) {
             TimedLap lap = participation.getCurrentLap();
 
-            int pos = leaderboard.getSnapshot().getPosition(participation) + 1;
+            int pos = raceLeaderboard.getSnapshot().getPosition(participation) + 1;
 
             Component text = Component.empty()
                     .append(Component.text("P")
@@ -271,7 +281,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
 
     public int getTotalLaps() { return totalLaps; }
     public int getTotalPits() { return totalPits; }
-    public Leaderboard getLeaderboard() { return leaderboard; }
+    public RaceLeaderboard<RaceLeaderboardRow> getLeaderboard() { return raceLeaderboard; }
 
     public Map<UUID, RaceParticipant> getParticipants() { return participants; }
     public @Nullable Race.RaceParticipant getParticipant(UUID uuid) { return participants.get(uuid); }
@@ -287,7 +297,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
         RACE
     }
 
-    public class RaceParticipant {
+    public class RaceParticipant implements LeaderboardParticipant<RaceParticipant> {
         private final List<Split> splits = new ArrayList<>();
         private final List<TimedLapResultSource> pastLaps = new ArrayList<>();
 

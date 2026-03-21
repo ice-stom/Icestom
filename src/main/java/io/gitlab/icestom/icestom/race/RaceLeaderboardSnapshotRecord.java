@@ -1,24 +1,23 @@
 package io.gitlab.icestom.icestom.race;
 
-import io.gitlab.icestom.icestom.race.scoreboard.RaceScoreboardRow;
-import net.minestom.server.entity.Player;
+import io.gitlab.icestom.icestom.race.ui.RaceLeaderboardRow;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
-public class RaceLeaderboardSnapshotRecord implements RaceLeaderboardSnapshot {
+public class RaceLeaderboardSnapshotRecord<R extends RaceLeaderboardRow> implements RaceLeaderboardSnapshot<R> {
 
     private final String trackName;
     private final int totalLaps;
     private final int totalPits;
     @Nullable private final Race.RaceParticipant flapHolder;
-    private final List<RaceScoreboardRow> rows;
+    private final List<R> rows;
     private final Map<Race.RaceParticipant, Integer> positions;
 
-    public RaceLeaderboardSnapshotRecord(String trackName, int totalLaps, int totalPits, @Nullable Race.RaceParticipant flapHolder, List<RaceScoreboardRow> rows) {
+    public RaceLeaderboardSnapshotRecord(String trackName, int totalLaps, int totalPits, @Nullable Race.RaceParticipant flapHolder, List<R> rows) {
         this.trackName = trackName;
         this.totalLaps = totalLaps;
         this.totalPits = totalPits;
@@ -28,7 +27,7 @@ public class RaceLeaderboardSnapshotRecord implements RaceLeaderboardSnapshot {
         this.positions = new HashMap<>();
 
         for (int i = 0; i < rows.size(); i++) {
-            RaceScoreboardRow row = rows.get(i);
+            RaceLeaderboardRow row = rows.get(i);
 
             positions.put(row.getParticipant(), i);
         }
@@ -55,7 +54,7 @@ public class RaceLeaderboardSnapshotRecord implements RaceLeaderboardSnapshot {
     }
 
     @Override
-    public List<RaceScoreboardRow> getRows() {
+    public @NonNull List<R> getRows() {
         return rows;
     }
 

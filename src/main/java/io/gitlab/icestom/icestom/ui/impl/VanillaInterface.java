@@ -1,11 +1,14 @@
-package io.gitlab.icestom.icestom.ui.scoreboard;
+package io.gitlab.icestom.icestom.ui.impl;
 
-import io.gitlab.icestom.icestom.race.Leaderboard;
+import io.gitlab.icestom.icestom.race.RaceLeaderboard;
 import io.gitlab.icestom.icestom.race.RaceLeaderboardSnapshot;
-import io.gitlab.icestom.icestom.race.scoreboard.RaceScoreboardProvider;
-import io.gitlab.icestom.icestom.race.scoreboard.RaceScoreboardRow;
+import io.gitlab.icestom.icestom.race.ui.RaceInterfaceProvider;
+import io.gitlab.icestom.icestom.race.ui.RaceLeaderboardRow;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.race.Race;
+import io.gitlab.icestom.icestom.timetrial.event.TimeTrialLapCompletedEvent;
+import io.gitlab.icestom.icestom.timetrial.event.TimeTrialSessionStartEvent;
+import io.gitlab.icestom.icestom.timetrial.ui.TimeTrialInterfaceProvider;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
@@ -13,6 +16,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.object.ObjectContents;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.scoreboard.Sidebar;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,10 +25,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class VanillaScoreboard implements RaceScoreboardProvider, TimeTrialScoreboardProvider {
+public class VanillaInterface implements RaceInterfaceProvider, TimeTrialInterfaceProvider {
 
     private final Map<Player, Sidebar> sidebars = new HashMap<>();
     private final Map<UUID, String> name = new HashMap<>();
+
+    VanillaInterface() {
+        GlobalEventHandler globalEventHandler = MinecraftServer.getGlobalEventHandler();
+
+        globalEventHandler.addListener(TimeTrialSessionStartEvent.class, event -> {
+            globalEventHandler.addListener(TimeTrialLapCompletedEvent.class, timeTrialLapCompletedEvent -> {
+
+            });
+        });
+    }
 
     @Override
     public void startViewing(Player viewer) {
@@ -42,14 +56,12 @@ public class VanillaScoreboard implements RaceScoreboardProvider, TimeTrialScore
 
     @Override
     public void stopViewing(Player viewer) {
-        sidebars.computeIfPresent(viewer, (player, sidebar) -> {
-            sidebar.removeViewer(player);
+        @Nullable Sidebar sidebar = sidebars.remove(viewer);
 
-            return null;
-        });
+        if (sidebar != null) sidebar.removeViewer(viewer);
     }
 
-    private Component sidebarLeaderboardEntry(RaceScoreboardRow row) {
+    private Component sidebarLeaderboardEntry(RaceLeaderboardRow row) {
         UUID id = row.getParticipant().getCurrentPlayer().getUuid();
 
         String username = name.computeIfAbsent(id, uuid -> {
@@ -68,11 +80,11 @@ public class VanillaScoreboard implements RaceScoreboardProvider, TimeTrialScore
 
     @Override
     public void dispatchRaceLeaderboard(Race race) {
-        Leaderboard leaderboard = race.getLeaderboard();
+        RaceLeaderboard<RaceLeaderboardRow> raceLeaderboard = race.getLeaderboard();
 
-        RaceLeaderboardSnapshot snapshot = leaderboard.getSnapshot();
+        RaceLeaderboardSnapshot<RaceLeaderboardRow> snapshot = raceLeaderboard.getSnapshot();
 
-        List<RaceScoreboardRow> rows = snapshot.getRows();
+        List<RaceLeaderboardRow> rows = snapshot.getRows();
         for (Player player : race.getPlayers()) {
             @Nullable Sidebar sidebar = sidebars.get(player);
 
@@ -81,7 +93,7 @@ public class VanillaScoreboard implements RaceScoreboardProvider, TimeTrialScore
             sidebar.setTitle(Component.text("Race at " + race.getTrack().getId()));
 
             for (int i = 0; i < rows.size(); i++) {
-                RaceScoreboardRow row = rows.get(i);
+                RaceLeaderboardRow row = rows.get(i);
 
                 sidebar.updateLineContent(String.valueOf(i), sidebarLeaderboardEntry(row));
             }

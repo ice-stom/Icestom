@@ -1,7 +1,6 @@
-package io.gitlab.icestom.icestom.ui.scoreboard.manager;
+package io.gitlab.icestom.icestom.ui;
 
-import io.gitlab.icestom.icestom.ui.scoreboard.ScoreboardProvider;
-import io.gitlab.icestom.icestom.ui.scoreboard.VanillaScoreboard;
+import io.gitlab.icestom.icestom.ui.impl.VanillaInterface;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.GlobalEventHandler;
@@ -13,17 +12,17 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class PlayerScoreboardManager {
+public class InterfaceManager {
 
-    private final Map<Player, Map<ScoreboardProviderType, Boolean>> scoreboards = new HashMap<>();
+    private final Map<Player, Map<InterfaceType, Boolean>> supportedInterfaces = new HashMap<>();
 
-    public enum ScoreboardProviderType {
-        VANILLA("Vanilla Leaderboard", VanillaScoreboard.class);
+    public enum InterfaceType {
+        VANILLA("Vanilla", VanillaInterface.class);
 
         private final String name;
-        private final Class<? extends ScoreboardProvider> provider;
+        private final Class<? extends InterfaceProvider> provider;
 
-        ScoreboardProviderType(String name, Class<? extends ScoreboardProvider> provider) {
+        InterfaceType(String name, Class<? extends InterfaceProvider> provider) {
             this.name = name;
             this.provider = provider;
         }
@@ -34,7 +33,7 @@ public class PlayerScoreboardManager {
             return obj.isAssignableFrom(provider);
         }
 
-        public ScoreboardProvider newProvider() {
+        public InterfaceProvider newProvider() {
             try {
                 return provider.getConstructor().newInstance();
             } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
@@ -43,7 +42,7 @@ public class PlayerScoreboardManager {
         }
     }
 
-    public PlayerScoreboardManager() {
+    public InterfaceManager() {
         GlobalEventHandler globalEventHandler = MinecraftServer.getGlobalEventHandler();
 
         globalEventHandler.addListener(PlayerPluginMessageEvent.class, this::onPlayerPluginMessage);
@@ -52,22 +51,21 @@ public class PlayerScoreboardManager {
     private void onPlayerPluginMessage(PlayerPluginMessageEvent event) {
         final Player player = event.getPlayer();
 
-        final Map<ScoreboardProviderType, Boolean> providers = scoreboards.computeIfAbsent(player, _ -> new HashMap<>());
+        final Map<InterfaceType, Boolean> providers = supportedInterfaces.computeIfAbsent(player, _ -> new HashMap<>());
 
-        providers.put(ScoreboardProviderType.VANILLA, true);
+        providers.put(InterfaceType.VANILLA, true);
 
         // TODO: add bodkin protocol
     }
 
-    public Set<ScoreboardProviderType> getScoreboardTypes(Player player) {
-        Set<ScoreboardProviderType> types = new HashSet<>();
+    public Set<InterfaceType> getActiveInterfaces(Player player) {
+        Set<InterfaceType> types = new HashSet<>();
 
-        var scoreboardProviders = scoreboards.get(player);
+        var interfaceProviders = supportedInterfaces.get(player);
+        assert interfaceProviders != null;
 
-        assert scoreboardProviders != null;
-
-        scoreboardProviders.forEach((providerType, enabled) ->  {
-            if (enabled) types.add(providerType);
+        interfaceProviders.forEach((interfaceProvider, enabled) ->  {
+            if (enabled) types.add(interfaceProvider);
         });
 
         return types;

@@ -1,10 +1,10 @@
-package io.gitlab.icestom.icestom.race.scoreboard;
+package io.gitlab.icestom.icestom.race.ui;
 
+import io.gitlab.icestom.icestom.leaderboard.LeaderboardRow;
 import io.gitlab.icestom.icestom.race.Race;
-import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
-public class RaceScoreboardRow {
+public class RaceLeaderboardRow implements LeaderboardRow<Race.RaceParticipant> {
     private final Race.RaceParticipant participant;
     private long delta;
 
@@ -16,8 +16,8 @@ public class RaceScoreboardRow {
     private boolean pit;
     private boolean dnf;
 
-    public RaceScoreboardRow(Race.RaceParticipant participant, long delta,
-                             @Nullable Long flapTime, int completedLaps, int completedPits, boolean pit, boolean dnf) {
+    public RaceLeaderboardRow(Race.RaceParticipant participant, long delta,
+                              @Nullable Long flapTime, int completedLaps, int completedPits, boolean pit, boolean dnf) {
         this.participant = participant;
         this.delta = delta;
         this.flapTime = flapTime;
@@ -29,6 +29,12 @@ public class RaceScoreboardRow {
 
     public Race.RaceParticipant getParticipant() {
         return participant;
+    }
+
+    @Override
+    public void update() {
+        setCompletedLaps(participant.getCompletedLaps());
+        setCompletedPits(participant.getCompletedPits());
     }
 
     public long getDelta() {

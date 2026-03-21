@@ -17,7 +17,7 @@ import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.format.TrackFormat;
 import io.gitlab.icestom.icestom.track.TrackLibrary;
 import io.gitlab.icestom.icestom.track.checkpoint.*;
-import io.gitlab.icestom.icestom.ui.scoreboard.manager.PlayerScoreboardManager;
+import io.gitlab.icestom.icestom.ui.InterfaceManager;
 import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsPacket;
 import me.lucko.spark.minestom.SparkMinestom;
 import net.hollowcube.polar.AnvilPolar;
@@ -51,10 +51,11 @@ import java.util.*;
 
 public class IceStom {
 
+    public static final String NAMESPACE = "icestom";
+
     // https://github.com/o7Moon/OpenBoatUtils/wiki/Version-IDs
     // TODO: work out the actual versions packets were introduced in, rn just forcing latest
     private static final short MIN_OPENBOATUTILS_VERSION = 16;
-    public static final String NAMESPACE = "icestom";
 
     private static final Logger log = LoggerFactory.getLogger(IceStom.class);
 
@@ -65,7 +66,7 @@ public class IceStom {
     private final TrackLibrary trackLibrary;
     private final TimeTrialManager timeTrialManager;
     private final EventManager eventManager;
-    private final PlayerScoreboardManager playerScoreboardManager;
+    private final InterfaceManager playerScoreboardManager;
 
     private final SpawnInstance spawnInstance;
 
@@ -85,7 +86,7 @@ public class IceStom {
         trackLibrary = new TrackLibrary();
         timeTrialManager = new TimeTrialManager();
         eventManager = new EventManager();
-        playerScoreboardManager = new PlayerScoreboardManager();
+        playerScoreboardManager = new InterfaceManager();
 
         spawnInstance = new SpawnInstance();
 
@@ -290,7 +291,7 @@ public class IceStom {
     public TimeTrialManager getTimeTrialManager() { return timeTrialManager; }
     public EventManager getEventManager() { return eventManager; }
 
-    public PlayerScoreboardManager getPlayerLeaderboardManager() { return playerScoreboardManager; }
+    public InterfaceManager getPlayerLeaderboardManager() { return playerScoreboardManager; }
 
     public SpawnInstance getSpawnInstance() { return spawnInstance; }
 

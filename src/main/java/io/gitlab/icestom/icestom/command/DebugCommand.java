@@ -4,7 +4,6 @@ import io.gitlab.icestom.icestom.instance.TrackInstance;
 import io.gitlab.icestom.icestom.race.Race;
 import io.gitlab.icestom.icestom.track.Track;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
@@ -56,7 +55,7 @@ public class DebugCommand extends Command {
                     Track track = trackInstance.getTrack();
 
                     if (grid_no >= track.getGridLocations().size()) {
-                        commandSender.sendMessage(Component.text("No grid with that index", NamedTextColor.RED));
+                        commandSender.sendMessage(Component.translatable("message.race.no_grid_with_index"));
                         return;
                     }
                     player.teleport(trackInstance.getTrack().getGridLocations().get(grid_no));

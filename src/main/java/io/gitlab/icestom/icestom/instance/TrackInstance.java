@@ -73,7 +73,7 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
         if (!track.getOpenBoatUtilsPackets().isEmpty()) {
             if (((IceStomPlayer) player).getOpenBoatUtilsVersion() == null) {
                 drop(player);
-                player.sendMessage(Component.text("You need OpenBoatUtils to play this track"));
+                player.sendMessage(Component.translatable("message.timetrial.requires_open_boat_utils"));
                 IceStom.getInstance().getSpawnInstance().consume(player);
             } else {
                 try {

@@ -4,7 +4,6 @@ import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.TrackLibrary;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.CommandContext;
@@ -38,7 +37,7 @@ public class TrackCommand extends Command {
                 @Nullable Track track = trackLibrary.getTracks().get(track_id);
 
                 if (track == null) {
-                    commandSender.sendMessage(Component.text("Unknown track: " + track_id, NamedTextColor.RED));
+                    commandSender.sendMessage(Component.translatable("command.timetrial.unknown_track", Component.text(track_id)));
                     return;
                 }
 

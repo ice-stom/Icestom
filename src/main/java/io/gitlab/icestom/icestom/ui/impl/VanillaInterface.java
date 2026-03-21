@@ -13,6 +13,7 @@ import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 import net.kyori.adventure.text.object.ObjectContents;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
@@ -30,10 +31,15 @@ public class VanillaInterface implements RaceInterfaceProvider, TimeTrialInterfa
     private final Map<Player, Sidebar> sidebars = new HashMap<>();
     private final Map<UUID, String> name = new HashMap<>();
 
-    VanillaInterface() {
+    public VanillaInterface() {
         GlobalEventHandler globalEventHandler = MinecraftServer.getGlobalEventHandler();
 
         globalEventHandler.addListener(TimeTrialSessionStartEvent.class, event -> {
+            final Player player = event.getPlayer();
+            final Track track = event.getInstance().getTrack();
+
+            player.sendMessage(Component.translatable("message.timetrial.start", Argument.component("track", track.getName())));
+
             globalEventHandler.addListener(TimeTrialLapCompletedEvent.class, timeTrialLapCompletedEvent -> {
 
             });

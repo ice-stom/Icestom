@@ -5,7 +5,6 @@ import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.entity.Player;
 import net.minestom.server.instance.Instance;
@@ -19,7 +18,7 @@ public class SpawnCommand extends Command {
 
         setDefaultExecutor((commandSender, commandContext) -> {
             if (!(commandSender instanceof Player player)) {
-                commandSender.sendMessage(Component.text("You must be a player to run this command.", NamedTextColor.RED));
+                commandSender.sendMessage(Component.translatable("command.generic.must_be_player"));
                 return;
             }
 

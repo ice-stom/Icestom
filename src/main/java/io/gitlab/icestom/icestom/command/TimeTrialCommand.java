@@ -6,7 +6,6 @@ import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.TrackLibrary;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.CommandContext;
@@ -29,7 +28,7 @@ public class TimeTrialCommand extends Command {
 
         addSyntax((commandSender, commandContext) -> {
             if (!(commandSender instanceof Player player)) {
-                commandSender.sendMessage(Component.text("You must be a player to run this command.", NamedTextColor.RED));
+                commandSender.sendMessage(Component.translatable("command.generic.must_be_player"));
                 return;
             }
 
@@ -38,7 +37,7 @@ public class TimeTrialCommand extends Command {
             @Nullable Track track = trackLibrary.getTracks().get(track_id);
 
             if (track == null) {
-                commandSender.sendMessage(Component.text("Unknown track: " + track_id, NamedTextColor.RED));
+                commandSender.sendMessage(Component.translatable("command.timetrial.unknown_track", Component.text(track_id)));
                 return;
             }
 
@@ -48,8 +47,6 @@ public class TimeTrialCommand extends Command {
                     return;
                 }
             }
-
-            commandSender.sendMessage(Component.text("Starting time timetrial"));
 
             timeTrialManager.starTimeTrialing(player, track);
         }, trackArgument);

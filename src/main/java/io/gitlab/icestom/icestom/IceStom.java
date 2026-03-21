@@ -17,6 +17,7 @@ import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.format.TrackFormat;
 import io.gitlab.icestom.icestom.track.TrackLibrary;
 import io.gitlab.icestom.icestom.track.checkpoint.*;
+import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
 import io.gitlab.icestom.icestom.ui.InterfaceManager;
 import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsPacket;
 import me.lucko.spark.minestom.SparkMinestom;
@@ -63,6 +64,7 @@ public class IceStom {
 
     private final MinecraftServer minecraftServer;
 
+    private final TranslationManager translationManager;
     private final TrackLibrary trackLibrary;
     private final TimeTrialManager timeTrialManager;
     private final EventManager eventManager;
@@ -82,6 +84,8 @@ public class IceStom {
         minecraftServer = MinecraftServer.init();
 
         MinecraftServer.setBrandName(String.format("IceStom (%s)", MinecraftServer.getBrandName()));
+
+        translationManager = new TranslationManager(getClass());
 
         trackLibrary = new TrackLibrary();
         timeTrialManager = new TimeTrialManager();
@@ -240,17 +244,18 @@ public class IceStom {
                         int version = in.readInt();
 
                         if (version < MIN_OPENBOATUTILS_VERSION) {
-                            player.sendMessage(Component.text("WARNING: Your version of OpenBoatUtils is out of date! Please update for OpenBoatUtils to function."));
+                            player.sendMessage(Component.translatable("message.openboatutils.outdated_version_global"));
                             return;
                         }
 
                         if (version == 12) {
-                            player.sendMessage(Component.text("WARNING: Your version of OpenBoatUtils is broken! (Ref: 0.4.4_1.21.3; 'broken') Please update for OpenBoatUtils to function."));
+                            player.sendMessage(Component.translatable("message.openboatutils.bad_version", Component.text("0.4.4_1.12.3; 'broken'")));
                             return;
                         }
 
                         if (version == 8) {
-                            player.sendMessage(Component.text("WARNING: Your version of OpenBoatUtils is broken! (Ref: 0.4.2; broken air control) Please update for OpenBoatUtils to function."));
+                            player.sendMessage(Component.translatable("message.openboatutils.bad_version", Component.text("0.4.2; broken air control")));
+
                             return;
                         }
 
@@ -290,6 +295,7 @@ public class IceStom {
     public TrackLibrary getTrackLibrary() { return trackLibrary; }
     public TimeTrialManager getTimeTrialManager() { return timeTrialManager; }
     public EventManager getEventManager() { return eventManager; }
+    public TranslationManager getTranslationManager() { return translationManager; }
 
     public InterfaceManager getPlayerLeaderboardManager() { return playerScoreboardManager; }
 

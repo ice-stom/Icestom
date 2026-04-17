@@ -25,6 +25,7 @@ import net.hollowcube.polar.AnvilPolar;
 import net.hollowcube.polar.PolarWorld;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
 import net.minestom.server.coordinate.Pos;
@@ -81,7 +82,7 @@ public class IceStom {
         System.setProperty("minestom.entity-view-distance", "8");
         System.setProperty("minestom.dispatcher-threads", "2");
 
-        minecraftServer = MinecraftServer.init();
+        minecraftServer = MinecraftServer.init(new Auth.Velocity("ccd215c4ed023d4f1955d5db071c8b81"));
 
         MinecraftServer.setBrandName(String.format("IceStom (%s)", MinecraftServer.getBrandName()));
 

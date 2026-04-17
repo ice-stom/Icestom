@@ -14,6 +14,7 @@ public class PacketByteBuf {
     public PacketByteBuf writeShort(short v) throws IOException { out.writeShort(v); return this; }
     public PacketByteBuf writeInt(int v) throws IOException { out.writeInt(v); return this; }
     public PacketByteBuf writeByte(byte v) throws IOException { out.writeByte(v); return this; }
+    public PacketByteBuf write(byte[] bytes) throws IOException { out.write(bytes); return this; }
 
     // https://github.com/o7Moon/OpenBoatUtils/wiki/Packets#a-note-on-strings
     public PacketByteBuf writeString(String s) throws IOException {

@@ -4,16 +4,16 @@ import com.electronwill.nightconfig.core.file.FileConfig;
 import com.electronwill.nightconfig.core.serde.ObjectDeserializer;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Set;
 
 public class IceStomConfig {
 
-    public NetworkConfig network;
-    public AuthConfig auth;
-    public MinestomConfig minestom;
+    public IceStomConfigSection icestom;
+    public OpenBoatUtilsConfigSection openboatutils;
+    public NetworkConfigSection network;
+    public AuthConfigSection auth;
+    public MinestomConfigSection minestom;
 
     private static Path config_file = Path.of("config.toml");
     private static FileConfig config = FileConfig.builder(config_file)
@@ -42,19 +42,28 @@ public class IceStomConfig {
         return instance;
     }
 
-    public static class NetworkConfig {
+    public static class IceStomConfigSection {
+        public boolean something;
+    }
+
+    public static class OpenBoatUtilsConfigSection {
+        public boolean block_unstable;
+        public boolean interpolation_compatibility;
+    }
+
+    public static class NetworkConfigSection {
         public String bind;
         public int port;
     }
 
-    public static class AuthConfig {
+    public static class AuthConfigSection {
         public boolean online_mode;
         public ForwardingMode forwarding;
         public String velocity_secret;
         public List<String> bungeeguard_secrets;
     }
 
-    public static class MinestomConfig {
+    public static class MinestomConfigSection {
         public int compression_threshold;
         public int chunk_view_distance;
         public int entity_view_distance;

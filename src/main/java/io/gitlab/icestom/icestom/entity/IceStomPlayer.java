@@ -20,8 +20,14 @@ public class IceStomPlayer extends Player {
         super(playerConnection, profile);
     }
 
+    @Override
     public void sendMessage(@NotNull Component message) {
         super.sendMessage(translationManager.render(message, getLocale(), Themes.DEFAULT_THEME));
+    }
+
+    @Override
+    public void kick(Component message) {
+        super.kick(translationManager.render(message, getLocale(), Themes.DEFAULT_THEME));
     }
 
     public void setOpenBoatUtilsVersion(Integer openBoatUtilsVersion) { this.openBoatUtilsVersion = openBoatUtilsVersion; }

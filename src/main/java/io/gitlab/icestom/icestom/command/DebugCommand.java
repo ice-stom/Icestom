@@ -1,6 +1,11 @@
 package io.gitlab.icestom.icestom.command;
 
+import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
+import io.gitlab.icestom.icestom.openboatutils.OBUContextPackets;
+import io.gitlab.icestom.icestom.openboatutils.OBUPacket;
+import io.gitlab.icestom.icestom.openboatutils.OBUSettingsPackets;
+import io.gitlab.icestom.icestom.openboatutils.TransactionPayload;
 import io.gitlab.icestom.icestom.race.Race;
 import io.gitlab.icestom.icestom.track.Track;
 import net.kyori.adventure.text.Component;
@@ -12,6 +17,9 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.instance.Instance;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+import java.util.List;
+
 public class DebugCommand extends Command {
     public DebugCommand() {
         super("debug");
@@ -21,6 +29,7 @@ public class DebugCommand extends Command {
         addSubcommand(new EscapeGrid());
         addSubcommand(new InstanceList());
         addSubcommand(new StartRace());
+        addSubcommand(new TestEntityContext());
     }
 
     public static class LetMeOutCommand extends Command {
@@ -107,6 +116,27 @@ public class DebugCommand extends Command {
                 if (!(commandSender instanceof Player player)) return;
 
                 if (player.getInstance() instanceof Race race) race.startCountdown();
+            });
+        }
+    }
+
+    public static class TestEntityContext extends Command {
+        public TestEntityContext() {
+            super("testentityContext");
+
+            setDefaultExecutor((commandSender, _) -> {
+                if (!(commandSender instanceof Player player)) return;
+
+                if (player.getVehicle() instanceof Boat boat) {
+                    try {
+                        player.sendPacket(new OBUContextPackets.EntityContext(
+                                boat.getUuid(),
+                                new TransactionPayload(List.of(
+                                        new OBUSettingsPackets.ForwardAccelPacket(-1)
+                                ))
+                        ).toPacket(OBUContextPackets.getChannel()));
+                    } catch (IOException _) {}
+                }
             });
         }
     }

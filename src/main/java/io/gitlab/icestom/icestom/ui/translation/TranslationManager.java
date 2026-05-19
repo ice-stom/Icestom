@@ -106,26 +106,14 @@ public class TranslationManager extends MiniMessageTranslator {
 
     @Override
     protected @Nullable String getMiniMessageString(@NotNull String key, @NotNull Locale locale) {
-        // exact match
         Map<String, String> map = locales.get(locale);
         if (map != null) {
             String value = map.get(key);
             if (value != null) return value;
         }
 
-        // language-only fallback (en-US -> en)
-        Locale base = Locale.of(locale.getLanguage());
-        if (!base.equals(locale)) {
-            map = locales.get(base);
-            if (map != null) {
-                String value = map.get(key);
-                if (value != null) return value;
-            }
-        }
-
-        // English fallback
-        Locale english = Locale.ENGLISH;
-        if (!english.equals(locale) && !english.equals(base)) {
+        Locale english = Locale.of("en", "US");
+        if (!english.equals(locale)) {
             map = locales.get(english);
             if (map != null) return map.get(key);
         }

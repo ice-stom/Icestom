@@ -3,7 +3,7 @@ package io.gitlab.icestom.icestom.track;
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.track.format.TrackData;
-import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsPacket;
+import io.gitlab.icestom.icestom.openboatutils.OBUSettingsPackets;
 import net.hollowcube.polar.PolarWorld;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.coordinate.Pos;
@@ -19,7 +19,7 @@ public class Track implements TrackData {
     private final Pos spawnLocation;
     private final Map<Checkpoint, Integer> checkpoints;
     private final List<Pos> gridLocations;
-    private final List<OpenBoatUtilsPacket> openBoatUtilsPackets;
+    private final List<OBUSettingsPackets> openBoatUtilsPackets;
 
     private final Map<Integer, List<Checkpoint>> checkpoint_lookup = new HashMap<>();
 
@@ -71,7 +71,7 @@ public class Track implements TrackData {
     }
 
     @Override
-    public List<OpenBoatUtilsPacket> getOpenBoatUtilsPackets() {
+    public List<OBUSettingsPackets> getOpenBoatUtilsPackets() {
         return openBoatUtilsPackets;
     }
 

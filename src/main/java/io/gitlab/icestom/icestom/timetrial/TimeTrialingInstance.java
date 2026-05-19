@@ -170,8 +170,9 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
 
     @Override
     public void drop(Player player) {
+        super.drop(player);
+
         endTimeTrial(player);
-        removeBoat(player);
 
         INTERFACE_HOLDER.removeViewer(player);
     }

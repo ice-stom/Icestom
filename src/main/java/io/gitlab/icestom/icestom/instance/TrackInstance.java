@@ -2,12 +2,14 @@ package io.gitlab.icestom.icestom.instance;
 
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
+import io.gitlab.icestom.icestom.openboatutils.OBUContextPackets;
+import io.gitlab.icestom.icestom.openboatutils.TransactionPayload;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.PlaneCheckpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.TerribleDebugCheckpointDrawer;
 import io.gitlab.icestom.icestom.track.checkpoint.TickMovement;
-import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsPacket;
+import io.gitlab.icestom.icestom.openboatutils.OBUSettingsPackets;
 import net.hollowcube.polar.PolarLoader;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
@@ -16,13 +18,18 @@ import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Player;
 import net.minestom.server.instance.LightingChunk;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public abstract class TrackInstance extends BoatInstance implements SpawnLocation {
 
+    private static final Logger log = LoggerFactory.getLogger(TrackInstance.class);
     protected final Track track;
     private final Map<Player, Vec> lastTickPositions = new HashMap<>();
 
@@ -72,15 +79,20 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
 
         if (!track.getOpenBoatUtilsPackets().isEmpty()) {
             if (((IceStomPlayer) player).getOpenBoatUtilsVersion() == null) {
-                drop(player);
                 player.sendMessage(Component.translatable("message.timetrial.requires_open_boat_utils"));
+                drop(player);
                 IceStom.getInstance().getSpawnInstance().consume(player);
             } else {
                 try {
-                    player.sendPacket(new OpenBoatUtilsPacket.ResetPacket().toPacket());
-                    for (OpenBoatUtilsPacket openBoatUtilsPacket : track.getOpenBoatUtilsPackets()) {
-                        player.sendPacket(openBoatUtilsPacket.toPacket());
-                    }
+                    List<OBUSettingsPackets> packets = new ArrayList<>();
+                    packets.add(new OBUSettingsPackets.ResetPacket());
+                    packets.addAll(track.getOpenBoatUtilsPackets());
+
+                    log.info(packets.toString());
+
+                    TransactionPayload transactionPayload = new TransactionPayload(packets);
+
+                    player.sendPacket(new OBUSettingsPackets.TransactionPacket(transactionPayload).toPacket(OBUSettingsPackets.getChannel()));
                 } catch (IOException _) {}
             }
         }
@@ -92,7 +104,7 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
     public void drop(Player player) {
         removeBoat(player);
         try {
-            player.sendPacket(new OpenBoatUtilsPacket.ResetPacket().toPacket());
+            player.sendPacket(new OBUContextPackets.ResetContext().toPacket(OBUContextPackets.getChannel()));
         } catch (IOException _) {}
     }
 

@@ -5,7 +5,7 @@ import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.LineCheckpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.PlaneCheckpoint;
 import io.gitlab.icestom.icestom.track.format.serialization.PosAdapter;
-import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsPacket;
+import io.gitlab.icestom.icestom.openboatutils.OBUSettingsPackets;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.json.JSONComponentSerializer;
 import net.minestom.server.coordinate.Pos;
@@ -24,7 +24,7 @@ public interface TrackData {
     Pos getSpawnLocation();
     Map<Checkpoint, Integer> getCheckpoints();
     List<Pos> getGridLocations();
-    List<OpenBoatUtilsPacket> getOpenBoatUtilsPackets();
+    List<OBUSettingsPackets> getOpenBoatUtilsPackets();
 
     class TrackDeserializationException extends Exception {
         public TrackDeserializationException(String message) {
@@ -114,10 +114,10 @@ public interface TrackData {
         }
 
         List<Toml> openboatutils_data = expect(toml.getTables("openboatutils"), new TrackDeserializationException("Missing openboatutils entry"));
-        List<OpenBoatUtilsPacket> openboatutils_packets = new ArrayList<>();
+        List<OBUSettingsPackets> openboatutils_packets = new ArrayList<>();
 
         for (Toml packet : openboatutils_data) {
-            openboatutils_packets.add(OpenBoatUtilsPacket.fromMap(packet.toMap()));
+            openboatutils_packets.add(OBUSettingsPackets.fromMap(packet.toMap()));
         }
 
         return new TrackData() {
@@ -142,7 +142,7 @@ public interface TrackData {
             }
 
             @Override
-            public List<OpenBoatUtilsPacket> getOpenBoatUtilsPackets() { return openboatutils_packets; }
+            public List<OBUSettingsPackets> getOpenBoatUtilsPackets() { return openboatutils_packets; }
         };
     }
 }

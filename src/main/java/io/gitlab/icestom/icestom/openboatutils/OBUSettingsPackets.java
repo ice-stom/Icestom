@@ -1,100 +1,75 @@
 package io.gitlab.icestom.icestom.openboatutils;
 
-import net.kyori.adventure.key.Key;
-import net.minestom.server.network.packet.server.common.PluginMessagePacket;
-
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
-        permits OpenBoatUtilsPacket.ResetPacket,
-        OpenBoatUtilsPacket.StepHeightPacket,
-        OpenBoatUtilsPacket.DefaultSlipperinessPacket,
-        OpenBoatUtilsPacket.BlocksSlipperinessPacket,
-        OpenBoatUtilsPacket.BoatFallDamagePacket,
-        OpenBoatUtilsPacket.BoatWaterElevationPacket,
-        OpenBoatUtilsPacket.AirControlPacket,
-        OpenBoatUtilsPacket.BoatJumpForcePacket,
-        OpenBoatUtilsPacket.ModePacket,
-        OpenBoatUtilsPacket.GravityPacket,
-        OpenBoatUtilsPacket.YawAccelPacket,
-        OpenBoatUtilsPacket.ForwardAccelPacket,
-        OpenBoatUtilsPacket.BackwardAccelPacket,
-        OpenBoatUtilsPacket.TurnAccelPacket,
-        OpenBoatUtilsPacket.AllowAccelStackingPacket,
-        OpenBoatUtilsPacket.ResendVersionPacket,
-        OpenBoatUtilsPacket.UnderwaterControlPacket,
-        OpenBoatUtilsPacket.SurfaceWaterControlPacket,
-        OpenBoatUtilsPacket.ExclusiveModePacket,
-        OpenBoatUtilsPacket.CoyoteTimePacket,
-        OpenBoatUtilsPacket.WaterJumpingPacket,
-        OpenBoatUtilsPacket.SwimForcePacket,
-        OpenBoatUtilsPacket.RemoveBlocksSlipperinessPacket,
-        OpenBoatUtilsPacket.ClearSlipperinessPacket,
-        OpenBoatUtilsPacket.ModeSeriesPacket,
-        OpenBoatUtilsPacket.ExclusiveModeSeriesPacket,
-        OpenBoatUtilsPacket.PerBlockPacket,
-        OpenBoatUtilsPacket.CollisionModePacket,
-        OpenBoatUtilsPacket.StepWhileFallingPacket,
-        OpenBoatUtilsPacket.InterpolationCompatPacket,
-        OpenBoatUtilsPacket.CollisionResolutionPacket,
-        OpenBoatUtilsPacket.AddCollisionEntityTypeFilterPacket,
-        OpenBoatUtilsPacket.ClearCollisionEntityTypeFilterPacket,
-        OpenBoatUtilsPacket.TransactionPacket,
-        OpenBoatUtilsPacket.SetWalltapMultiplier,
-        OpenBoatUtilsPacket.SetJumps,
-        OpenBoatUtilsPacket.SetScale,
-        OpenBoatUtilsPacket.SetStepUpSlipperiness,
-        // Context Packets
-        OpenBoatUtilsPacket.ResetContext,
-        OpenBoatUtilsPacket.SwitchContext,
-        OpenBoatUtilsPacket.DropContext,
-        OpenBoatUtilsPacket.StoreContext {
+public sealed interface OBUSettingsPackets extends OBUPacket
+        permits OBUSettingsPackets.ResetPacket,
+        OBUSettingsPackets.StepHeightPacket,
+        OBUSettingsPackets.DefaultSlipperinessPacket,
+        OBUSettingsPackets.BlocksSlipperinessPacket,
+        OBUSettingsPackets.BoatFallDamagePacket,
+        OBUSettingsPackets.BoatWaterElevationPacket,
+        OBUSettingsPackets.AirControlPacket,
+        OBUSettingsPackets.BoatJumpForcePacket,
+        OBUSettingsPackets.ModePacket,
+        OBUSettingsPackets.GravityPacket,
+        OBUSettingsPackets.YawAccelPacket,
+        OBUSettingsPackets.ForwardAccelPacket,
+        OBUSettingsPackets.BackwardAccelPacket,
+        OBUSettingsPackets.TurnAccelPacket,
+        OBUSettingsPackets.AllowAccelStackingPacket,
+        OBUSettingsPackets.ResendVersionPacket,
+        OBUSettingsPackets.UnderwaterControlPacket,
+        OBUSettingsPackets.SurfaceWaterControlPacket,
+        OBUSettingsPackets.ExclusiveModePacket,
+        OBUSettingsPackets.CoyoteTimePacket,
+        OBUSettingsPackets.WaterJumpingPacket,
+        OBUSettingsPackets.SwimForcePacket,
+        OBUSettingsPackets.RemoveBlocksSlipperinessPacket,
+        OBUSettingsPackets.ClearSlipperinessPacket,
+        OBUSettingsPackets.ModeSeriesPacket,
+        OBUSettingsPackets.ExclusiveModeSeriesPacket,
+        OBUSettingsPackets.PerBlockPacket,
+        OBUSettingsPackets.CollisionModePacket,
+        OBUSettingsPackets.StepWhileFallingPacket,
+        OBUSettingsPackets.InterpolationCompatPacket,
+        OBUSettingsPackets.CollisionResolutionPacket,
+        OBUSettingsPackets.AddCollisionEntityTypeFilterPacket,
+        OBUSettingsPackets.ClearCollisionEntityTypeFilterPacket,
+        OBUSettingsPackets.TransactionPacket,
+        OBUSettingsPackets.SetWalltapMultiplier,
+        OBUSettingsPackets.SetJumps,
+        OBUSettingsPackets.SetScale,
+        OBUSettingsPackets.SetStepUpSlipperiness,
+        OBUSettingsPackets.SetResetOnWorldLoad {
 
-    short getPacketId();
-    short getVersion();
-
-    default PacketByteBuf write(PacketByteBuf buf) throws IOException {
-        return buf.writeShort(getPacketId());
+    @Override
+    default short getPacketId() {
+        throw new RuntimeException("Not Implemented");
     }
 
-    default PluginMessagePacket toPacket() throws IOException {
-        PacketByteBuf buf = new PacketByteBuf();
-
-        return new PluginMessagePacket(getChannel(), write(buf).toBytes());
-    }
-
-    default Map<String, Object> toMap() {
-        Map<String, Object> map = new HashMap<>();
-        map.put("type", getClass().getSimpleName());
-        for (Field field : getClass().getDeclaredFields()) {
-            field.setAccessible(true);
-            try {
-                map.put(field.getName(), field.get(this));
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException("Failed to access field: " + field.getName(), e);
-            }
-        }
-        return map;
+    @Override
+    default short getVersion() {
+        throw new RuntimeException("Not Implemented");
     }
 
     static String getChannel() {
         return "openboatutils:settings";
     }
 
-    static OpenBoatUtilsPacket fromMap(Map<String, Object> map) {
+    static OBUSettingsPackets fromMap(Map<String, Object> map) {
         String type = (String) map.get("type");
         if (type == null) throw new IllegalArgumentException("Map is missing 'type' field");
 
         try {
             Class<?> clazz = Class.forName(
-                    OpenBoatUtilsPacket.class.getName() + "$" + type
+                    OBUSettingsPackets.class.getName() + "$" + type
             );
 
-            OpenBoatUtilsPacket packet = (OpenBoatUtilsPacket) clazz.getDeclaredConstructor().newInstance();
+            OBUSettingsPackets packet = (OBUSettingsPackets) clazz.getDeclaredConstructor().newInstance();
 
             for (Field field : clazz.getDeclaredFields()) {
                 field.setAccessible(true);
@@ -126,12 +101,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         }
     }
 
-    final class ResetPacket implements OpenBoatUtilsPacket {
+    final class ResetPacket implements OBUSettingsPackets {
         public short getVersion() { return 16; }
         public short getPacketId() { return 0; }
     }
 
-    final class StepHeightPacket implements OpenBoatUtilsPacket {
+    final class StepHeightPacket implements OBUSettingsPackets {
         public float step_height;
 
         public StepHeightPacket() {}
@@ -142,12 +117,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 1; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeFloat(step_height);
         }
     }
 
-    final class DefaultSlipperinessPacket implements OpenBoatUtilsPacket {
+    final class DefaultSlipperinessPacket implements OBUSettingsPackets {
         public float slipperiness;
 
         public DefaultSlipperinessPacket() {}
@@ -158,12 +133,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 2; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeFloat(slipperiness);
         }
     }
 
-    final class BlocksSlipperinessPacket implements OpenBoatUtilsPacket {
+    final class BlocksSlipperinessPacket implements OBUSettingsPackets {
         public float slipperiness;
         public List<String> block_ids;
 
@@ -176,13 +151,13 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 3; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeFloat(slipperiness)
                     .writeString(String.join(",", block_ids));
         }
     }
 
-    final class BoatFallDamagePacket implements OpenBoatUtilsPacket {
+    final class BoatFallDamagePacket implements OBUSettingsPackets {
         public boolean fall_damage;
 
         public BoatFallDamagePacket() {}
@@ -193,12 +168,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 4; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeBoolean(fall_damage);
         }
     }
 
-    final class BoatWaterElevationPacket implements OpenBoatUtilsPacket {
+    final class BoatWaterElevationPacket implements OBUSettingsPackets {
         public boolean water_elevation;
 
         public BoatWaterElevationPacket() {}
@@ -209,12 +184,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 5; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeBoolean(water_elevation);
         }
     }
 
-    final class AirControlPacket implements OpenBoatUtilsPacket {
+    final class AirControlPacket implements OBUSettingsPackets {
         public boolean air_control;
 
         public AirControlPacket() {}
@@ -225,12 +200,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 6; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeBoolean(air_control);
         }
     }
 
-    final class BoatJumpForcePacket implements OpenBoatUtilsPacket {
+    final class BoatJumpForcePacket implements OBUSettingsPackets {
         public float jump_force;
 
         public BoatJumpForcePacket() {}
@@ -241,12 +216,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 7; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeFloat(jump_force);
         }
     }
 
-    final class ModePacket implements OpenBoatUtilsPacket {
+    final class ModePacket implements OBUSettingsPackets {
         public short mode_id;
 
         public ModePacket() {}
@@ -257,12 +232,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 8; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeShort(mode_id);
         }
     }
 
-    final class GravityPacket implements OpenBoatUtilsPacket {
+    final class GravityPacket implements OBUSettingsPackets {
         public double gravity;
 
         public GravityPacket() {}
@@ -273,12 +248,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 9; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeDouble(gravity);
         }
     }
 
-    final class YawAccelPacket implements OpenBoatUtilsPacket {
+    final class YawAccelPacket implements OBUSettingsPackets {
         public float acceleration;
 
         public YawAccelPacket() {}
@@ -289,12 +264,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 10; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeFloat(acceleration);
         }
     }
 
-    final class ForwardAccelPacket implements OpenBoatUtilsPacket {
+    final class ForwardAccelPacket implements OBUSettingsPackets {
         public float acceleration;
 
         public ForwardAccelPacket() {}
@@ -305,12 +280,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 11; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeFloat(acceleration);
         }
     }
 
-    final class BackwardAccelPacket implements OpenBoatUtilsPacket {
+    final class BackwardAccelPacket implements OBUSettingsPackets {
         public float acceleration;
 
         public BackwardAccelPacket() {}
@@ -321,12 +296,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 12; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeFloat(acceleration);
         }
     }
 
-    final class TurnAccelPacket implements OpenBoatUtilsPacket {
+    final class TurnAccelPacket implements OBUSettingsPackets {
         public float acceleration;
 
         public TurnAccelPacket() {}
@@ -337,12 +312,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 13; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeFloat(acceleration);
         }
     }
 
-    final class AllowAccelStackingPacket implements OpenBoatUtilsPacket {
+    final class AllowAccelStackingPacket implements OBUSettingsPackets {
         public boolean enabled;
 
         public AllowAccelStackingPacket() {}
@@ -353,17 +328,17 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 14; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeBoolean(enabled);
         }
     }
 
-    final class ResendVersionPacket implements OpenBoatUtilsPacket {
+    final class ResendVersionPacket implements OBUSettingsPackets {
         public short getVersion() { return 16; }
         public short getPacketId() { return 15; }
     }
 
-    final class UnderwaterControlPacket implements OpenBoatUtilsPacket {
+    final class UnderwaterControlPacket implements OBUSettingsPackets {
         public boolean enabled;
 
         public UnderwaterControlPacket() {}
@@ -374,12 +349,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 16; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeBoolean(enabled);
         }
     }
 
-    final class SurfaceWaterControlPacket implements OpenBoatUtilsPacket {
+    final class SurfaceWaterControlPacket implements OBUSettingsPackets {
         public boolean enabled;
 
         public SurfaceWaterControlPacket() {}
@@ -390,12 +365,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 17; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeBoolean(enabled);
         }
     }
 
-    final class ExclusiveModePacket implements OpenBoatUtilsPacket {
+    final class ExclusiveModePacket implements OBUSettingsPackets {
         public short mode_id;
 
         public ExclusiveModePacket() {}
@@ -406,12 +381,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 18; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeShort(mode_id);
         }
     }
 
-    final class CoyoteTimePacket implements OpenBoatUtilsPacket {
+    final class CoyoteTimePacket implements OBUSettingsPackets {
         public int ticks;
 
         public CoyoteTimePacket() {}
@@ -422,12 +397,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 19; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeInt(ticks);
         }
     }
 
-    final class WaterJumpingPacket implements OpenBoatUtilsPacket {
+    final class WaterJumpingPacket implements OBUSettingsPackets {
         public boolean enabled;
 
         public WaterJumpingPacket() {}
@@ -438,12 +413,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 20; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeBoolean(enabled);
         }
     }
 
-    final class SwimForcePacket implements OpenBoatUtilsPacket {
+    final class SwimForcePacket implements OBUSettingsPackets {
         public float force;
 
         public SwimForcePacket() {}
@@ -454,12 +429,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 21; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeFloat(force);
         }
     }
 
-    final class RemoveBlocksSlipperinessPacket implements OpenBoatUtilsPacket {
+    final class RemoveBlocksSlipperinessPacket implements OBUSettingsPackets {
         public List<String> block_ids;
 
         public RemoveBlocksSlipperinessPacket() {}
@@ -470,17 +445,17 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 22; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeString(String.join(",", block_ids));
         }
     }
 
-    final class ClearSlipperinessPacket implements OpenBoatUtilsPacket {
+    final class ClearSlipperinessPacket implements OBUSettingsPackets {
         public short getVersion() { return 16; }
         public short getPacketId() { return 23; }
     }
 
-    final class ModeSeriesPacket implements OpenBoatUtilsPacket {
+    final class ModeSeriesPacket implements OBUSettingsPackets {
         public List<Short> mode_ids;
 
         public ModeSeriesPacket() {}
@@ -491,14 +466,14 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 24; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            OpenBoatUtilsPacket.super.write(buf);
+            OBUSettingsPackets.super.write(buf);
             buf.writeShort((short) mode_ids.size());
             for (short id : mode_ids) buf.writeShort(id);
             return buf;
         }
     }
 
-    final class ExclusiveModeSeriesPacket implements OpenBoatUtilsPacket {
+    final class ExclusiveModeSeriesPacket implements OBUSettingsPackets {
         public List<Short> mode_ids;
 
         public ExclusiveModeSeriesPacket() {}
@@ -509,14 +484,14 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 25; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            OpenBoatUtilsPacket.super.write(buf);
+            OBUSettingsPackets.super.write(buf);
             buf.writeShort((short) mode_ids.size());
             for (short id : mode_ids) buf.writeShort(id);
             return buf;
         }
     }
 
-    final class PerBlockPacket implements OpenBoatUtilsPacket {
+    final class PerBlockPacket implements OBUSettingsPackets {
         public PerBlockSetting setting;
         public float value;
         public List<String> block_ids;
@@ -531,14 +506,14 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 26; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeShort((short) setting.ordinal())
                     .writeFloat(value)
                     .writeString(String.join(",", block_ids));
         }
     }
 
-    final class CollisionModePacket implements OpenBoatUtilsPacket {
+    final class CollisionModePacket implements OBUSettingsPackets {
         public CollisionMode mode;
 
         public CollisionModePacket() {}
@@ -549,12 +524,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 27; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeShort((short) mode.ordinal());
         }
     }
 
-    final class StepWhileFallingPacket implements OpenBoatUtilsPacket {
+    final class StepWhileFallingPacket implements OBUSettingsPackets {
         public boolean enabled;
 
         public StepWhileFallingPacket() {}
@@ -565,12 +540,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 28; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeBoolean(enabled);
         }
     }
 
-    final class InterpolationCompatPacket implements OpenBoatUtilsPacket {
+    final class InterpolationCompatPacket implements OBUSettingsPackets {
         public boolean enabled;
 
         public InterpolationCompatPacket() {}
@@ -581,12 +556,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 29; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeBoolean(enabled);
         }
     }
 
-    final class CollisionResolutionPacket implements OpenBoatUtilsPacket {
+    final class CollisionResolutionPacket implements OBUSettingsPackets {
         public byte resolution;
 
         public CollisionResolutionPacket() {}
@@ -597,12 +572,12 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 30; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeByte(resolution);
         }
     }
 
-    final class AddCollisionEntityTypeFilterPacket implements OpenBoatUtilsPacket {
+    final class AddCollisionEntityTypeFilterPacket implements OBUSettingsPackets {
         public List<String> entity_ids;
 
         public AddCollisionEntityTypeFilterPacket() {}
@@ -613,17 +588,17 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
         public short getVersion() { return 16; }
         public short getPacketId() { return 31; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeString(String.join(",", entity_ids));
         }
     }
 
-    final class ClearCollisionEntityTypeFilterPacket implements OpenBoatUtilsPacket {
+    final class ClearCollisionEntityTypeFilterPacket implements OBUSettingsPackets {
         public short getVersion() { return 16; }
         public short getPacketId() { return 32; }
     }
 
-    final class TransactionPacket implements OpenBoatUtilsPacket {
+    final class TransactionPacket implements OBUSettingsPackets {
         public TransactionPayload transactionPayload;
 
         public TransactionPacket() {}
@@ -639,14 +614,14 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
 
         @Override
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            OpenBoatUtilsPacket.super.write(buf);
+            OBUSettingsPackets.super.write(buf);
             transactionPayload.write(buf);
 
             return buf;
         }
     }
 
-    final class SetWalltapMultiplier implements OpenBoatUtilsPacket {
+    final class SetWalltapMultiplier implements OBUSettingsPackets {
         public float multiplier;
 
         public SetWalltapMultiplier() {}
@@ -657,117 +632,74 @@ public sealed interface OpenBoatUtilsPacket extends PacketByteBufWriter
 
         @Override
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeFloat(multiplier);
         }
     }
 
-    final class SetJumps implements OpenBoatUtilsPacket {
+    final class SetJumps implements OBUSettingsPackets {
         public int jumps;
 
         public SetJumps() {}
         public SetJumps(int jumps) { this.jumps = jumps; }
 
         public short getVersion() { return 19; }
-        public short getPacketId() { return 34; }
+        public short getPacketId() { return 35; }
 
         @Override
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeInt(jumps);
         }
     }
 
-    final class SetScale implements OpenBoatUtilsPacket {
+    final class SetScale implements OBUSettingsPackets {
         public float scale;
 
         public SetScale() {}
         public SetScale(float scale) { this.scale = scale; }
 
         public short getVersion() { return 19; }
-        public short getPacketId() { return 34; }
+        public short getPacketId() { return 36; }
 
         @Override
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeFloat(scale);
         }
     }
 
-    final class SetStepUpSlipperiness implements OpenBoatUtilsPacket {
+    final class SetStepUpSlipperiness implements OBUSettingsPackets {
         public float slipperiness;
 
         public SetStepUpSlipperiness() {}
         public SetStepUpSlipperiness(float slipperiness) { this.slipperiness = slipperiness; }
 
         public short getVersion() { return 19; }
-        public short getPacketId() { return 34; }
+        public short getPacketId() { return 37; }
 
         @Override
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
+            return OBUSettingsPackets.super.write(buf)
                     .writeFloat(slipperiness);
         }
     }
 
-    final class ResetContext implements OpenBoatUtilsPacket {
-        public ResetContext() {}
+    final class SetResetOnWorldLoad implements OBUSettingsPackets {
+        public boolean enabled;
+
+        public SetResetOnWorldLoad() {}
+        public SetResetOnWorldLoad(boolean enabled) { this.enabled = enabled; }
 
         public short getVersion() { return 19; }
-        public short getPacketId() { return 0; }
-    }
-
-    final class SwitchContext implements OpenBoatUtilsPacket {
-        public Key key;
-
-        public SwitchContext() {}
-        public SwitchContext(Key key) { this.key = key; }
-
-        public short getVersion() { return 19; }
-        public short getPacketId() { return 1; }
+        public short getPacketId() { return 38; }
 
         @Override
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
-                    .writeString(key.toString());
+            return OBUSettingsPackets.super.write(buf)
+                    .writeBoolean(enabled);
         }
     }
-
-    final class DropContext implements OpenBoatUtilsPacket {
-        public Key key;
-
-        public DropContext() {}
-        public DropContext(Key key) { this.key = key; }
-
-        public short getVersion() { return 19; }
-        public short getPacketId() { return 2; }
-
-        @Override
-        public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            return OpenBoatUtilsPacket.super.write(buf)
-                    .writeString(key.toString());
-        }
-    }
-
-    final class StoreContext implements OpenBoatUtilsPacket {
-        public Key key;
-        public TransactionPayload transaction;
-
-        public StoreContext() {}
-        public StoreContext(Key key, TransactionPayload transaction) { this.key = key; this.transaction = transaction; }
-
-        public short getVersion() { return 19; }
-        public short getPacketId() { return 2; }
-
-        @Override
-        public PacketByteBuf write(PacketByteBuf buf) throws IOException {
-            OpenBoatUtilsPacket.super.write(buf)
-                    .writeString(key.toString());
-            transaction.write(buf);
-            return buf;
-        }
-    }
-
 
     enum PerBlockSetting {
         JUMP_FORCE,

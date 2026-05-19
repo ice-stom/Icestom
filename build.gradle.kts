@@ -27,6 +27,8 @@ dependencies {
     implementation("dev.lu15:spark-minestom:1.10-SNAPSHOT")
 
     implementation("ch.qos.logback:logback-classic:1.5.32")
+
+    implementation("com.electronwill.night-config:toml:3.8.4")
 }
 
 tasks {

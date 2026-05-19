@@ -11,23 +11,23 @@ import org.jspecify.annotations.NonNull;
 
 public class TimeTrialLapCompletedEvent implements TimeTrialSessionEvent, TimedLapEvent {
     @NotNull private final TimedLapResultSource result;
-    @Nullable private final Long improvement;
+    @Nullable private final Long deltaToPreviousBest;
 
     @NotNull private final TimedLap lap;
     @NotNull private final Player player;
     @NotNull private final TimeTrialingInstance instance;
 
-    public TimeTrialLapCompletedEvent(@NonNull TimeTrialingInstance instance, @NotNull TimedLap lap, @NotNull Player player, @NotNull TimedLapResultSource result, @Nullable Long improvement) {
+    public TimeTrialLapCompletedEvent(@NonNull TimeTrialingInstance instance, @NotNull TimedLap lap, @NotNull Player player, @NotNull TimedLapResultSource result, @Nullable Long deltaToPreviousBest) {
         this.result = result;
-        this.improvement = improvement;
+        this.deltaToPreviousBest = deltaToPreviousBest;
         this.lap = lap;
         this.player = player;
         this.instance = instance;
     }
 
-    public TimeTrialLapCompletedEvent(@NonNull TimeTrialingInstance instance, @NotNull TimedLap lap, @NotNull Player player, @Nullable Long improvement) {
+    public TimeTrialLapCompletedEvent(@NonNull TimeTrialingInstance instance, @NotNull TimedLap lap, @NotNull Player player, @Nullable Long deltaToPreviousBest) {
         this.result = TimedLapResult.freeze(lap);
-        this.improvement = improvement;
+        this.deltaToPreviousBest = deltaToPreviousBest;
         this.lap = lap;
         this.player = player;
         this.instance = instance;
@@ -36,8 +36,8 @@ public class TimeTrialLapCompletedEvent implements TimeTrialSessionEvent, TimedL
     public @NotNull TimedLapResultSource getResult() {
         return result;
     }
-    public @Nullable Long getImprovement() {
-        return improvement;
+    public @Nullable Long getDeltaToPreviousBest() {
+        return deltaToPreviousBest;
     }
 
     @Override

@@ -8,6 +8,7 @@ import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.race.Race;
 import io.gitlab.icestom.icestom.timetrial.event.TimeTrialLapCompletedEvent;
 import io.gitlab.icestom.icestom.timetrial.event.TimeTrialSessionStartEvent;
+import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.timetrial.ui.TimeTrialInterfaceProvider;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.util.TextFormatter;
@@ -39,10 +40,30 @@ public class VanillaInterface implements RaceInterfaceProvider, TimeTrialInterfa
             final Track track = event.getInstance().getTrack();
 
             player.sendMessage(Component.translatable("message.timetrial.start", Argument.component("track", track.getName())));
+        });
 
-            globalEventHandler.addListener(TimeTrialLapCompletedEvent.class, timeTrialLapCompletedEvent -> {
+        globalEventHandler.addListener(TimeTrialLapCompletedEvent.class, event -> {
+            final Player player = event.getPlayer();
+            final Track track = event.getInstance().getTrack();
+            final TimedLapResultSource result = event.getResult();
+            final Long delta = event.getDeltaToPreviousBest();
 
-            });
+            if (delta == null) {
+                player.sendMessage(
+                        Component.translatable("message.timetrial.complete_first",
+                                Argument.component("track", track.getName()),
+                                Argument.component("time", TextFormatter.getTime(result.getTime()))
+                        )
+                );
+            } else {
+                player.sendMessage(
+                        Component.translatable("message.timetrial.complete",
+                                Argument.component("track", track.getName()),
+                                Argument.component("time", TextFormatter.getTime(result.getTime())),
+                                Argument.component("delta", TextFormatter.getDelta(delta))
+                        )
+                );
+            }
         });
     }
 

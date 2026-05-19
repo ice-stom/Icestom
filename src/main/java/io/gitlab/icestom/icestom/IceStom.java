@@ -311,7 +311,7 @@ public class IceStom {
                                         return;
                                     };
 
-                                    if (id == random) {
+                                    if (id != random) {
                                         player.kick(Component.translatable("message.openboatutils.failed_transaction"));
                                         return;
                                     };

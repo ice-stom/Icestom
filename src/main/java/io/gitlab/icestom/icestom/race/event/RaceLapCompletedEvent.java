@@ -9,7 +9,6 @@ public class RaceLapCompletedEvent implements RaceParticipantEvent {
 
     @NotNull private final RaceInstance.RaceParticipant participant;
     @NotNull private final RaceInstance race;
-
     @NotNull private final TimedLapResultSource result;
     @NotNull private final TimedLapResultSource previousBest;
 
@@ -21,12 +20,12 @@ public class RaceLapCompletedEvent implements RaceParticipantEvent {
     }
 
     @Override
-    public @NotNull RaceInstance.RaceParticipant participant() {
+    public @NotNull RaceInstance.RaceParticipant getParticipant() {
         return participant;
     }
 
     @Override
-    public @NotNull RaceInstance race() {
+    public @NotNull RaceInstance getInstance() {
         return race;
     }
 

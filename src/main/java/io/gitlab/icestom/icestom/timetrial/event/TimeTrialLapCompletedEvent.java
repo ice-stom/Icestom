@@ -7,7 +7,6 @@ import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jspecify.annotations.NonNull;
 
 public class TimeTrialLapCompletedEvent implements TimeTrialSessionEvent, TimedLapEvent {
     @NotNull private final TimedLapResultSource result;
@@ -17,7 +16,7 @@ public class TimeTrialLapCompletedEvent implements TimeTrialSessionEvent, TimedL
     @NotNull private final Player player;
     @NotNull private final TimeTrialingInstance instance;
 
-    public TimeTrialLapCompletedEvent(@NonNull TimeTrialingInstance instance, @NotNull TimedLap lap, @NotNull Player player, @NotNull TimedLapResultSource result, @Nullable Long deltaToPreviousBest) {
+    public TimeTrialLapCompletedEvent(@NotNull TimeTrialingInstance instance, @NotNull TimedLap lap, @NotNull Player player, @NotNull TimedLapResultSource result, @Nullable Long deltaToPreviousBest) {
         this.result = result;
         this.deltaToPreviousBest = deltaToPreviousBest;
         this.lap = lap;
@@ -25,7 +24,7 @@ public class TimeTrialLapCompletedEvent implements TimeTrialSessionEvent, TimedL
         this.instance = instance;
     }
 
-    public TimeTrialLapCompletedEvent(@NonNull TimeTrialingInstance instance, @NotNull TimedLap lap, @NotNull Player player, @Nullable Long deltaToPreviousBest) {
+    public TimeTrialLapCompletedEvent(@NotNull TimeTrialingInstance instance, @NotNull TimedLap lap, @NotNull Player player, @Nullable Long deltaToPreviousBest) {
         this.result = TimedLapResult.freeze(lap);
         this.deltaToPreviousBest = deltaToPreviousBest;
         this.lap = lap;
@@ -51,5 +50,5 @@ public class TimeTrialLapCompletedEvent implements TimeTrialSessionEvent, TimedL
     }
 
     @Override
-    public @NonNull TimeTrialingInstance getInstance() { return instance; }
+    public @NotNull TimeTrialingInstance getInstance() { return instance; }
 }

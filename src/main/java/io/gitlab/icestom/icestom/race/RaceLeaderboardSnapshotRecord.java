@@ -1,8 +1,8 @@
 package io.gitlab.icestom.icestom.race;
 
 import io.gitlab.icestom.icestom.race.ui.RaceLeaderboardRow;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jspecify.annotations.NonNull;
 
 import java.util.HashMap;
 import java.util.List;
@@ -54,7 +54,7 @@ public class RaceLeaderboardSnapshotRecord<R extends RaceLeaderboardRow> impleme
     }
 
     @Override
-    public @NonNull List<R> getRows() {
+    public @NotNull List<R> getRows() {
         return rows;
     }
 

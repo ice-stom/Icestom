@@ -26,7 +26,6 @@ import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jspecify.annotations.NonNull;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -283,7 +282,7 @@ public class RaceInstance extends TrackInstance implements SingleInstanceStage<T
         private int completedLaps = 0;
         private final int completedPits = 0;
 
-        RaceParticipant(RaceInstance raceInstance, UUID id, @NonNull Player currentPlayer) {
+        RaceParticipant(RaceInstance raceInstance, UUID id, @NotNull Player currentPlayer) {
             this.id = id;
             this.race = raceInstance;
             this.currentPlayer = currentPlayer;
@@ -376,7 +375,7 @@ public class RaceInstance extends TrackInstance implements SingleInstanceStage<T
 
         public @NotNull Player getCurrentPlayer() { return currentPlayer; }
 
-        public void setCurrentPlayer(@NonNull Player currentPlayer) { this.currentPlayer = currentPlayer; }
+        public void setCurrentPlayer(@NotNull Player currentPlayer) { this.currentPlayer = currentPlayer; }
 
         public UUID getId() {
             return id;

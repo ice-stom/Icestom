@@ -6,10 +6,10 @@ import net.minestom.server.event.trait.PlayerEvent;
 import org.jetbrains.annotations.NotNull;
 
 public interface RaceParticipantEvent extends RaceEvent, PlayerEvent {
-    @NotNull RaceInstance.RaceParticipant participant();
+    @NotNull RaceInstance.RaceParticipant getParticipant();
 
     @Override
     default @NotNull Player getPlayer() {
-        return participant().getCurrentPlayer();
+        return getParticipant().getCurrentPlayer();
     }
 }

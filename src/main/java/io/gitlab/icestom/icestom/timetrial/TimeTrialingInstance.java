@@ -39,7 +39,7 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
             }
         }
 
-        INTERFACE_HOLDER.getProviders().forEach(provider -> provider.updateTimeTrialLeaderboard(this));
+3        INTERFACE_HOLDER.getProviders().forEach(provider -> provider.updateTimeTrialLapTimer(this));
     }
 
     @Override

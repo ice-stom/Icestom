@@ -194,6 +194,8 @@ public class RaceInstance extends TrackInstance implements SingleInstanceStage<T
     public void tick(long time) {
         super.tick(time);
 
+        INTERFACE_HOLDER.getProviders().forEach(provider -> provider.updateRaceLapTimer(this));
+
         if (countdown > 0) {
             countdown--;
 

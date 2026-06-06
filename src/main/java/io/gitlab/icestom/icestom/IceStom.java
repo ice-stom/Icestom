@@ -22,11 +22,19 @@ import io.gitlab.icestom.icestom.track.checkpoint.*;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
 import io.gitlab.icestom.icestom.ui.InterfaceManager;
 import io.gitlab.icestom.icestom.openboatutils.OBUSettingsPackets;
+import me.lucko.luckperms.common.config.generic.adapter.EnvironmentVariableConfigAdapter;
+import me.lucko.luckperms.common.config.generic.adapter.FileSecretConfigAdapter;
+import me.lucko.luckperms.common.config.generic.adapter.MultiConfigurationAdapter;
+import me.lucko.luckperms.common.config.generic.adapter.SystemPropertyConfigAdapter;
+import me.lucko.luckperms.common.storage.implementation.file.loader.HoconLoader;
+import me.lucko.luckperms.minestom.CommandRegistry;
+import me.lucko.luckperms.minestom.LuckPermsMinestom;
 import me.lucko.spark.minestom.SparkMinestom;
 import net.hollowcube.polar.AnvilPolar;
 import net.hollowcube.polar.PolarWorld;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.luckperms.api.LuckPerms;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.ServerFlag;
@@ -85,13 +93,45 @@ public class IceStom {
 
     private final PerfHud perfHud = new PerfHud();
 
+    private SparkMinestom spark;
+    private LuckPerms luckPerms;
+
     IceStom() {
+
+        log.info("Hello from IceStom!");
 
         config = IceStomConfig.loadConfig();
 
+        // Minestom
         System.setProperty("minestom.chunk-view-distance", String.valueOf(config.minestom.chunk_view_distance));
         System.setProperty("minestom.entity-view-distance", String.valueOf(config.minestom.entity_view_distance));
         System.setProperty("minestom.dispatcher-threads", String.valueOf(config.minestom.dispatcher_threads));
+
+        // Luckperms
+        System.setProperty("org.slf4j.simpleLogger.log.me.lucko.luckperms.minestom", "off");
+        System.setProperty("luckperms.server", String.valueOf(config.luckperms.server));
+        System.setProperty("luckperms.storage-method", String.valueOf(config.luckperms.storage_method));
+        System.setProperty("luckperms.data.address", String.valueOf(config.luckperms.data.address));
+        System.setProperty("luckperms.data.database", String.valueOf(config.luckperms.data.database));
+        System.setProperty("luckperms.data.username", String.valueOf(config.luckperms.data.username));
+        System.setProperty("luckperms.data.password", String.valueOf(config.luckperms.data.password));
+        System.setProperty("luckperms.data.table-prefix", String.valueOf(config.luckperms.data.table_prefix));
+        System.setProperty("luckperms.data.mongodb-collection-prefix", String.valueOf(config.luckperms.data.mongodb_collection_prefix));
+        System.setProperty("luckperms.data.mongodb-connection-uri", String.valueOf(config.luckperms.data.mongodb_connection_uri));
+        System.setProperty("luckperms.messaging-service", String.valueOf(config.luckperms.messaging_service));
+        System.setProperty("luckperms.redis.enabled", String.valueOf(config.luckperms.redis.enabled));
+        System.setProperty("luckperms.redis.address", String.valueOf(config.luckperms.redis.address));
+        System.setProperty("luckperms.redis.username", String.valueOf(config.luckperms.redis.username));
+        System.setProperty("luckperms.redis.password", String.valueOf(config.luckperms.redis.password));
+        System.setProperty("luckperms.nats.enabled", String.valueOf(config.luckperms.nats.enabled));
+        System.setProperty("luckperms.nats.address", String.valueOf(config.luckperms.nats.address));
+        System.setProperty("luckperms.nats.username", String.valueOf(config.luckperms.nats.username));
+        System.setProperty("luckperms.nats.password", String.valueOf(config.luckperms.nats.password));
+        System.setProperty("luckperms.rabbitmq.enabled", String.valueOf(config.luckperms.rabbitmq.enabled));
+        System.setProperty("luckperms.rabbitmq.address", String.valueOf(config.luckperms.rabbitmq.address));
+        System.setProperty("luckperms.rabbitmq.vhost", String.valueOf(config.luckperms.rabbitmq.vhost));
+        System.setProperty("luckperms.rabbitmq.username", String.valueOf(config.luckperms.rabbitmq.username));
+        System.setProperty("luckperms.rabbitmq.password", String.valueOf(config.luckperms.rabbitmq.password));
 
         Auth auth = switch (config.auth.forwarding) {
             case NONE -> config.auth.online_mode ? new Auth.Online() : new Auth.Offline();
@@ -118,11 +158,20 @@ public class IceStom {
 
     @SuppressWarnings("UnstableApiUsage")
     public void start() throws IOException {
-        Path directory = Path.of("spark");
-        SparkMinestom.builder(directory)
+        spark =  SparkMinestom.builder(Path.of("spark"))
                 .commands(true)
                 .permissionHandler((_, _) -> true)
                 .enable();
+
+        luckPerms = LuckPermsMinestom.builder(Path.of("luckperms"))
+                .commandRegistry(CommandRegistry.minestom())
+                .configurationAdapter(plugin -> new MultiConfigurationAdapter(plugin,
+                        new EnvironmentVariableConfigAdapter(plugin),
+                        new SystemPropertyConfigAdapter(plugin)
+                ))
+                //.permissionSuggestions("test.permission", "test.other")
+                .enable();
+
 
         MinecraftServer.getConnectionManager().setPlayerProvider(IceStomPlayer::new);
 

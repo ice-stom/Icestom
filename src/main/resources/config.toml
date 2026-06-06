@@ -22,3 +22,38 @@ compression_threshold = 256
 chunk_view_distance = 8
 entity_view_distance = 8
 dispatcher_threads = 2
+
+# https://github.com/LuckPerms/LuckPerms/blob/master/bukkit/src/main/resources/config.yml
+[luckperms]
+server = "icestom"
+storage_method = "h2" # mysql, mariadb, postgresql, mongodb, h2, sqlite, yaml, json, hocon, toml
+messaging_service = "auto" # sql, pluginmsg, redis, rabbitmq, nats, custom, auto
+
+[luckperms.data]
+address = "localhost"
+database = "minecraft"
+username = ""
+password = ""
+
+table_prefix = "luckperms"
+mongodb_collection_prefix = ""
+mongodb_connection_uri = ""
+
+[luckperms.redis]
+enabled = false
+address = "localhost"
+username = ""
+password = ""
+
+[luckperms.nats]
+enabled = false
+address = "localhost"
+username = ""
+password = ""
+
+[luckperms.rabbitmq]
+enabled = false
+address = "localhost"
+vhost = "/"
+username = "guest"
+password = "guest"

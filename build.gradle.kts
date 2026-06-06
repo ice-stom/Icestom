@@ -26,6 +26,12 @@ dependencies {
 
     implementation("dev.lu15:spark-minestom:1.10-SNAPSHOT")
 
+    implementation("dev.lu15:luckperms-minestom:5.5-SNAPSHOT")
+    implementation("com.h2database:h2:2.1.214")
+    compileOnly("com.zaxxer:HikariCP:6.3.0") // LP "SQL like stuff"
+    compileOnly("redis.clients:jedis:5.2.0") // LP Redis
+    compileOnly("io.nats:jnats:2.21.1") // LP NATS
+
     implementation("ch.qos.logback:logback-classic:1.5.32")
 
     implementation("com.electronwill.night-config:toml:3.8.4")
@@ -35,6 +41,7 @@ tasks {
     jar {
         manifest {
             attributes["Main-Class"] = "io.gitlab.icestom.icestom.IceStom"
+            attributes["Enable-Native-Access"] = "ALL-UNNAMED"
         }
     }
 

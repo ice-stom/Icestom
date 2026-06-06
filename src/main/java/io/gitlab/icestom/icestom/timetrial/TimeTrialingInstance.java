@@ -9,7 +9,6 @@ import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.TickMovement;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
-import io.gitlab.icestom.icestom.ui.ActionBarProvider;
 import io.gitlab.icestom.icestom.ui.InterfaceHolder;
 import io.gitlab.icestom.icestom.timetrial.ui.TimeTrialInterfaceProvider;
 import net.kyori.adventure.text.Component;
@@ -21,7 +20,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public class TimeTrialingInstance extends TrackInstance implements SpawnLocation, ActionBarProvider {
+public class TimeTrialingInstance extends TrackInstance implements SpawnLocation {
     private static final InterfaceHolder<TimeTrialInterfaceProvider> INTERFACE_HOLDER = new InterfaceHolder<>(TimeTrialInterfaceProvider.class);
 
     private final Map<Player, TimedLap> timeTrials = new HashMap<>();
@@ -39,6 +38,8 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
                 resetPlayer(player);
             }
         }
+
+        INTERFACE_HOLDER.getProviders().forEach(provider -> provider.updateTimeTrialLeaderboard(this));
     }
 
     @Override
@@ -83,7 +84,7 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
                             MinecraftServer.getGlobalEventHandler()
                                     .call(new TimeTrialLapCompletedEvent(this, timedLap, player, best == null ? null : time - best.getTime()));
 
-                            INTERFACE_HOLDER.getProviders().forEach(provider -> provider.dispatchTimeTrialLeaderboard(this));
+                            INTERFACE_HOLDER.getProviders().forEach(provider -> provider.updateTimeTrialLeaderboard(this));
 
                             not_started_tt.put(player, movement);
                         }
@@ -150,22 +151,11 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
     }
 
     @Override
-    public @Nullable Component getActionBar(Player player) {
-        @Nullable TimedLap timedLap = getTimedLap(player);
-
-        if (timedLap != null) {
-            return timedLap.getActionBar(player);
-        }
-
-        return Component.text("At ").append(Component.text(track.getId(), NamedTextColor.GOLD));
-    }
-
-    @Override
     public void consume(Player player) {
         super.consume(player);
 
         INTERFACE_HOLDER.addViewer(player);
-        INTERFACE_HOLDER.getProviders().forEach(provider -> provider.dispatchTimeTrialLeaderboard(this));
+        INTERFACE_HOLDER.getProviders().forEach(provider -> provider.updateTimeTrialLeaderboard(this));
     }
 
     @Override

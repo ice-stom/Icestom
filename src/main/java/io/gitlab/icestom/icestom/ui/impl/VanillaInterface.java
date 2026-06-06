@@ -1,19 +1,22 @@
 package io.gitlab.icestom.icestom.ui.impl;
 
+import io.gitlab.icestom.icestom.race.RaceInstance;
 import io.gitlab.icestom.icestom.race.RaceLeaderboard;
 import io.gitlab.icestom.icestom.race.RaceLeaderboardSnapshot;
 import io.gitlab.icestom.icestom.race.ui.RaceInterfaceProvider;
 import io.gitlab.icestom.icestom.race.ui.RaceLeaderboardRow;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
-import io.gitlab.icestom.icestom.race.Race;
 import io.gitlab.icestom.icestom.timetrial.event.TimeTrialLapCompletedEvent;
 import io.gitlab.icestom.icestom.timetrial.event.TimeTrialSessionStartEvent;
+import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.timetrial.ui.TimeTrialInterfaceProvider;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.translation.Argument;
 import net.kyori.adventure.text.object.ObjectContents;
 import net.minestom.server.MinecraftServer;
@@ -106,18 +109,20 @@ public class VanillaInterface implements RaceInterfaceProvider, TimeTrialInterfa
     }
 
     @Override
-    public void dispatchRaceLeaderboard(Race race) {
-        RaceLeaderboard<RaceLeaderboardRow> raceLeaderboard = race.getLeaderboard();
+    public void updateRaceLeaderboard(RaceInstance instance) {
+        RaceLeaderboard<RaceLeaderboardRow> raceLeaderboard = instance.getLeaderboard();
 
         RaceLeaderboardSnapshot<RaceLeaderboardRow> snapshot = raceLeaderboard.getSnapshot();
 
+        Track track = instance.getTrack();
+
         List<RaceLeaderboardRow> rows = snapshot.getRows();
-        for (Player player : race.getPlayers()) {
+        for (Player player : instance.getPlayers()) {
             @Nullable Sidebar sidebar = sidebars.get(player);
 
             if (sidebar == null) continue;
 
-            sidebar.setTitle(Component.text("Race at " + race.getTrack().getId()));
+            sidebar.setTitle(Component.text("Race at ").append(track.getName()));
 
             for (int i = 0; i < rows.size(); i++) {
                 RaceLeaderboardRow row = rows.get(i);
@@ -128,7 +133,40 @@ public class VanillaInterface implements RaceInterfaceProvider, TimeTrialInterfa
     }
 
     @Override
-    public void dispatchTimeTrialLeaderboard(TimeTrialingInstance instance) {
+    public void updateRaceLapTimer(RaceInstance instance) {
+
+        RaceLeaderboard<RaceLeaderboardRow> leaderboard = instance.getLeaderboard();
+        long worldAge = instance.getWorldAge();
+
+        for (Player player : instance.getPlayers()) {
+            @Nullable RaceInstance.RaceParticipant participation = instance.getParticipant(player);
+
+            if (participation != null) {
+                TimedLap lap = participation.getCurrentLap();
+
+                int pos = leaderboard.getSnapshot().getPosition(participation) + 1;
+
+                Component text = Component.empty()
+                        .append(Component.text("P")
+                                .decorate(TextDecoration.BOLD)
+                                .append(Component.text(pos, TextColor.color(0x4fd3ff))))
+                        .append(Component.space())
+                        .append(Component.text(Math.max(0, participation.getCompletedLaps()) + "/" + instance.getTotalLaps()))
+                        .append(Component.space())
+                        .append(TextFormatter.getTime(lap.getCurrentTime(worldAge)).color(NamedTextColor.YELLOW));
+
+                if (participation.getCompletedLaps() > 0) {
+                    text = text.append(Component.text(" - "))
+                            .append(TextFormatter.getDelta(lap.getRecentSplit()));
+                }
+
+                player.sendActionBar(text);
+            }
+        }
+    }
+
+    @Override
+    public void updateTimeTrialLeaderboard(TimeTrialingInstance instance) {
         for (Player player : instance.getPlayers()) {
             @Nullable Sidebar sidebar = sidebars.get(player);
 
@@ -145,6 +183,24 @@ public class VanillaInterface implements RaceInterfaceProvider, TimeTrialInterfa
             sidebar.updateLineContent("1", Component.empty()
                     .append(Component.text("Checkpoints: "))
                     .append(Component.text(track.getCheckpoints().size(), NamedTextColor.GOLD)));
+        }
+    }
+
+    @Override
+    public void updateTimeTrialLapTimer(TimeTrialingInstance instance) {
+
+        Track track = instance.getTrack();
+        long worldAge = instance.getWorldAge();
+
+        for (Player player : instance.getPlayers()) {
+            @Nullable TimedLap timedLap = instance.getTimedLap(player);
+
+            if (timedLap != null) {
+                player.sendActionBar(timedLap.getActionBar(worldAge));
+                continue;
+            }
+
+            player.sendActionBar(Component.text("At ").append(track.getName()));
         }
     }
 }

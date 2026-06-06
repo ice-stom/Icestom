@@ -13,11 +13,11 @@ public class RaceLeaderboardSnapshotRecord<R extends RaceLeaderboardRow> impleme
     private final String trackName;
     private final int totalLaps;
     private final int totalPits;
-    @Nullable private final Race.RaceParticipant flapHolder;
+    @Nullable private final RaceInstance.RaceParticipant flapHolder;
     private final List<R> rows;
-    private final Map<Race.RaceParticipant, Integer> positions;
+    private final Map<RaceInstance.RaceParticipant, Integer> positions;
 
-    public RaceLeaderboardSnapshotRecord(String trackName, int totalLaps, int totalPits, @Nullable Race.RaceParticipant flapHolder, List<R> rows) {
+    public RaceLeaderboardSnapshotRecord(String trackName, int totalLaps, int totalPits, @Nullable RaceInstance.RaceParticipant flapHolder, List<R> rows) {
         this.trackName = trackName;
         this.totalLaps = totalLaps;
         this.totalPits = totalPits;
@@ -49,7 +49,7 @@ public class RaceLeaderboardSnapshotRecord<R extends RaceLeaderboardRow> impleme
     }
 
     @Override
-    public @Nullable Race.RaceParticipant getFlapHolder() {
+    public @Nullable RaceInstance.RaceParticipant getFlapHolder() {
         return flapHolder;
     }
 
@@ -59,7 +59,7 @@ public class RaceLeaderboardSnapshotRecord<R extends RaceLeaderboardRow> impleme
     }
 
     @Override
-    public int getPosition(Race.RaceParticipant participant) {
+    public int getPosition(RaceInstance.RaceParticipant participant) {
         return positions.getOrDefault(participant, -1);
     }
 }

@@ -3,7 +3,7 @@ package io.gitlab.icestom.icestom.command;
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.event.Event;
 import io.gitlab.icestom.icestom.event.EventManager;
-import io.gitlab.icestom.icestom.race.Race;
+import io.gitlab.icestom.icestom.race.RaceInstance;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.Command;
@@ -45,7 +45,7 @@ public class EventCommand extends Command {
             setDefaultExecutor((commandSender, commandContext) -> {
                 Event event = new Event("test_event", List.of(
 //                        new TrackExploration(IceStom.getInstance().getTrackLibrary().getTracks().values().stream().findFirst().get()),
-                        new Race(IceStom.getInstance().getTrackLibrary().getTracks().values().stream().findFirst().get(), 10, 2)
+                        new RaceInstance(IceStom.getInstance().getTrackLibrary().getTracks().values().stream().findFirst().get(), 10, 2)
                 ));
                 eventManager.addEvent(event);
 

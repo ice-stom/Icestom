@@ -2,7 +2,6 @@ package io.gitlab.icestom.icestom.timetrial.lap;
 
 import io.gitlab.icestom.icestom.timetrial.Split;
 import io.gitlab.icestom.icestom.track.Track;
-import io.gitlab.icestom.icestom.ui.ActionBarProvider;
 import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.entity.Player;
@@ -11,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TimedLap implements TimedLapResultSource, ActionBarProvider {
+public class TimedLap implements TimedLapResultSource {
 
     private final Track track;
     @Nullable private final TimedLapResultSource best_previous_result;
@@ -79,10 +78,8 @@ public class TimedLap implements TimedLapResultSource, ActionBarProvider {
         return worldAge * 50 - getMsStart();
     }
 
-    @Override
-    public @Nullable Component getActionBar(Player player) {
-        long age = player.getInstance().getWorldAge();
-        long time = age * 50 - getMsStart();
+    public Component getActionBar(long worldAge) {
+        long time = worldAge * 50 - getMsStart();
 
         float t_seconds = (float) Math.ceil((float) time / 50) * 50 / 1000;
 

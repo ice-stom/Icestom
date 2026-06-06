@@ -3,10 +3,9 @@ package io.gitlab.icestom.icestom.command;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
 import io.gitlab.icestom.icestom.openboatutils.OBUContextPackets;
-import io.gitlab.icestom.icestom.openboatutils.OBUPacket;
 import io.gitlab.icestom.icestom.openboatutils.OBUSettingsPackets;
 import io.gitlab.icestom.icestom.openboatutils.TransactionPayload;
-import io.gitlab.icestom.icestom.race.Race;
+import io.gitlab.icestom.icestom.race.RaceInstance;
 import io.gitlab.icestom.icestom.track.Track;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
@@ -115,7 +114,7 @@ public class DebugCommand extends Command {
             setDefaultExecutor((commandSender, _) -> {
                 if (!(commandSender instanceof Player player)) return;
 
-                if (player.getInstance() instanceof Race race) race.startCountdown();
+                if (player.getInstance() instanceof RaceInstance raceInstance) raceInstance.startCountdown();
             });
         }
     }

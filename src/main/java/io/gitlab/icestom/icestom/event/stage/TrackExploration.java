@@ -3,7 +3,6 @@ package io.gitlab.icestom.icestom.event.stage;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.checkpoint.TickMovement;
-import io.gitlab.icestom.icestom.ui.ActionBarProvider;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.coordinate.Pos;
@@ -12,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
-public class TrackExploration extends TrackInstance implements SingleInstanceStage<TrackInstance>, ActionBarProvider {
+public class TrackExploration extends TrackInstance implements SingleInstanceStage<TrackInstance> {
     public TrackExploration(Track track) {
         super(track);
     }
@@ -33,10 +32,5 @@ public class TrackExploration extends TrackInstance implements SingleInstanceSta
     @Override
     public Pos spawnLocation(Player player) {
         return track.getSpawnLocation();
-    }
-
-    @Override
-    public @Nullable Component getActionBar(Player player) {
-        return Component.text("Exploring ").append(Component.text(track.getId(), NamedTextColor.GOLD));
     }
 }

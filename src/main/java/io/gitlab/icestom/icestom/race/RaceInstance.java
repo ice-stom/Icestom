@@ -16,14 +16,9 @@ import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.TickMovement;
-import io.gitlab.icestom.icestom.ui.ActionBarProvider;
 import io.gitlab.icestom.icestom.ui.InterfaceHolder;
-import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.title.Title;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
@@ -36,7 +31,7 @@ import org.jspecify.annotations.NonNull;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class Race extends TrackInstance implements SingleInstanceStage<TrackInstance>, ActionBarProvider {
+public class RaceInstance extends TrackInstance implements SingleInstanceStage<TrackInstance> {
 
     private static final InterfaceHolder<RaceInterfaceProvider> INTERFACE_HOLDER = new InterfaceHolder<>(RaceInterfaceProvider.class);
 
@@ -51,7 +46,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
     private RaceState raceState = RaceState.GRID;
     private int countdown = 0;
 
-    public Race(Track track, int totalLaps, int totalPits) {
+    public RaceInstance(Track track, int totalLaps, int totalPits) {
         super(track);
         this.totalLaps = totalLaps;
         this.totalPits = totalPits;
@@ -75,7 +70,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
             Player player = entry.getKey();
             TickMovement movement = entry.getValue();
 
-            @Nullable Race.RaceParticipant participation = getParticipant(player);
+            @Nullable RaceInstance.RaceParticipant participation = getParticipant(player);
 
             if (participation != null) {
                 grouped
@@ -93,7 +88,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
                 Map<Player, Long> crosses = checkpoint.detectCrosses(integerMapEntry.getValue());
 
                 crosses.forEach((player, tick_delta) -> {
-                    @Nullable Race.RaceParticipant participation = getParticipant(player);
+                    @Nullable RaceInstance.RaceParticipant participation = getParticipant(player);
 
                     if (participation != null) {
                         Split split = new Split(
@@ -111,7 +106,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
             }
         }
 
-        if (updated.get()) INTERFACE_HOLDER.getProviders().forEach(provider -> provider.dispatchRaceLeaderboard(this));
+        if (updated.get()) INTERFACE_HOLDER.getProviders().forEach(provider -> provider.updateRaceLeaderboard(this));
     }
 
     @Override
@@ -192,7 +187,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
         super.consume(player);
 
         MinecraftServer.getSchedulerManager()
-                .scheduleNextTick(() -> INTERFACE_HOLDER.getProviders().forEach(provider -> provider.dispatchRaceLeaderboard(this)));
+                .scheduleNextTick(() -> INTERFACE_HOLDER.getProviders().forEach(provider -> provider.updateRaceLeaderboard(this)));
     }
 
     @Override
@@ -230,37 +225,8 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
         return track.getSpawnLocation();
     }
 
-    @Override
-    public @Nullable Component getActionBar(Player player) {
-        @Nullable Race.RaceParticipant participation = getParticipant(player);
-
-        if (participation != null) {
-            TimedLap lap = participation.getCurrentLap();
-
-            int pos = raceLeaderboard.getSnapshot().getPosition(participation) + 1;
-
-            Component text = Component.empty()
-                    .append(Component.text("P")
-                            .decorate(TextDecoration.BOLD)
-                            .append(Component.text(pos, TextColor.color(0x4fd3ff))))
-                    .append(Component.space())
-                    .append(Component.text(Math.max(0, participation.getCompletedLaps()) + "/" + getTotalLaps()))
-                    .append(Component.space())
-                    .append(TextFormatter.getTime(lap.getCurrentTime(getWorldAge())).color(NamedTextColor.YELLOW));
-
-            if (participation.getCompletedLaps() > 0) {
-                text = text.append(Component.text(" - "))
-                        .append(TextFormatter.getDelta(lap.getRecentSplit()));
-            }
-
-            return text;
-        }
-
-        return null;
-    }
-
     public @Nullable Pos getGridLocation(Player player) {
-        @Nullable Race.RaceParticipant participation = getParticipant(player.getUuid());
+        @Nullable RaceInstance.RaceParticipant participation = getParticipant(player.getUuid());
 
         if (participation != null) {
             int starting_pos = startOrder.indexOf(player.getUuid());
@@ -284,8 +250,8 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
     public RaceLeaderboard<RaceLeaderboardRow> getLeaderboard() { return raceLeaderboard; }
 
     public Map<UUID, RaceParticipant> getParticipants() { return participants; }
-    public @Nullable Race.RaceParticipant getParticipant(UUID uuid) { return participants.get(uuid); }
-    public @Nullable Race.RaceParticipant getParticipant(Player player) {
+    public @Nullable RaceInstance.RaceParticipant getParticipant(UUID uuid) { return participants.get(uuid); }
+    public @Nullable RaceInstance.RaceParticipant getParticipant(Player player) {
         @Nullable UUID participation_id = getParticipationId(player);
         if (participation_id == null) return null;
         return getParticipant(participation_id);
@@ -302,7 +268,7 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
         private final List<TimedLapResultSource> pastLaps = new ArrayList<>();
 
         private final UUID id;
-        private final Race race;
+        private final RaceInstance race;
 
         @NotNull private Player currentPlayer;
 
@@ -315,9 +281,9 @@ public class Race extends TrackInstance implements SingleInstanceStage<TrackInst
         private int completedLaps = 0;
         private final int completedPits = 0;
 
-        RaceParticipant(Race race, UUID id, @NonNull Player currentPlayer) {
+        RaceParticipant(RaceInstance raceInstance, UUID id, @NonNull Player currentPlayer) {
             this.id = id;
-            this.race = race;
+            this.race = raceInstance;
             this.currentPlayer = currentPlayer;
             currentLap = new TimedLap(
                     track,

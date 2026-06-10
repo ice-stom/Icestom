@@ -6,7 +6,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import java.text.DecimalFormat;
 
 public class TextFormatter {
-    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.000");
+    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.000");
 
     public static Component getTime(long ms) {
         long minutes = ms / (1000 * 60) % 60;

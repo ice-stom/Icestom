@@ -45,7 +45,7 @@ public class SpawnInstance extends IceStomInstance implements SpawnLocation {
         setChunkSupplier(LightingChunk::new);
     }
 
-    public void setup() {
+    public void init() {
         Entity entity = new Entity(EntityType.TEXT_DISPLAY);
         entity.setNoGravity(true);
         TextDisplayMeta meta = (TextDisplayMeta) entity.getEntityMeta();

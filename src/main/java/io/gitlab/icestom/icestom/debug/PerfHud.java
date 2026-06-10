@@ -4,15 +4,29 @@ import io.gitlab.icestom.icestom.util.MovingAverage;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
+import net.minestom.server.event.Event;
+import net.minestom.server.event.EventHandler;
+import net.minestom.server.event.EventNode;
+import net.minestom.server.event.player.PlayerSpawnEvent;
 import net.minestom.server.event.server.ServerTickMonitorEvent;
 import net.minestom.server.utils.time.TimeUnit;
+import org.jspecify.annotations.NonNull;
 
-public class PerfHud {
-    private static final MovingAverage mspt_5t = new MovingAverage(5);
-    private static final MovingAverage mspt_20t = new MovingAverage(20);
-    private static final MovingAverage mspt_100t = new MovingAverage(100);
+public class PerfHud implements EventHandler<Event> {
+    private final EventNode<Event> eventNode = EventNode.all("perf_hud");
 
     private final BossBar bossBar = BossBar.bossBar(Component.empty(), 1f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS);
+
+    private final MovingAverage mspt_5t = new MovingAverage(5);
+    private final MovingAverage mspt_20t = new MovingAverage(20);
+    private final MovingAverage mspt_100t = new MovingAverage(100);
+
+    public PerfHud() {
+        eventNode.addListener(PlayerSpawnEvent.class, playerSpawnEvent -> {
+            addViewer(playerSpawnEvent.getPlayer());
+        });
+        eventNode.addListener(ServerTickMonitorEvent.class, this::onTick);
+    }
 
     private void updateBossBar() {
 
@@ -51,5 +65,10 @@ public class PerfHud {
         mspt_20t.add(diff);
         mspt_100t.add(diff);
         updateBossBar();
+    }
+
+    @Override
+    public @NonNull EventNode<Event> eventNode() {
+        return eventNode;
     }
 }

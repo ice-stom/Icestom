@@ -14,6 +14,8 @@ public abstract class IceStomInstance extends InstanceContainer {
     public IceStomInstance(UUID uuid, RegistryKey<DimensionType> dimensionType, Key dimensionName) {
         super(uuid, dimensionType, dimensionName);
 
+        setTimeRate(0);
+
         if (this instanceof SpawnLocation spawnLocation) {
             eventNode().addListener(PlayerRespawnEvent.class, playerRespawnEvent -> {
                 final Player player = playerRespawnEvent.getPlayer();

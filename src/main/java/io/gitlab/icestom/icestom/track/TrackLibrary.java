@@ -1,12 +1,13 @@
 package io.gitlab.icestom.icestom.track;
 
-import io.gitlab.icestom.icestom.track.format.TrackFormat;
+import io.gitlab.icestom.icestom.track.format.StomtrackFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class TrackLibrary {
@@ -36,14 +37,18 @@ public class TrackLibrary {
         }
 
         for (File file : files) {
-            if (file.getName().endsWith("." + TrackFormat.FILE_EXTENSION)) {
+            if (file.getName().endsWith("." + StomtrackFormat.FILE_EXTENSION)) {
                 log.info("Loading {}", file.getAbsolutePath());
 
                 try {
-                    Track track = TrackFormat.loadTrack(file);
+                    List<Track> loadedTracks = StomtrackFormat.loadStomtrack(file);
 
-                    tracks.put(track.getId(), track);
-                } catch (IOException | TrackFormat.TrackLoadException e) {
+                    for (Track track : loadedTracks) {
+                        tracks.put(track.getId(), track);
+                        log.info(" - {}", track.getId());
+                    }
+
+                } catch (IOException | StomtrackFormat.TrackLoadException e) {
                     log.error(e.toString());
                 }
             }

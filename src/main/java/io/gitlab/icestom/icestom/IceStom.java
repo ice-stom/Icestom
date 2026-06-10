@@ -7,26 +7,20 @@ import io.gitlab.icestom.icestom.database.memory.MemoryTimetrialDatabase;
 import io.gitlab.icestom.icestom.debug.PerfHud;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
-import io.gitlab.icestom.icestom.event.Event;
 import io.gitlab.icestom.icestom.event.EventManager;
-import io.gitlab.icestom.icestom.event.stage.Stage;
 import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
-import io.gitlab.icestom.icestom.openboatutils.TransactionPayload;
+import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
 import io.gitlab.icestom.icestom.track.format.MutableTrack;
 import io.gitlab.icestom.icestom.track.Track;
-import io.gitlab.icestom.icestom.track.format.TrackFormat;
+import io.gitlab.icestom.icestom.track.format.StomtrackFormat;
 import io.gitlab.icestom.icestom.track.TrackLibrary;
-import io.gitlab.icestom.icestom.track.checkpoint.*;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
 import io.gitlab.icestom.icestom.ui.InterfaceManager;
-import io.gitlab.icestom.icestom.openboatutils.OBUSettingsPackets;
 import me.lucko.luckperms.common.config.generic.adapter.EnvironmentVariableConfigAdapter;
-import me.lucko.luckperms.common.config.generic.adapter.FileSecretConfigAdapter;
 import me.lucko.luckperms.common.config.generic.adapter.MultiConfigurationAdapter;
 import me.lucko.luckperms.common.config.generic.adapter.SystemPropertyConfigAdapter;
-import me.lucko.luckperms.common.storage.implementation.file.loader.HoconLoader;
 import me.lucko.luckperms.minestom.CommandRegistry;
 import me.lucko.luckperms.minestom.LuckPermsMinestom;
 import me.lucko.spark.minestom.SparkMinestom;
@@ -37,41 +31,27 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.luckperms.api.LuckPerms;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.ServerFlag;
 import net.minestom.server.command.CommandManager;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
-import net.minestom.server.event.EventListener;
 import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.*;
 import net.minestom.server.event.server.ServerTickMonitorEvent;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.InstanceManager;
-import net.minestom.server.network.packet.client.common.ClientPluginMessagePacket;
-import net.minestom.server.network.packet.client.common.ClientPongPacket;
-import net.minestom.server.network.packet.server.common.PingPacket;
-import net.minestom.server.network.packet.server.common.PluginMessagePacket;
 import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class IceStom {
 
     public static final String NAMESPACE = "icestom";
-
-    // https://github.com/o7Moon/OpenBoatUtils/wiki/Version-IDs
-    private static final short MIN_OPENBOATUTILS_VERSION = 19;
 
     private static final Logger log = LoggerFactory.getLogger(IceStom.class);
 
@@ -86,6 +66,7 @@ public class IceStom {
     private final TimeTrialManager timeTrialManager;
     private final EventManager eventManager;
     private final InterfaceManager playerScoreboardManager;
+    private final OpenBoatUtilsManager openBoatUtilsManager;
 
     private final SpawnInstance spawnInstance;
 
@@ -97,6 +78,7 @@ public class IceStom {
     private LuckPerms luckPerms;
 
     IceStom() {
+        instance = this;
 
         log.info("Hello from IceStom!");
 
@@ -144,21 +126,21 @@ public class IceStom {
         MinecraftServer.setCompressionThreshold(config.minestom.compression_threshold);
         MinecraftServer.setBrandName(String.format("IceStom (%s)", MinecraftServer.getBrandName()));
 
-        translationManager = new TranslationManager(getClass());
-
         trackLibrary = new TrackLibrary();
+
+        translationManager = new TranslationManager(getClass());
         timeTrialManager = new TimeTrialManager();
         eventManager = new EventManager();
         playerScoreboardManager = new InterfaceManager();
-
-        spawnInstance = new SpawnInstance();
+        openBoatUtilsManager = new OpenBoatUtilsManager();
 
         timetrialDatabase = new MemoryTimetrialDatabase();
+        spawnInstance = new SpawnInstance();
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public void start() throws IOException {
-        spark =  SparkMinestom.builder(Path.of("spark"))
+    public void start() {
+        spark = SparkMinestom.builder(Path.of("spark"))
                 .commands(true)
                 .permissionHandler((_, _) -> true)
                 .enable();
@@ -188,120 +170,19 @@ public class IceStom {
         InstanceManager instanceManager = MinecraftServer.getInstanceManager();
         instanceManager.registerInstance(spawnInstance);
 
-        spawnInstance.setup();
+        spawnInstance.init();
 
         GlobalEventHandler globalEventHandler = MinecraftServer.getGlobalEventHandler();
+
+        globalEventHandler.addChild(openBoatUtilsManager.eventNode());
+        globalEventHandler.addChild(perfHud.eventNode());
+
         globalEventHandler.addListener(AsyncPlayerConfigurationEvent.class, event -> {
-            final Player player = event.getPlayer();
-
-            @Nullable Event active_event = eventManager.getEvent(player);
-
-            if (active_event != null) {
-                @Nullable Stage<?> current_stage = active_event.getCurrentStage();
-
-                if (current_stage != null) {
-                    event.setSpawningInstance(current_stage.getInstance(player));
-
-                    EventListener<@NotNull PlayerSpawnEvent> listener = EventListener.builder(PlayerSpawnEvent.class)
-                            .filter(e -> e.getPlayer() == player)
-                            .handler(_ -> {
-                                current_stage.getInstance(player).consume(player);
-                            })
-                            .expireCount(1)
-                            .build();
-
-                    globalEventHandler.addListener(listener);
-
-                    return;
-                }
-            }
-
             event.setSpawningInstance(spawnInstance);
         });
 
         globalEventHandler.addListener(PlayerSpawnEvent.class, playerSpawnEvent -> {
             perfHud.addViewer(playerSpawnEvent.getPlayer());
-        });
-
-        globalEventHandler.addListener(ServerTickMonitorEvent.class, perfHud::onTick);
-
-        final PluginMessagePacket join_setting_packet = new OBUSettingsPackets.TransactionPacket(new TransactionPayload(List.of(
-                new OBUSettingsPackets.InterpolationCompatPacket(config.openboatutils.interpolation_compatibility),
-                new OBUSettingsPackets.SetResetOnWorldLoad(false),
-                new OBUSettingsPackets.ResendVersionPacket()
-        ))).toPacket(OBUSettingsPackets.getChannel());
-
-        globalEventHandler.addListener(PlayerPluginMessageEvent.class, playerPluginMessageEvent -> {
-            final Player player = playerPluginMessageEvent.getPlayer();
-
-            if (playerPluginMessageEvent.getIdentifier().equals(OBUSettingsPackets.getChannel())) {
-                try {
-                    DataInputStream in = new DataInputStream(new ByteArrayInputStream(playerPluginMessageEvent.getMessage()));
-                    short packetId = in.readShort();
-
-                    if (packetId == 0) {
-                        if (((IceStomPlayer) player).getOpenBoatUtilsVersion() != null) return;
-
-                        int version = in.readInt();
-
-                        if (version < MIN_OPENBOATUTILS_VERSION) {
-                            player.sendMessage(Component.translatable("message.openboatutils.outdated_version_global"));
-                            return;
-                        }
-
-                        boolean unstable = in.readBoolean();
-
-                        if (unstable) {
-                            if (config.openboatutils.block_unstable) {
-                                player.kick(Component.translatable("message.openboatutils.block_unstable"));
-                                return;
-                            }
-
-                            player.sendMessage(Component.translatable("message.openboatutils.warning_unstable"));
-                        }
-
-                        ((IceStomPlayer) player).setOpenBoatUtilsVersion(version);
-                        player.sendPacket(join_setting_packet);
-
-                        int random = ThreadLocalRandom.current().nextInt(0xFF);
-
-                        player.sendPacket(new PingPacket(random));
-
-                        // if we get the ping packet before the plugin message we know something is up
-                        EventListener<@NotNull PlayerPacketEvent> listener = EventListener.builder(PlayerPacketEvent.class)
-                                .filter(e -> e.getPlayer() == player && (
-                                        (e.getPacket() instanceof ClientPluginMessagePacket pluginMessagePacket && pluginMessagePacket.channel().equals(OBUSettingsPackets.getChannel())) ||
-                                        e.getPacket() instanceof ClientPongPacket
-                                ))
-                                .handler(event -> {
-                                    if (event.getPacket() instanceof ClientPluginMessagePacket pluginMessagePacket) {
-                                        DataInputStream in2 = new DataInputStream(new ByteArrayInputStream(pluginMessagePacket.data()));
-
-                                        try {
-                                            if (in2.readShort() == 0) {
-                                                return;
-                                            };
-                                        } catch (IOException ignored) {}
-                                    };
-                                    if (!(event.getPacket() instanceof ClientPongPacket(int id))) {
-                                        log.error("Transaction failed with {} instead of a pong", event.getPacket());
-                                        return;
-                                    };
-
-                                    if (id != random) {
-                                        player.kick(Component.translatable("message.openboatutils.failed_transaction"));
-                                        return;
-                                    };
-                                })
-                                .expireCount(1)
-                                .build();
-
-                        player.eventNode().addListener(listener);
-                    }
-                } catch (IOException e) {
-                    log.error("Failed OpenBoatUtils Handshake: {}", String.valueOf(e));
-                }
-            }
         });
 
         globalEventHandler.addListener(PlayerDisconnectEvent.class,playerDisconnectEvent -> {
@@ -329,6 +210,8 @@ public class IceStom {
         minecraftServer.start(config.network.bind, config.network.port);
     }
 
+    public IceStomConfig getConfig() { return config; }
+
     public TrackLibrary getTrackLibrary() { return trackLibrary; }
 
     public TimeTrialManager getTimeTrialManager() { return timeTrialManager; }
@@ -343,7 +226,9 @@ public class IceStom {
 
     public TimetrialDatabase getTimetrialDatabase() { return timetrialDatabase; }
 
-    static void main(String[] args) throws IOException {
+    static void main(String[] args) throws IOException, StomtrackFormat.TrackSaveException {
+        instance = new IceStom();
+
         if (args.length == 2 && args[0].equals("--convert")) {
             Path path = Path.of(args[1]);
 
@@ -353,71 +238,22 @@ public class IceStom {
 
             String id = path.getFileName().toString();
 
-            TrackFormat.saveTrack(TrackLibrary.TRACK_STORAGE_PATH.resolve(
-                            id + "." + TrackFormat.FILE_EXTENSION).toFile(),
-                    new Track(new MutableTrack(
+            StomtrackFormat.saveStomtrack(TrackLibrary.TRACK_STORAGE_PATH.resolve(
+                            id + "." + StomtrackFormat.FILE_EXTENSION).toFile(),
+                    world,
+                    List.of(new Track(new MutableTrack(
                             id,
-                            Component.text("Track named " + id, NamedTextColor.RED),
+                            Component.text(id, NamedTextColor.RED),
                             true,
-                            new Pos(-14.03, 17.00, 11.82, -205.65f, 0f),
-                            Map.of(
-                                    new LineCheckpoint(new Vec(-34.5, 17 ,-21.5), new Vec(-22.5, 17, -21.5), 3), 0,
-                                    new LineCheckpoint(new Vec(-17.5, 17, -41.5), new Vec(-9.5, 17, -33.5), 3), 1,
-                                    new LineCheckpoint(new Vec(22.5, 17, -53.5), new Vec(14.5, 17, -44.5), 3), 2,
-                                    new LineCheckpoint(new Vec(40.5, 17, -1.5), new Vec(32.5, 17, -9.5), 3), 3,
-                                    new LineCheckpoint(new Vec(0.5, 17, 18.5), new Vec(-0.5, 17, 7.5), 3), 4
-                            ),
-                            List.of(
-                                    new Pos(-30.5, 17.00, -18.5, -180, 0),
-                                    new Pos(-26.5, 17.00, -17.5, -180, 0),
-                                    new Pos(-30.5, 17.00, -16.5, -180, 0),
-                                    new Pos(-26.5, 17.00, -15.5, -180, 0),
-                                    new Pos(-30.5, 17.00, -14.5, -180, 0),
-                                    new Pos(-26.5, 17.00, -13.5, -180, 0),
-                                    new Pos(-30.5, 17.00, -12.5, -180, 0),
-                                    new Pos(-26.5, 17.00, -11.5, -180, 0)
-                            ),
+                            new Pos(0, 0, 0, 0, 0),
+                            Map.of(),
+                            List.of(),
                             List.of()
-                    ), world)
-            );
-
-            TrackFormat.saveTrack(TrackLibrary.TRACK_STORAGE_PATH.resolve(
-                            id + "_obu." + TrackFormat.FILE_EXTENSION).toFile(),
-                    new Track(new MutableTrack(
-                            id + "_obu",
-                            Component.text("Track named " + id + "_obu", NamedTextColor.RED),
-                            true,
-                            new Pos(81.5, 12.00, -47.5, 15, 0),
-                            Map.of(
-                                    new LineCheckpoint(new Vec(59.5, 9.00, 25.5), new Vec(51.5, 9.00, 19.5), 3), 0,
-                                    new LineCheckpoint(new Vec( 57.5, 9.00, 31.5), new Vec(49.5, 9.00, 27.5), 3), 1,
-                                    new LineCheckpoint(new Vec(28.5, 9.00, 75.5), new Vec(22.5, 9.00, 69.5), 3), 2,
-                                    new LineCheckpoint(new Vec(-8.5, 9.00, 102.5), new Vec(-12.5, 9.00, 93.5), 3), 3,
-                                    new LineCheckpoint(new Vec(-52.5, 9.00, 69.5), new Vec(-43.5, 9.00, 54.5), 3), 4
-                            ),
-                            List.of(
-                                    new Pos(-30.5, 17.00, -18.5, -180, 0),
-                                    new Pos(-26.5, 17.00, -17.5, -180, 0),
-                                    new Pos(-30.5, 17.00, -16.5, -180, 0),
-                                    new Pos(-26.5, 17.00, -15.5, -180, 0),
-                                    new Pos(-30.5, 17.00, -14.5, -180, 0),
-                                    new Pos(-26.5, 17.00, -13.5, -180, 0),
-                                    new Pos(-30.5, 17.00, -12.5, -180, 0),
-                                    new Pos(-26.5, 17.00, -11.5, -180, 0)
-                            ),
-                            List.of(
-                                    new OBUSettingsPackets.DefaultSlipperinessPacket(0.98f),
-                                    new OBUSettingsPackets.StepHeightPacket(1.1f),
-                                    new OBUSettingsPackets.StepWhileFallingPacket(true),
-                                    new OBUSettingsPackets.AirControlPacket(true)
-                            )
-                    ), world)
+                    ), world))
             );
 
             return;
         }
-
-        instance = new IceStom();
         instance.start();
     }
 

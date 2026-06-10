@@ -1,7 +1,7 @@
 package io.gitlab.icestom.icestom.command;
 
 import io.gitlab.icestom.icestom.IceStom;
-import io.gitlab.icestom.icestom.event.Event;
+import io.gitlab.icestom.icestom.event.ActiveEvent;
 import io.gitlab.icestom.icestom.event.EventManager;
 import io.gitlab.icestom.icestom.race.RaceInstance;
 import net.kyori.adventure.text.Component;
@@ -29,7 +29,7 @@ public class EventCommand extends Command {
             setDefaultExecutor((commandSender, commandContext) -> {
                 Component text = Component.text("Events:");
 
-                for (Event event : eventManager.getEvents()) {
+                for (ActiveEvent event : eventManager.getEvents()) {
                     text = text.append(Component.text("\n - " + event.getId()));
                 }
 
@@ -43,7 +43,7 @@ public class EventCommand extends Command {
             super("test");
 
             setDefaultExecutor((commandSender, commandContext) -> {
-                Event event = new Event("test_event", List.of(
+                ActiveEvent event = new ActiveEvent("test_event", List.of(
 //                        new TrackExploration(IceStom.getInstance().getTrackLibrary().getTracks().values().stream().findFirst().get()),
                         new RaceInstance(IceStom.getInstance().getTrackLibrary().getTracks().values().stream().findFirst().get(), 10, 2)
                 ));

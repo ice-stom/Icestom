@@ -2,22 +2,20 @@ package io.gitlab.icestom.icestom.event;
 
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.event.stage.Stage;
-import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
-import net.minestom.server.instance.Instance;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public class Event {
+public class ActiveEvent {
     private final String id;
     private final List<Stage<?>> stages;
     private final Set<UUID> participants = new HashSet<>();
 
     private int currentStage = -1;
 
-    public Event(String id, List<Stage<?>> stages) {
+    public ActiveEvent(String id, List<Stage<?>> stages) {
         this.id = id;
         this.stages = new ArrayList<>(stages);
     }

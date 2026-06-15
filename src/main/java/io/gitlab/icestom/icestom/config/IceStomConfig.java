@@ -10,14 +10,15 @@ import java.util.List;
 public class IceStomConfig {
 
     public IceStomConfigSection icestom;
+    public DatabaseConfigSection database;
     public OpenBoatUtilsConfigSection openboatutils;
     public NetworkConfigSection network;
     public AuthConfigSection auth;
     public MinestomConfigSection minestom;
     public LuckPermsConfigSection luckperms;
 
-    private static Path config_file = Path.of("config.toml");
-    private static FileConfig config = FileConfig.builder(config_file)
+    private static final Path config_file = Path.of("config.toml");
+    private static final FileConfig config = FileConfig.builder(config_file)
             .defaultResource("/config.toml")
             .build();
 
@@ -44,7 +45,17 @@ public class IceStomConfig {
     }
 
     public static class IceStomConfigSection {
-        public boolean something;
+        public int leaderboard_rows;
+        public String reset_item;
+    }
+
+    public static class DatabaseConfigSection {
+        public String type;
+        public String address;
+        public String database;
+        public String username;
+        public String password;
+        public String table_prefix;
     }
 
     public static class OpenBoatUtilsConfigSection {
@@ -86,21 +97,24 @@ public class IceStomConfig {
             public String username;
             public String password;
             public String table_prefix;
-            public String mongodb_collection_prefix;  // note: hyphens mapped to underscores
+            public String mongodb_collection_prefix;
             public String mongodb_connection_uri;
         }
+
         public static class RedisSection {
             public boolean enabled;
             public String address;
             public String username;
             public String password;
         }
+
         public static class NatsSection {
             public boolean enabled;
             public String address;
             public String username;
             public String password;
         }
+
         public static class RabbitMQSection {
             public boolean enabled;
             public String address;

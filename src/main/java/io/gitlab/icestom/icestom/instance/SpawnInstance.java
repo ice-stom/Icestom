@@ -29,7 +29,7 @@ public class SpawnInstance extends IceStomInstance implements SpawnLocation {
         super(UUID.randomUUID(), DimensionType.OVERWORLD, Key.key(IceStom.NAMESPACE, "spawn"));
 
         PolarLoader polarLoader;
-        try (@Nullable InputStream stream = getClass().getResourceAsStream("/world.polar")) {
+        try (@Nullable InputStream stream = getClass().getResourceAsStream("/spawn.polar")) {
             if (stream == null) {
                 log.error("Failed to load spawn world: no resource found");
                 return;

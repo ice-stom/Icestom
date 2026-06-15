@@ -24,6 +24,9 @@ dependencies {
     implementation("it.unimi.dsi:fastutil:8.5.13")
     implementation("com.moandjiezana.toml:toml4j:0.7.2")
 
+    implementation("org.xerial:sqlite-jdbc:3.45.3.0")
+    implementation("com.google.code.gson:gson:2.10.1")
+
     implementation("dev.lu15:spark-minestom:1.10-SNAPSHOT")
 
     implementation("dev.lu15:luckperms-minestom:5.5-SNAPSHOT")

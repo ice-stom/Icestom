@@ -1,7 +1,7 @@
 package io.gitlab.icestom.icestom.timetrial;
 
 import io.gitlab.icestom.icestom.IceStom;
-import io.gitlab.icestom.icestom.timetrial.event.TimeTrialSessionStartEvent;
+import io.gitlab.icestom.icestom.timetrial.event.TimeTrialStartEvent;
 import io.gitlab.icestom.icestom.track.Track;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
@@ -23,21 +23,21 @@ public class TimeTrialManager {
 
             MinecraftServer.getInstanceManager().registerInstance(instance);
 
+            instance.start();
+
             trials.put(track.getId(), instance);
         }
 
         instance.consume(player);
 
         MinecraftServer.getGlobalEventHandler()
-                .call(new TimeTrialSessionStartEvent(instance, player));
+                .call(new TimeTrialStartEvent(instance, player));
     }
 
     public void stopTimeTrialing(Player player) {
         if (!(player.getInstance() instanceof TimeTrialingInstance timeTrialingInstance)) return;
 
         timeTrialingInstance.drop(player);
-
-        IceStom.getInstance().getSpawnInstance().consume(player);
 
         if (timeTrialingInstance.getPlayers().isEmpty()) {
             destroyInstance(timeTrialingInstance);

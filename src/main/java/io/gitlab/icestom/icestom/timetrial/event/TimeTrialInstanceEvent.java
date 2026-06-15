@@ -1,9 +1,9 @@
 package io.gitlab.icestom.icestom.timetrial.event;
 
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
-import net.minestom.server.event.trait.InstanceEvent;
+import io.gitlab.icestom.icestom.track.event.TrackInstanceEvent;
 import org.jetbrains.annotations.NotNull;
 
-public interface TimeTrialSessionEvent extends InstanceEvent {
+public interface TimeTrialInstanceEvent extends TrackInstanceEvent {
     @NotNull TimeTrialingInstance getInstance();
 }

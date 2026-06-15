@@ -2,6 +2,7 @@ package io.gitlab.icestom.icestom.track.format;
 
 import com.moandjiezana.toml.Toml;
 import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
+import io.gitlab.icestom.icestom.track.checkpoint.CuboidCheckpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.LineCheckpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.PlaneCheckpoint;
 import io.gitlab.icestom.icestom.track.format.serialization.PosAdapter;
@@ -9,6 +10,7 @@ import io.gitlab.icestom.icestom.openboatutils.OBUSettingsPackets;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.json.JSONComponentSerializer;
 import net.minestom.server.coordinate.Pos;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -18,13 +20,13 @@ import static io.gitlab.icestom.icestom.util.Expect.expect;
 public interface TrackData {
     int VERSION = 1;
 
-    String getId();
-    Component getName();
+    @NotNull String getId();
+    @NotNull Component getName();
     boolean isLooped();
-    Pos getSpawnLocation();
-    Map<Checkpoint, Integer> getCheckpoints();
-    List<Pos> getGridLocations();
-    List<OBUSettingsPackets> getOpenBoatUtilsPackets();
+    @NotNull Pos getSpawnLocation();
+    @NotNull Map<Checkpoint, Integer> getCheckpoints();
+    @NotNull List<Pos> getGridLocations();
+    @NotNull List<OBUSettingsPackets> getOpenBoatUtilsPackets();
 
     class TrackDeserializationException extends Exception {
         public TrackDeserializationException(String message) {
@@ -32,7 +34,11 @@ public interface TrackData {
         }
     }
 
-    default Map<String, Object> serialize() {
+    default @NotNull String getWorldId() {
+        return getId();
+    }
+
+    default @NotNull Map<String, Object> serialize() {
         Map<String, Object> map = new LinkedHashMap<>();
 
         map.put("version", VERSION);
@@ -81,7 +87,7 @@ public interface TrackData {
         return map;
     }
 
-    static TrackData deserialize(Toml toml) throws TrackDeserializationException {
+    static @NotNull TrackData deserialize(Toml toml) throws TrackDeserializationException {
 
         String id = expect(toml.getString("id"), new TrackDeserializationException("Missing id"));
         Component name = JSONComponentSerializer.json().deserialize(expect(toml.getString("name"), new TrackDeserializationException("Missing name")));
@@ -98,6 +104,7 @@ public interface TrackData {
             checkpoints.put(switch (type) {
                 case "PlaneCheckpoint" -> PlaneCheckpoint.deserialize(map);
                 case "LineCheckpoint" -> LineCheckpoint.deserialize(map);
+                case "CuboidCheckpoint" -> CuboidCheckpoint.deserialize(map);
                 default -> throw new TrackDeserializationException("Unexpected value: " + type);
             }, index);
         }
@@ -122,27 +129,27 @@ public interface TrackData {
 
         return new TrackData() {
             @Override
-            public String getId() { return id; }
+            public @NotNull String getId() { return id; }
 
             @Override
-            public Component getName() { return name; }
+            public @NotNull Component getName() { return name; }
 
             @Override
             public boolean isLooped() { return looped; }
 
             @Override
-            public Pos getSpawnLocation() { return spawn_location; }
+            public @NotNull Pos getSpawnLocation() { return spawn_location; }
 
             @Override
-            public Map<Checkpoint, Integer> getCheckpoints() { return checkpoints; }
+            public @NotNull Map<Checkpoint, Integer> getCheckpoints() { return checkpoints; }
 
             @Override
-            public List<Pos> getGridLocations() {
+            public @NotNull List<Pos> getGridLocations() {
                 return grid_locations;
             }
 
             @Override
-            public List<OBUSettingsPackets> getOpenBoatUtilsPackets() { return openboatutils_packets; }
+            public @NotNull List<OBUSettingsPackets> getOpenBoatUtilsPackets() { return openboatutils_packets; }
         };
     }
 }

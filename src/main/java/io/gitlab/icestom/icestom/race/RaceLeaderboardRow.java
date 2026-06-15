@@ -1,7 +1,6 @@
-package io.gitlab.icestom.icestom.race.ui;
+package io.gitlab.icestom.icestom.race;
 
 import io.gitlab.icestom.icestom.leaderboard.LeaderboardRow;
-import io.gitlab.icestom.icestom.race.RaceInstance;
 import org.jetbrains.annotations.Nullable;
 
 public class RaceLeaderboardRow implements LeaderboardRow<RaceInstance.RaceParticipant> {

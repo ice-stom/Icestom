@@ -5,7 +5,7 @@ import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class RaceLapCompletedEvent implements RaceParticipantEvent {
+public class RaceLapCompletedEvent implements RaceEvent {
 
     @NotNull private final RaceInstance.RaceParticipant participant;
     @NotNull private final RaceInstance race;

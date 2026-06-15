@@ -1,10 +1,19 @@
 # IceStom Configuration
 # https://gitlab.com/IceStom/IceStom
 [icestom]
-something = false
+leaderboard_rows = 15
+reset_item = "minecraft:barrier"
+
+[database]
+type = "memory" # memory, sqlite
+address = "localhost"
+database = "minecraft"
+username = ""
+password = ""
+table_prefix = ""
 
 [openboatutils]
-block_unstable = true
+block_unstable = false
 interpolation_compatibility = true
 
 [network]
@@ -23,7 +32,7 @@ chunk_view_distance = 8
 entity_view_distance = 8
 dispatcher_threads = 2
 
-# https://github.com/LuckPerms/LuckPerms/blob/master/bukkit/src/main/resources/config.yml
+# Mirrors a regular luckperms configuration.
 [luckperms]
 server = "icestom"
 storage_method = "h2" # mysql, mariadb, postgresql, mongodb, h2, sqlite, yaml, json, hocon, toml

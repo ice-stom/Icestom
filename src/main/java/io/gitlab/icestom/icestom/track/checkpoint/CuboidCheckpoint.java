@@ -24,6 +24,13 @@ public class CuboidCheckpoint implements Checkpoint {
     public Vec getA() { return a; }
     public Vec getB() { return b; }
 
+    public static Checkpoint deserialize(Toml properties) {
+        return new CuboidCheckpoint(
+                PosAdapter.deserializeVec(properties, "a"),
+                PosAdapter.deserializeVec(properties, "b")
+        );
+    }
+
     public @Nullable Long detectCross(TickMovement movement) {
         Vec before  = movement.before();
         Vec current = movement.current();

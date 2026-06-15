@@ -27,13 +27,15 @@ public abstract class BoatInstance extends IceStomInstance {
         super(UUID.randomUUID(), DimensionType.OVERWORLD, key);
     }
 
-    public void removeBoat(Player player) {
+    public @Nullable Boat removeBoat(Player player) {
         @Nullable Boat boat = boats.remove(player);
 
-        if (boat != null) removeBoat(player, boat);
+        if (boat != null) return removeBoat(player, boat);
+
+        return null;
     }
 
-    public void removeBoat(Player player, Boat boat) {
+    public Boat removeBoat(Player player, @NotNull Boat boat) {
         if (boat.getVehicle() instanceof GridBoatHolder gridBoatHolder) {
             gridBoatHolder.remove();
         }
@@ -48,6 +50,8 @@ public abstract class BoatInstance extends IceStomInstance {
         boat.remove();
 
         boats.remove(player, boat);
+
+        return boat;
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -55,6 +59,7 @@ public abstract class BoatInstance extends IceStomInstance {
         removeBoat(player);
 
         Boat boat = new Boat();
+        boats.put(player, boat);
 
         if (player.getInstance() == this) {
             EventListener<@NotNull PlayerPacketEvent> listener = EventListener.builder(PlayerPacketEvent.class)
@@ -72,9 +77,7 @@ public abstract class BoatInstance extends IceStomInstance {
             boat.addPassenger(player);
         }
 
-        player.teleport(pos.withDirection(player.getPosition().direction()));
-
-        boats.put(player, boat);
+        player.teleport(pos.withPitch(player.getPosition().pitch()));
 
         return boat;
     }

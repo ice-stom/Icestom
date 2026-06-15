@@ -4,7 +4,7 @@ import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
 import io.gitlab.icestom.icestom.openboatutils.OBUContextPackets;
 import io.gitlab.icestom.icestom.openboatutils.OBUSettingsPackets;
-import io.gitlab.icestom.icestom.openboatutils.TransactionPayload;
+import io.gitlab.icestom.icestom.openboatutils.GroupedPacketPayload;
 import io.gitlab.icestom.icestom.race.RaceInstance;
 import io.gitlab.icestom.icestom.track.Track;
 import net.kyori.adventure.text.Component;
@@ -14,6 +14,7 @@ import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.instance.Instance;
+import net.minestom.server.instance.LightingChunk;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -29,6 +30,8 @@ public class DebugCommand extends Command {
         addSubcommand(new InstanceList());
         addSubcommand(new StartRace());
         addSubcommand(new TestEntityContext());
+        addSubcommand(new Block());
+        addSubcommand(new Relight());
     }
 
     public static class LetMeOutCommand extends Command {
@@ -119,6 +122,31 @@ public class DebugCommand extends Command {
         }
     }
 
+    public static class Block extends Command {
+        public Block() {
+            super("block");
+
+            setDefaultExecutor((commandSender, _) -> {
+                if (!(commandSender instanceof Player player)) return;
+
+                player.sendMessage(Component.text(player.getInstance().getBlock(player.getPosition()).key().toString()));
+            });
+        }
+    }
+
+    public static class Relight extends Command {
+        public Relight() {
+            super("relight");
+
+            setDefaultExecutor((commandSender, _) -> {
+                if (!(commandSender instanceof Player player)) return;
+
+                player.getInstance().setChunkSupplier(LightingChunk::new);
+                LightingChunk.relight(player.getInstance(), player.getInstance().getChunks());
+            });
+        }
+    }
+
     public static class TestEntityContext extends Command {
         public TestEntityContext() {
             super("testentityContext");
@@ -130,7 +158,7 @@ public class DebugCommand extends Command {
                     try {
                         player.sendPacket(new OBUContextPackets.EntityContext(
                                 boat.getUuid(),
-                                new TransactionPayload(List.of(
+                                new GroupedPacketPayload(List.of(
                                         new OBUSettingsPackets.ForwardAccelPacket(-1)
                                 ))
                         ).toPacket(OBUContextPackets.getChannel()));

@@ -7,16 +7,17 @@ import io.gitlab.icestom.icestom.instance.TrackInstance;
 import io.gitlab.icestom.icestom.leaderboard.LeaderboardParticipant;
 import io.gitlab.icestom.icestom.race.event.RaceCheckpointReachedEvent;
 import io.gitlab.icestom.icestom.race.event.RaceLapCompletedEvent;
-import io.gitlab.icestom.icestom.race.ui.RaceInterfaceProvider;
-import io.gitlab.icestom.icestom.race.ui.RaceLeaderboardRow;
+import io.gitlab.icestom.icestom.race.event.RaceLapTimerEvent;
+import io.gitlab.icestom.icestom.race.event.RaceLeaderboardUpdateEvent;
 import io.gitlab.icestom.icestom.timetrial.Split;
+import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResult;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.TickMovement;
-import io.gitlab.icestom.icestom.ui.InterfaceHolder;
+import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
@@ -30,9 +31,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class RaceInstance extends TrackInstance implements SingleInstanceStage<TrackInstance> {
+import static io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager.getHolder;
 
-    private static final InterfaceHolder<RaceInterfaceProvider> INTERFACE_HOLDER = new InterfaceHolder<>(RaceInterfaceProvider.class);
+public class RaceInstance extends TrackInstance implements SingleInstanceStage<TrackInstance> {
+    private final InterfaceManager.InterfaceHolder interfaceHolder = getHolder(RaceInstance.class, this);
 
     private final int totalLaps;
     private final int totalPits;
@@ -105,7 +107,10 @@ public class RaceInstance extends TrackInstance implements SingleInstanceStage<T
             }
         }
 
-        if (updated.get()) INTERFACE_HOLDER.getProviders().forEach(provider -> provider.updateRaceLeaderboard(this));
+        if (updated.get()) {
+            MinecraftServer.getGlobalEventHandler()
+                    .call(new RaceLeaderboardUpdateEvent(this));
+        }
     }
 
     @Override
@@ -165,9 +170,7 @@ public class RaceInstance extends TrackInstance implements SingleInstanceStage<T
 
     @Override
     public void consume(Player player) {
-        INTERFACE_HOLDER.addViewer(player);
-
-        // TODO: participation
+        interfaceHolder.startWatching(player);
 
         if (raceState == RaceState.GRID) {
             @Nullable UUID participation_id = getParticipationId(player);
@@ -183,17 +186,22 @@ public class RaceInstance extends TrackInstance implements SingleInstanceStage<T
 
         }
 
+
         super.consume(player);
 
         MinecraftServer.getSchedulerManager()
-                .scheduleNextTick(() -> INTERFACE_HOLDER.getProviders().forEach(provider -> provider.updateRaceLeaderboard(this)));
+                .execute(() -> MinecraftServer.getGlobalEventHandler()
+                        .call(new RaceLeaderboardUpdateEvent(this)));
     }
 
     @Override
     public void tick(long time) {
         super.tick(time);
 
-        INTERFACE_HOLDER.getProviders().forEach(provider -> provider.updateRaceLapTimer(this));
+        for (RaceParticipant participant : participants.values()) {
+            MinecraftServer.getGlobalEventHandler()
+                    .call(new RaceLapTimerEvent(this, participant));
+        }
 
         if (countdown > 0) {
             countdown--;
@@ -211,8 +219,11 @@ public class RaceInstance extends TrackInstance implements SingleInstanceStage<T
 
     @Override
     public void drop(Player player) {
-        INTERFACE_HOLDER.removeViewer(player);
-        player.setGameMode(GameMode.SURVIVAL);
+        interfaceHolder.stopWatching(player);
+
+        MinecraftServer.getGlobalEventHandler()
+                .call(new RaceLeaderboardUpdateEvent(this));
+
         super.drop(player);
     }
 

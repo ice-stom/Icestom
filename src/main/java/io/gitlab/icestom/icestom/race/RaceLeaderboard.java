@@ -1,7 +1,6 @@
 package io.gitlab.icestom.icestom.race;
 
 import io.gitlab.icestom.icestom.leaderboard.Leaderboard;
-import io.gitlab.icestom.icestom.race.ui.RaceLeaderboardRow;
 
 import java.util.function.Function;
 

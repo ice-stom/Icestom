@@ -1,6 +1,5 @@
 package io.gitlab.icestom.icestom.race;
 
-import io.gitlab.icestom.icestom.race.ui.RaceLeaderboardRow;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

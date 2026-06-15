@@ -67,10 +67,10 @@ public sealed interface OBUContextPackets extends OBUPacket
 
     final class StoreContext implements OBUContextPackets {
         public Key key;
-        public TransactionPayload transaction;
+        public GroupedPacketPayload transaction;
 
         public StoreContext() {}
-        public StoreContext(Key key, TransactionPayload transaction) { this.key = key; this.transaction = transaction; }
+        public StoreContext(Key key, GroupedPacketPayload transaction) { this.key = key; this.transaction = transaction; }
 
         public short getVersion() { return 19; }
         public short getPacketId() { return 3; }
@@ -86,10 +86,10 @@ public sealed interface OBUContextPackets extends OBUPacket
 
     final class EntityContext implements OBUContextPackets {
         public UUID uuid;
-        public TransactionPayload transaction;
+        public GroupedPacketPayload transaction;
 
         public EntityContext() {}
-        public EntityContext(UUID uuid, TransactionPayload transaction) { this.uuid = uuid; this.transaction = transaction; }
+        public EntityContext(UUID uuid, GroupedPacketPayload transaction) { this.uuid = uuid; this.transaction = transaction; }
 
         public short getVersion() { return 19; }
         public short getPacketId() { return 4; }

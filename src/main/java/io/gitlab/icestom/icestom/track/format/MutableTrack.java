@@ -4,6 +4,7 @@ import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.openboatutils.OBUSettingsPackets;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.coordinate.Pos;
+import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 import java.util.Map;
@@ -39,27 +40,27 @@ public class MutableTrack implements TrackData {
     }
 
     @Override
-    public String getId() { return id; }
+    public @NonNull String getId() { return id; }
 
     @Override
-    public Component getName() { return name; }
+    public @NonNull Component getName() { return name; }
 
     @Override
     public boolean isLooped() { return looped; }
 
     @Override
-    public Pos getSpawnLocation() { return spawnLocation; }
+    public @NonNull Pos getSpawnLocation() { return spawnLocation; }
 
     @Override
-    public Map<Checkpoint, Integer> getCheckpoints() { return checkpoints; }
+    public @NonNull Map<Checkpoint, Integer> getCheckpoints() { return checkpoints; }
 
     @Override
-    public List<Pos> getGridLocations() {
+    public @NonNull List<Pos> getGridLocations() {
         return gridLocations;
     }
 
     @Override
-    public List<OBUSettingsPackets> getOpenBoatUtilsPackets() {
+    public @NonNull List<OBUSettingsPackets> getOpenBoatUtilsPackets() {
         return openBoatUtilsPackets;
     }
 }

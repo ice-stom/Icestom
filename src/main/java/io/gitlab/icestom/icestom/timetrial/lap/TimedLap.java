@@ -4,11 +4,14 @@ import io.gitlab.icestom.icestom.timetrial.Split;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
+import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class TimedLap implements TimedLapResultSource {
 
@@ -16,6 +19,7 @@ public class TimedLap implements TimedLapResultSource {
     @Nullable private final TimedLapResultSource best_previous_result;
 
     private final List<Split> splits = new ArrayList<>();
+    private final Map<Integer, Pos> ticks = new HashMap<>();
 
     private long msStart;
     private int lastReachedCheckpoint = -1;
@@ -101,4 +105,7 @@ public class TimedLap implements TimedLapResultSource {
 
     @Override
     public List<Split> splits() { return splits; }
+
+    @Override
+    public Map<Integer, Pos> ticks() { return ticks; }
 }

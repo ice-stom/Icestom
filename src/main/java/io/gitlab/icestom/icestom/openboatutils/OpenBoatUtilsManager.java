@@ -1,6 +1,7 @@
 package io.gitlab.icestom.icestom.openboatutils;
 
 import io.gitlab.icestom.icestom.IceStom;
+import io.gitlab.icestom.icestom.config.IceStomConfig;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.entity.Player;
@@ -37,8 +38,8 @@ public class OpenBoatUtilsManager implements EventHandler<Event> {
 
     public OpenBoatUtilsManager() {
         try {
-            join_setting_packet = new OBUSettingsPackets.TransactionPacket(new TransactionPayload(List.of(
-                    new OBUSettingsPackets.InterpolationCompatPacket(IceStom.getInstance().getConfig().openboatutils.interpolation_compatibility),
+            join_setting_packet = new OBUSettingsPackets.TransactionPacket(new GroupedPacketPayload(List.of(
+                    new OBUSettingsPackets.InterpolationCompatPacket(IceStomConfig.getConfig().openboatutils.interpolation_compatibility),
                     new OBUSettingsPackets.SetResetOnWorldLoad(false),
                     new OBUSettingsPackets.ResendVersionPacket()
             ))).toPacket(OBUSettingsPackets.getChannel());
@@ -58,7 +59,7 @@ public class OpenBoatUtilsManager implements EventHandler<Event> {
             DataInputStream in = new DataInputStream(new ByteArrayInputStream(event.getMessage()));
             short packetId = in.readShort();
 
-            if (packetId == 0) return;
+            if (packetId != 0) return;
 
             if (((IceStomPlayer) player).getOpenBoatUtilsVersion() != null) return;
 
@@ -72,7 +73,7 @@ public class OpenBoatUtilsManager implements EventHandler<Event> {
             boolean unstable = in.readBoolean();
 
             if (unstable) {
-                if (IceStom.getInstance().getConfig().openboatutils.block_unstable) {
+                if (IceStomConfig.getConfig().openboatutils.block_unstable) {
                     player.kick(Component.translatable("message.openboatutils.block_unstable"));
                     return;
                 }

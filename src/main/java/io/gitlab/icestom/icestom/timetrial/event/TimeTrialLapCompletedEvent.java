@@ -8,7 +8,7 @@ import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class TimeTrialLapCompletedEvent implements TimeTrialSessionEvent, TimedLapEvent {
+public class TimeTrialLapCompletedEvent implements TimeTrialEvent, TimedLapEvent {
     @NotNull private final TimedLapResultSource result;
     @Nullable private final Long deltaToPreviousBest;
 
@@ -35,6 +35,7 @@ public class TimeTrialLapCompletedEvent implements TimeTrialSessionEvent, TimedL
     public @NotNull TimedLapResultSource getResult() {
         return result;
     }
+
     public @Nullable Long getDeltaToPreviousBest() {
         return deltaToPreviousBest;
     }

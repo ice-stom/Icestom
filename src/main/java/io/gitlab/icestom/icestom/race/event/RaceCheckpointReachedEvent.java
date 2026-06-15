@@ -4,13 +4,13 @@ import io.gitlab.icestom.icestom.race.RaceInstance;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import org.jetbrains.annotations.NotNull;
 
-public class RaceCheckpointReachedEvent implements RaceParticipantEvent {
-    private @NotNull RaceInstance.RaceParticipant participant;
-    private @NotNull RaceInstance instance;
-    private @NotNull TimedLap lap;
-    private int checkpointIndex;
+public class RaceCheckpointReachedEvent implements RaceEvent {
+    private final @NotNull RaceInstance.RaceParticipant participant;
+    private final @NotNull RaceInstance instance;
+    private final @NotNull TimedLap lap;
+    private final int checkpointIndex;
 
-    public RaceCheckpointReachedEvent(RaceInstance.RaceParticipant participant, RaceInstance instance, TimedLap lap, int checkpointIndex) {
+    public RaceCheckpointReachedEvent(@NotNull RaceInstance.RaceParticipant participant, @NotNull RaceInstance instance, @NotNull TimedLap lap, int checkpointIndex) {
         this.participant = participant;
         this.instance = instance;
         this.lap = lap;
@@ -29,5 +29,9 @@ public class RaceCheckpointReachedEvent implements RaceParticipantEvent {
 
     public @NotNull TimedLap getLap() {
         return lap;
+    }
+
+    public int getCheckpointIndex() {
+        return checkpointIndex;
     }
 }

@@ -107,18 +107,18 @@ public sealed interface OBUSettingsPackets extends OBUPacket
     }
 
     final class StepHeightPacket implements OBUSettingsPackets {
-        public float step_height;
+        public float height;
 
         public StepHeightPacket() {}
-        public StepHeightPacket(float step_height) {
-            this.step_height = step_height;
+        public StepHeightPacket(float height) {
+            this.height = height;
         }
 
         public short getVersion() { return 16; }
         public short getPacketId() { return 1; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
             return OBUSettingsPackets.super.write(buf)
-                    .writeFloat(step_height);
+                    .writeFloat(height);
         }
     }
 
@@ -158,66 +158,66 @@ public sealed interface OBUSettingsPackets extends OBUPacket
     }
 
     final class BoatFallDamagePacket implements OBUSettingsPackets {
-        public boolean fall_damage;
+        public boolean enabled;
 
         public BoatFallDamagePacket() {}
-        public BoatFallDamagePacket(boolean fall_damage) {
-            this.fall_damage = fall_damage;
+        public BoatFallDamagePacket(boolean enabled) {
+            this.enabled = enabled;
         }
 
         public short getVersion() { return 16; }
         public short getPacketId() { return 4; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
             return OBUSettingsPackets.super.write(buf)
-                    .writeBoolean(fall_damage);
+                    .writeBoolean(enabled);
         }
     }
 
     final class BoatWaterElevationPacket implements OBUSettingsPackets {
-        public boolean water_elevation;
+        public boolean enabled;
 
         public BoatWaterElevationPacket() {}
-        public BoatWaterElevationPacket(boolean water_elevation) {
-            this.water_elevation = water_elevation;
+        public BoatWaterElevationPacket(boolean enabled) {
+            this.enabled = enabled;
         }
 
         public short getVersion() { return 16; }
         public short getPacketId() { return 5; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
             return OBUSettingsPackets.super.write(buf)
-                    .writeBoolean(water_elevation);
+                    .writeBoolean(enabled);
         }
     }
 
     final class AirControlPacket implements OBUSettingsPackets {
-        public boolean air_control;
+        public boolean enabled;
 
         public AirControlPacket() {}
-        public AirControlPacket(boolean air_control) {
-            this.air_control = air_control;
+        public AirControlPacket(boolean enabled) {
+            this.enabled = enabled;
         }
 
         public short getVersion() { return 16; }
         public short getPacketId() { return 6; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
             return OBUSettingsPackets.super.write(buf)
-                    .writeBoolean(air_control);
+                    .writeBoolean(enabled);
         }
     }
 
     final class BoatJumpForcePacket implements OBUSettingsPackets {
-        public float jump_force;
+        public float force;
 
         public BoatJumpForcePacket() {}
-        public BoatJumpForcePacket(float jump_force) {
-            this.jump_force = jump_force;
+        public BoatJumpForcePacket(float force) {
+            this.force = force;
         }
 
         public short getVersion() { return 16; }
         public short getPacketId() { return 7; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
             return OBUSettingsPackets.super.write(buf)
-                    .writeFloat(jump_force);
+                    .writeFloat(force);
         }
     }
 
@@ -254,66 +254,66 @@ public sealed interface OBUSettingsPackets extends OBUPacket
     }
 
     final class YawAccelPacket implements OBUSettingsPackets {
-        public float acceleration;
+        public float accel;
 
         public YawAccelPacket() {}
-        public YawAccelPacket(float acceleration) {
-            this.acceleration = acceleration;
+        public YawAccelPacket(float accel) {
+            this.accel = accel;
         }
 
         public short getVersion() { return 16; }
         public short getPacketId() { return 10; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
             return OBUSettingsPackets.super.write(buf)
-                    .writeFloat(acceleration);
+                    .writeFloat(accel);
         }
     }
 
     final class ForwardAccelPacket implements OBUSettingsPackets {
-        public float acceleration;
+        public float accel;
 
         public ForwardAccelPacket() {}
-        public ForwardAccelPacket(float acceleration) {
-            this.acceleration = acceleration;
+        public ForwardAccelPacket(float accel) {
+            this.accel = accel;
         }
 
         public short getVersion() { return 16; }
         public short getPacketId() { return 11; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
             return OBUSettingsPackets.super.write(buf)
-                    .writeFloat(acceleration);
+                    .writeFloat(accel);
         }
     }
 
     final class BackwardAccelPacket implements OBUSettingsPackets {
-        public float acceleration;
+        public float accel;
 
         public BackwardAccelPacket() {}
-        public BackwardAccelPacket(float acceleration) {
-            this.acceleration = acceleration;
+        public BackwardAccelPacket(float accel) {
+            this.accel = accel;
         }
 
         public short getVersion() { return 16; }
         public short getPacketId() { return 12; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
             return OBUSettingsPackets.super.write(buf)
-                    .writeFloat(acceleration);
+                    .writeFloat(accel);
         }
     }
 
     final class TurnAccelPacket implements OBUSettingsPackets {
-        public float acceleration;
+        public float accel;
 
         public TurnAccelPacket() {}
-        public TurnAccelPacket(float acceleration) {
-            this.acceleration = acceleration;
+        public TurnAccelPacket(float accel) {
+            this.accel = accel;
         }
 
         public short getVersion() { return 16; }
         public short getPacketId() { return 13; }
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
             return OBUSettingsPackets.super.write(buf)
-                    .writeFloat(acceleration);
+                    .writeFloat(accel);
         }
     }
 
@@ -599,10 +599,10 @@ public sealed interface OBUSettingsPackets extends OBUPacket
     }
 
     final class TransactionPacket implements OBUSettingsPackets {
-        public TransactionPayload transactionPayload;
+        public GroupedPacketPayload groupedPacketPayload;
 
         public TransactionPacket() {}
-        public TransactionPacket(TransactionPayload transactionPayload) { this.transactionPayload = transactionPayload; }
+        public TransactionPacket(GroupedPacketPayload groupedPacketPayload) { this.groupedPacketPayload = groupedPacketPayload; }
 
         public short getVersion() { return 19; }
         public short getPacketId() { return 33; }
@@ -615,7 +615,7 @@ public sealed interface OBUSettingsPackets extends OBUPacket
         @Override
         public PacketByteBuf write(PacketByteBuf buf) throws IOException {
             OBUSettingsPackets.super.write(buf);
-            transactionPayload.write(buf);
+            groupedPacketPayload.write(buf);
 
             return buf;
         }

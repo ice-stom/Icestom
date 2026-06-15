@@ -1,7 +1,6 @@
 package io.gitlab.icestom.icestom.race;
 
 import io.gitlab.icestom.icestom.leaderboard.LeaderboardSnapshot;
-import io.gitlab.icestom.icestom.race.ui.RaceLeaderboardRow;
 
 public interface RaceLeaderboardSnapshot<R> extends LeaderboardSnapshot<R, RaceInstance.RaceParticipant> {
 

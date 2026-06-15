@@ -4,6 +4,7 @@ import io.gitlab.icestom.icestom.command.*;
 import io.gitlab.icestom.icestom.config.IceStomConfig;
 import io.gitlab.icestom.icestom.database.TimetrialDatabase;
 import io.gitlab.icestom.icestom.database.memory.MemoryTimetrialDatabase;
+import io.gitlab.icestom.icestom.database.sqlite.SQLiteTimetrialDatabase;
 import io.gitlab.icestom.icestom.debug.PerfHud;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
@@ -11,13 +12,16 @@ import io.gitlab.icestom.icestom.event.EventManager;
 import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
 import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager;
+import io.gitlab.icestom.icestom.race.RaceInstance;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
+import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.track.format.MutableTrack;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.format.StomtrackFormat;
 import io.gitlab.icestom.icestom.track.TrackLibrary;
+import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
+import io.gitlab.icestom.icestom.ui.interfaces.impl.VanillaInterface;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
-import io.gitlab.icestom.icestom.ui.InterfaceManager;
 import me.lucko.luckperms.common.config.generic.adapter.EnvironmentVariableConfigAdapter;
 import me.lucko.luckperms.common.config.generic.adapter.MultiConfigurationAdapter;
 import me.lucko.luckperms.common.config.generic.adapter.SystemPropertyConfigAdapter;
@@ -25,6 +29,7 @@ import me.lucko.luckperms.minestom.CommandRegistry;
 import me.lucko.luckperms.minestom.LuckPermsMinestom;
 import me.lucko.spark.minestom.SparkMinestom;
 import net.hollowcube.polar.AnvilPolar;
+import net.hollowcube.polar.PolarLoader;
 import net.hollowcube.polar.PolarWorld;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -35,19 +40,21 @@ import net.minestom.server.command.CommandManager;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
+import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.*;
-import net.minestom.server.event.server.ServerTickMonitorEvent;
-import net.minestom.server.instance.Instance;
-import net.minestom.server.instance.InstanceManager;
+import net.minestom.server.instance.*;
+import net.minestom.server.instance.anvil.AnvilLoader;
 import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
+import net.minestom.server.world.DimensionType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public class IceStom {
 
@@ -57,15 +64,12 @@ public class IceStom {
 
     private static IceStom instance;
 
-    private final IceStomConfig config;
-
     private final MinecraftServer minecraftServer;
 
     private final TranslationManager translationManager;
     private final TrackLibrary trackLibrary;
     private final TimeTrialManager timeTrialManager;
     private final EventManager eventManager;
-    private final InterfaceManager playerScoreboardManager;
     private final OpenBoatUtilsManager openBoatUtilsManager;
 
     private final SpawnInstance spawnInstance;
@@ -82,7 +86,7 @@ public class IceStom {
 
         log.info("Hello from IceStom!");
 
-        config = IceStomConfig.loadConfig();
+        IceStomConfig config = IceStomConfig.loadConfig();
 
         // Minestom
         System.setProperty("minestom.chunk-view-distance", String.valueOf(config.minestom.chunk_view_distance));
@@ -131,10 +135,20 @@ public class IceStom {
         translationManager = new TranslationManager(getClass());
         timeTrialManager = new TimeTrialManager();
         eventManager = new EventManager();
-        playerScoreboardManager = new InterfaceManager();
         openBoatUtilsManager = new OpenBoatUtilsManager();
 
-        timetrialDatabase = new MemoryTimetrialDatabase();
+        timetrialDatabase = switch (config.database.type) {
+            case "memory" -> new MemoryTimetrialDatabase();
+            case "sqlite" -> {
+                try {
+                    yield new SQLiteTimetrialDatabase("db.sqlite");
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to init SQLite: " + e);
+                }
+            }
+            default -> throw new RuntimeException("Unknown database type: " + config.database.type);
+        };
+
         spawnInstance = new SpawnInstance();
     }
 
@@ -166,6 +180,7 @@ public class IceStom {
         commandManager.register(new TrackCommand());
         commandManager.register(new SpawnCommand());
         commandManager.register(new EventCommand());
+        commandManager.register(new ResetCommand());
 
         InstanceManager instanceManager = MinecraftServer.getInstanceManager();
         instanceManager.registerInstance(spawnInstance);
@@ -176,13 +191,20 @@ public class IceStom {
 
         globalEventHandler.addChild(openBoatUtilsManager.eventNode());
         globalEventHandler.addChild(perfHud.eventNode());
+        globalEventHandler.addChild(InterfaceManager.EVENT_NODE);
 
         globalEventHandler.addListener(AsyncPlayerConfigurationEvent.class, event -> {
             event.setSpawningInstance(spawnInstance);
         });
 
-        globalEventHandler.addListener(PlayerSpawnEvent.class, playerSpawnEvent -> {
-            perfHud.addViewer(playerSpawnEvent.getPlayer());
+        globalEventHandler.addListener(PlayerSpawnEvent.class, event -> {
+            final IceStomPlayer player = (IceStomPlayer) event.getPlayer();
+
+            player.setGameMode(GameMode.ADVENTURE);
+
+            if (!player.hasPermission("icestom.perfhud")) return;
+
+            perfHud.addViewer(player);
         });
 
         globalEventHandler.addListener(PlayerDisconnectEvent.class,playerDisconnectEvent -> {
@@ -205,12 +227,15 @@ public class IceStom {
             }
         });
 
+        InterfaceManager.register(TimeTrialingInstance.class, new VanillaInterface());
+        InterfaceManager.register(RaceInstance.class, new VanillaInterface());
+
+        IceStomConfig config = IceStomConfig.getConfig();
+
         log.info("Starting IceStom server on {}:{}", config.network.bind, config.network.port);
 
         minecraftServer.start(config.network.bind, config.network.port);
     }
-
-    public IceStomConfig getConfig() { return config; }
 
     public TrackLibrary getTrackLibrary() { return trackLibrary; }
 
@@ -220,11 +245,11 @@ public class IceStom {
 
     public TranslationManager getTranslationManager() { return translationManager; }
 
-    public InterfaceManager getPlayerLeaderboardManager() { return playerScoreboardManager; }
-
     public SpawnInstance getSpawnInstance() { return spawnInstance; }
 
     public TimetrialDatabase getTimetrialDatabase() { return timetrialDatabase; }
+
+    public LuckPerms getLuckPerms() { return luckPerms; }
 
     static void main(String[] args) throws IOException, StomtrackFormat.TrackSaveException {
         instance = new IceStom();
@@ -235,6 +260,20 @@ public class IceStom {
             System.out.println("Converting " + path + " to stomtrack.");
 
             PolarWorld world = AnvilPolar.anvilToPolar(path);
+
+            MinecraftServer.getInstanceManager().createInstanceContainer();
+            InstanceContainer temp = new InstanceContainer(UUID.randomUUID(), DimensionType.OVERWORLD);
+            temp.setChunkSupplier(LightingChunk::new);
+            temp.setChunkLoader(new PolarLoader(world));
+
+            List<CompletableFuture<Chunk>> futures = world.chunks().stream()
+                    .map(chunk -> temp.loadChunk(chunk.x(), chunk.z()))
+                    .toList();
+
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .thenRun(() -> {
+                        LightingChunk.relight(temp, temp.getChunks());
+                    }).join();
 
             String id = path.getFileName().toString();
 
@@ -249,7 +288,7 @@ public class IceStom {
                             Map.of(),
                             List.of(),
                             List.of()
-                    ), world))
+                    ), world, id))
             );
 
             return;

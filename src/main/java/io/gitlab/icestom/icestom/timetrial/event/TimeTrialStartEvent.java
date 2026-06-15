@@ -5,11 +5,11 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.event.trait.PlayerEvent;
 import org.jetbrains.annotations.NotNull;
 
-public class TimeTrialSessionStartEvent implements TimeTrialSessionEvent, PlayerEvent {
+public class TimeTrialStartEvent implements TimeTrialEvent {
     @NotNull private final TimeTrialingInstance instance;
     @NotNull private final Player player;
 
-    public TimeTrialSessionStartEvent(@NotNull TimeTrialingInstance instance, @NotNull Player player) {
+    public TimeTrialStartEvent(@NotNull TimeTrialingInstance instance, @NotNull Player player) {
         this.instance = instance;
         this.player = player;
     }

@@ -15,6 +15,7 @@ public abstract class IceStomInstance extends InstanceContainer {
         super(uuid, dimensionType, dimensionName);
 
         setTimeRate(0);
+        setTime(6000);
 
         if (this instanceof SpawnLocation spawnLocation) {
             eventNode().addListener(PlayerRespawnEvent.class, playerRespawnEvent -> {
@@ -24,4 +25,6 @@ public abstract class IceStomInstance extends InstanceContainer {
             });
         }
     }
+
+    public void start() {}
 }

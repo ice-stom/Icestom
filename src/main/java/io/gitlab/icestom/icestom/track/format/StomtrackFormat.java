@@ -41,6 +41,7 @@ public class StomtrackFormat {
     public static List<Track> loadStomtrack(File trackfile) throws IOException, TrackLoadException {
 
         PolarWorld polarWorld = null;
+        String worldId = null;
 
         List<TrackData> tracks = new ArrayList<>();
 
@@ -66,6 +67,7 @@ public class StomtrackFormat {
                         if (polarWorld != null) throw new TrackLoadException("More than one world data!");
 
                         polarWorld = PolarReader.read(zis.readAllBytes());
+                        worldId = name.substring(0, name.lastIndexOf("."));
                         break;
                     }
                 }
@@ -79,9 +81,10 @@ public class StomtrackFormat {
         if (polarWorld == null) throw new TrackLoadException("Failed to load world data");
 
         final PolarWorld finalWorld = polarWorld;
+        final String finalWorldId = worldId;
         return tracks
                 .stream()
-                .map(trackData -> new Track(trackData, finalWorld))
+                .map(trackData -> new Track(trackData, finalWorld, finalWorldId))
                 .toList();
     }
 
@@ -100,7 +103,7 @@ public class StomtrackFormat {
 
             byte[] data = PolarWriter.write(world);
 
-            ZipEntry worldEntry = new ZipEntry("world.polar");
+            ZipEntry worldEntry = new ZipEntry("spawn.polar");
             zos.putNextEntry(worldEntry);
             zos.write(data);
             zos.flush();

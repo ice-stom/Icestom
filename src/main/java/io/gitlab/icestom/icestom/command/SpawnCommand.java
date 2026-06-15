@@ -25,9 +25,10 @@ public class SpawnCommand extends Command {
             Instance instance = player.getInstance();
 
             if (instance instanceof SpawnInstance spawnInstance) {
-                spawnInstance.consume(player);
+                spawnInstance.resetPlayer(player);
             } else if (instance instanceof TimeTrialingInstance) {
                 timeTrialManager.stopTimeTrialing(player);
+                IceStom.getInstance().getSpawnInstance().consume(player);
             }
         });
     }

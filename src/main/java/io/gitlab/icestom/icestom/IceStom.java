@@ -50,6 +50,7 @@ import net.minestom.server.instance.*;
 import net.minestom.server.instance.anvil.AnvilLoader;
 import net.minestom.server.network.packet.server.play.EntityStatusPacket;
 import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
+import net.minestom.server.network.packet.server.play.VehicleMovePacket;
 import net.minestom.server.world.DimensionType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -231,6 +232,10 @@ public class IceStom {
                 if (entity instanceof Boat) {
                     playerPacketOutEvent.setCancelled(true);
                 }
+            }
+
+            if (playerPacketOutEvent.getPacket() instanceof VehicleMovePacket) {
+                playerPacketOutEvent.setCancelled(true);
             }
         });
 

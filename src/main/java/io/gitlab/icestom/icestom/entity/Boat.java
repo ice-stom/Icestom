@@ -11,6 +11,8 @@ public class Boat extends Entity {
     public Boat() {
         super(EntityType.OAK_BOAT);
 
+        hasPhysics = false;
+
         eventNode().addListener(PlayerEntityInteractEvent.class, entityInteractEvent -> {
             if (getPassengers().size() >= 2) return;
 

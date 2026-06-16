@@ -33,12 +33,11 @@ import java.util.*;
 @SuppressWarnings("UnstableApiUsage")
 public abstract class TrackInstance extends BoatInstance implements SpawnLocation {
 
-    private static final Logger log = LoggerFactory.getLogger(TrackInstance.class);
     protected final Track track;
     private final Map<Player, Vec> lastTickPositions = new HashMap<>();
 
     public TrackInstance(Track track) {
-        super(Key.key(IceStom.NAMESPACE, "track/" + track.getWorldId()));
+        super(Key.key(IceStom.NAMESPACE, "track/" + track.getWorldId()), track.getEnvironmentData().getKey());
 
         this.track = track;
 

@@ -1,6 +1,7 @@
 package io.gitlab.icestom.icestom.instance;
 
 import net.kyori.adventure.key.Key;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerRespawnEvent;
 import net.minestom.server.instance.InstanceContainer;
@@ -11,6 +12,7 @@ import java.util.UUID;
 
 @SuppressWarnings("UnstableApiUsage")
 public abstract class IceStomInstance extends InstanceContainer {
+
     public IceStomInstance(UUID uuid, RegistryKey<DimensionType> dimensionType, Key dimensionName) {
         super(uuid, dimensionType, dimensionName);
 

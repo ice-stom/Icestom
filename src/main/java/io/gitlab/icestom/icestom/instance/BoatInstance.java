@@ -3,13 +3,14 @@ package io.gitlab.icestom.icestom.instance;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.GridBoatHolder;
 import net.kyori.adventure.key.Key;
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.EventListener;
 import net.minestom.server.event.player.PlayerPacketEvent;
 import net.minestom.server.network.packet.client.play.ClientTeleportConfirmPacket;
+import net.minestom.server.registry.RegistryKey;
 import net.minestom.server.world.DimensionType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -17,20 +18,26 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 public abstract class BoatInstance extends IceStomInstance {
 
     private final Map<Player, Boat> boats = new HashMap<>();
 
-    public BoatInstance(Key key) {
-        super(UUID.randomUUID(), DimensionType.OVERWORLD, key);
+    public BoatInstance(Key key, RegistryKey<DimensionType> dimensionType) {
+        super(UUID.randomUUID(), dimensionType, key);
     }
 
     public @Nullable Boat removeBoat(Player player) {
         @Nullable Boat boat = boats.remove(player);
 
-        if (boat != null) return removeBoat(player, boat);
+        if (boat != null) {
+            Pos position = player.getPosition();
+
+            player.teleport(position.withY(Math.ceil(position.y())).withDirection(position.direction()));
+            player.setVelocity(Vec.ZERO);
+
+            return removeBoat(player, boat);
+        }
 
         return null;
     }
@@ -65,6 +72,8 @@ public abstract class BoatInstance extends IceStomInstance {
             EventListener<@NotNull PlayerPacketEvent> listener = EventListener.builder(PlayerPacketEvent.class)
                     .filter(e -> e.getPlayer() == player && e.getPacket() instanceof ClientTeleportConfirmPacket)
                     .handler(_ -> {
+                        if (boat.isRemoved()) return;
+
                         boat.setInstance(this, pos);
                         boat.addPassenger(player);
                     })

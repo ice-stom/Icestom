@@ -4,6 +4,7 @@ import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityType;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerEntityInteractEvent;
+import net.minestom.server.network.packet.server.play.EntityHeadLookPacket;
 import org.jetbrains.annotations.NotNull;
 
 public class Boat extends Entity {
@@ -22,5 +23,18 @@ public class Boat extends Entity {
     public void updateNewViewer(@NotNull Player player) {
         super.updateNewViewer(player);
         player.sendPacket(this.getPassengersPacket());
+    }
+
+    @Override
+    public void tick(long time) {
+        super.tick(time);
+
+        float yaw = getPosition().yaw();
+
+        for (Entity passenger : getPassengers()) {
+            if (passenger instanceof Player player) {
+                sendPacketToViewers(new EntityHeadLookPacket(player.getEntityId(), yaw));
+            }
+        }
     }
 }

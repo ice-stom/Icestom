@@ -24,7 +24,6 @@ public class StomtrackFormat {
 
     private static final TomlWriter tomlWriter = new TomlWriter.Builder()
             .build();
-    private static final Logger log = LoggerFactory.getLogger(StomtrackFormat.class);
 
     public static class TrackLoadException extends Exception {
         TrackLoadException(String message) {
@@ -41,6 +40,7 @@ public class StomtrackFormat {
     public static List<Track> loadStomtrack(File trackfile) throws IOException, TrackLoadException {
 
         PolarWorld polarWorld = null;
+        TrackEnvironmentData environmentData = null;
         String worldId = null;
 
         List<TrackData> tracks = new ArrayList<>();
@@ -63,6 +63,16 @@ public class StomtrackFormat {
 
                         break;
                     }
+                    case "environment": {
+                        if (environmentData != null) throw new TrackLoadException("More than one environment data!");
+                        byte[] bytes = zis.readAllBytes();
+
+                        String data = new String(bytes, StandardCharsets.UTF_8);
+
+                        environmentData = new Toml().read(data).to(TrackEnvironmentData.class);
+
+                        break;
+                    }
                     case "polar": {
                         if (polarWorld != null) throw new TrackLoadException("More than one world data!");
 
@@ -79,12 +89,17 @@ public class StomtrackFormat {
         }
 
         if (polarWorld == null) throw new TrackLoadException("Failed to load world data");
+        if (environmentData == null) throw new TrackLoadException("Failed to load environment data");
+
+        // cache this while registry isn't frozen
+        environmentData.getKey();
 
         final PolarWorld finalWorld = polarWorld;
         final String finalWorldId = worldId;
+        final TrackEnvironmentData finalEnvironmentData = environmentData;
         return tracks
                 .stream()
-                .map(trackData -> new Track(trackData, finalWorld, finalWorldId))
+                .map(trackData -> new Track(trackData, finalWorld, finalEnvironmentData, finalWorldId))
                 .toList();
     }
 

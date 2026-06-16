@@ -15,6 +15,9 @@ import net.minestom.server.command.builder.suggestion.SuggestionEntry;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class TimeTrialCommand extends Command {
 
     private final TrackLibrary trackLibrary = IceStom.getInstance().getTrackLibrary();
@@ -53,8 +56,19 @@ public class TimeTrialCommand extends Command {
     }
 
     private void suggestionCallback(CommandSender commandSender, CommandContext commandContext, Suggestion suggestion) {
-        for (String id : trackLibrary.getTracks().keySet()) {
-            suggestion.addEntry(new SuggestionEntry(id));
-        }
+        String input = Arrays.stream(commandContext.getInput().split(" ")).toList().getLast().toLowerCase();
+
+        trackLibrary.getTracks().keySet().stream()
+                .filter(track -> input.isBlank() || input.charAt(0) == 0 || track.toLowerCase().startsWith(input))
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .limit(20)
+                .forEach(track ->
+                        suggestion.addEntry(
+                                new SuggestionEntry(
+                                        track,
+                                        Component.text("Hello World")
+                                )
+                        )
+                );
     }
 }

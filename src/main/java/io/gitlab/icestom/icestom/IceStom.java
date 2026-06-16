@@ -19,6 +19,7 @@ import io.gitlab.icestom.icestom.track.format.MutableTrack;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.format.StomtrackFormat;
 import io.gitlab.icestom.icestom.track.TrackLibrary;
+import io.gitlab.icestom.icestom.track.format.TrackEnvironmentData;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
 import io.gitlab.icestom.icestom.ui.interfaces.impl.VanillaInterface;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
@@ -40,12 +41,14 @@ import net.minestom.server.command.CommandManager;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
+import net.minestom.server.entity.EntityStatuses;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.*;
 import net.minestom.server.instance.*;
 import net.minestom.server.instance.anvil.AnvilLoader;
+import net.minestom.server.network.packet.server.play.EntityStatusPacket;
 import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
 import net.minestom.server.world.DimensionType;
 import org.slf4j.Logger;
@@ -201,6 +204,10 @@ public class IceStom {
             final IceStomPlayer player = (IceStomPlayer) event.getPlayer();
 
             player.setGameMode(GameMode.ADVENTURE);
+            player.sendPacket(new EntityStatusPacket(
+                    player.getEntityId(),
+                    (byte) (EntityStatuses.Player.PERMISSION_LEVEL_0 + 2))
+            );
 
             if (!player.hasPermission("icestom.perfhud")) return;
 
@@ -288,7 +295,7 @@ public class IceStom {
                             Map.of(),
                             List.of(),
                             List.of()
-                    ), world, id))
+                    ), world, new TrackEnvironmentData(0, -64, 384, false, "OVERWORLD"), id))
             );
 
             return;

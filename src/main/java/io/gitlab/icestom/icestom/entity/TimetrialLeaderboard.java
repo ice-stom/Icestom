@@ -35,7 +35,8 @@ public class TimetrialLeaderboard extends Entity {
 
         meta.setText(Component.text("Loading..."));
         meta.setBillboardRenderConstraints(AbstractDisplayMeta.BillboardConstraints.VERTICAL);
-        meta.setUseDefaultBackground(true);
+        meta.setUseDefaultBackground(false);
+        meta.setBackgroundColor(0x55000000);
         meta.setBrightness(15, 15);
         meta.setTranslation(new Vec(0, 1, 0));
 
@@ -59,6 +60,13 @@ public class TimetrialLeaderboard extends Entity {
             leaderboard.appendSpace();
             leaderboard.append(Component.text(name));
             leaderboard.appendSpace();
+
+            if (attempt.splits().size() < track.getCheckpoints().size()) {
+                int checkpoints = attempt.splits().size() - 1;
+                leaderboard.append(Component.text("C" + checkpoints));
+                leaderboard.appendSpace();
+            }
+
             leaderboard.append(TextFormatter.getTime(attempt.getTime()).color(NamedTextColor.YELLOW));
         }
 

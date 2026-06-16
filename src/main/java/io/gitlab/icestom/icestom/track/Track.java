@@ -4,10 +4,12 @@ import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.track.format.TrackData;
 import io.gitlab.icestom.icestom.openboatutils.OBUSettingsPackets;
+import io.gitlab.icestom.icestom.track.format.TrackEnvironmentData;
 import net.hollowcube.polar.PolarWorld;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.coordinate.Pos;
 import org.intellij.lang.annotations.Subst;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 
@@ -23,12 +25,13 @@ public class Track implements TrackData {
     private final Map<Checkpoint, Integer> checkpoints;
     private final List<Pos> gridLocations;
     private final List<OBUSettingsPackets> openBoatUtilsPackets;
+    private final TrackEnvironmentData trackEnvironmentData;
 
     private final Map<Integer, List<Checkpoint>> checkpoint_lookup = new HashMap<>();
 
     private final PolarWorld world;
 
-    public Track(TrackData trackData, PolarWorld world, @Nullable String worldId) {
+    public Track(TrackData trackData, PolarWorld world, TrackEnvironmentData environmentData, @Nullable String worldId) {
         this.id = trackData.getId();
         this.worldId = worldId;
         this.name = trackData.getName();
@@ -37,6 +40,7 @@ public class Track implements TrackData {
         this.checkpoints = trackData.getCheckpoints();
         this.gridLocations = trackData.getGridLocations();
         this.openBoatUtilsPackets = trackData.getOpenBoatUtilsPackets();
+        this.trackEnvironmentData = environmentData;
 
         this.world = world;
 
@@ -87,6 +91,8 @@ public class Track implements TrackData {
     public @NonNull List<OBUSettingsPackets> getOpenBoatUtilsPackets() {
         return openBoatUtilsPackets;
     }
+
+    public @NotNull TrackEnvironmentData getEnvironmentData() { return trackEnvironmentData; }
 
     public List<Checkpoint> getCheckpoints(int index) {
         return checkpoint_lookup.get(index);

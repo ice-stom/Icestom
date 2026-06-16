@@ -8,25 +8,25 @@ import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class TimeTrialLapCompletedEvent implements TimeTrialEvent, TimedLapEvent {
+public class TimeTrialTimedLapEndedEvent implements TimeTrialEvent, TimedLapEvent {
     @NotNull private final TimedLapResultSource result;
-    @Nullable private final Long deltaToPreviousBest;
+    @Nullable private final TimedLapResultSource previousBest;
 
     @NotNull private final TimedLap lap;
     @NotNull private final Player player;
     @NotNull private final TimeTrialingInstance instance;
 
-    public TimeTrialLapCompletedEvent(@NotNull TimeTrialingInstance instance, @NotNull TimedLap lap, @NotNull Player player, @NotNull TimedLapResultSource result, @Nullable Long deltaToPreviousBest) {
+    public TimeTrialTimedLapEndedEvent(@NotNull TimeTrialingInstance instance, @NotNull TimedLap lap, @NotNull Player player, @NotNull TimedLapResultSource result, @Nullable TimedLapResultSource previousBest) {
         this.result = result;
-        this.deltaToPreviousBest = deltaToPreviousBest;
+        this.previousBest = previousBest;
         this.lap = lap;
         this.player = player;
         this.instance = instance;
     }
 
-    public TimeTrialLapCompletedEvent(@NotNull TimeTrialingInstance instance, @NotNull TimedLap lap, @NotNull Player player, @Nullable Long deltaToPreviousBest) {
+    public TimeTrialTimedLapEndedEvent(@NotNull TimeTrialingInstance instance, @NotNull TimedLap lap, @NotNull Player player, @Nullable TimedLapResultSource previousBest) {
         this.result = TimedLapResult.freeze(lap);
-        this.deltaToPreviousBest = deltaToPreviousBest;
+        this.previousBest = previousBest;
         this.lap = lap;
         this.player = player;
         this.instance = instance;
@@ -36,8 +36,8 @@ public class TimeTrialLapCompletedEvent implements TimeTrialEvent, TimedLapEvent
         return result;
     }
 
-    public @Nullable Long getDeltaToPreviousBest() {
-        return deltaToPreviousBest;
+    public @Nullable TimedLapResultSource getPreviousBest() {
+        return previousBest;
     }
 
     @Override

@@ -7,7 +7,7 @@ import io.gitlab.icestom.icestom.race.event.RaceLapCompletedEvent;
 import io.gitlab.icestom.icestom.race.event.RaceLapTimerEvent;
 import io.gitlab.icestom.icestom.race.event.RaceLeaderboardUpdateEvent;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
-import io.gitlab.icestom.icestom.timetrial.event.TimeTrialLapCompletedEvent;
+import io.gitlab.icestom.icestom.timetrial.event.TimeTrialTimedLapEndedEvent;
 import io.gitlab.icestom.icestom.timetrial.event.TimeTrialLapTimerEvent;
 import io.gitlab.icestom.icestom.timetrial.event.TimeTrialStartEvent;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
@@ -21,19 +21,16 @@ import io.gitlab.icestom.icestom.util.TextFormatter;
 import io.gitlab.icestom.icestom.util.UsernameCache;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
-import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.translation.Argument;
 import net.kyori.adventure.text.object.ObjectContents;
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.scoreboard.Sidebar;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.text.DecimalFormat;
 import java.util.*;
 
 public class VanillaInterface implements InterfaceProvider {
@@ -64,18 +61,41 @@ public class VanillaInterface implements InterfaceProvider {
         if (sidebar != null) sidebar.removeViewer(player);
     }
 
-    private static @NotNull Component lapCompletedMessage(Long delta, Track track, TimedLapResultSource result) {
-        if (delta == null) {
-            return Component.translatable("message.timetrial.complete_first",
-                    Argument.component("track", track.getName()),
-                    Argument.component("time", TextFormatter.getTime(result.getTime()))
-            );
+    private static @NotNull Component lapCompletedMessage(Track track, TimedLapResultSource result, @Nullable TimedLapResultSource best) {
+
+        boolean is_first = best == null;
+        boolean is_full_run = track.getCheckpoints().size() == result.splits().size();
+
+        if (is_first || best.splits().size() < result.splits().size()) {
+            if (is_full_run) {
+                return Component.translatable("message.timetrial.complete_first",
+                        Argument.component("track", track.getName()),
+                        Argument.component("time", TextFormatter.getTime(result.getTime()))
+                );
+            } else {
+                return Component.translatable("message.timetrial.complete_checkpoint_first",
+                        Argument.component("track", track.getName()),
+                        Argument.component("checkpoints", Component.text(result.splits().size() - 1)),
+                        Argument.component("time", TextFormatter.getTime(result.getTime()))
+                );
+            }
         } else {
-            return Component.translatable("message.timetrial.complete",
-                    Argument.component("track", track.getName()),
-                    Argument.component("time", TextFormatter.getTime(result.getTime())),
-                    Argument.component("delta", TextFormatter.getDelta(delta))
-            );
+            long delta = result.getTime() - best.getTime();
+
+            if (is_full_run) {
+                return Component.translatable("message.timetrial.complete",
+                        Argument.component("track", track.getName()),
+                        Argument.component("time", TextFormatter.getTime(result.getTime())),
+                        Argument.component("delta", TextFormatter.getDelta(delta))
+                );
+            } else {
+                return Component.translatable("message.timetrial.complete_checkpoint",
+                        Argument.component("track", track.getName()),
+                        Argument.component("checkpoints", Component.text(result.splits().size() - 1)),
+                        Argument.component("time", TextFormatter.getTime(result.getTime())),
+                        Argument.component("delta", TextFormatter.getDelta(delta))
+                );
+            }
         }
     }
 
@@ -117,16 +137,17 @@ public class VanillaInterface implements InterfaceProvider {
                 player.sendActionBar(actionBar);
             });
 
-            eventNode().addListener(TimeTrialLapCompletedEvent.class, event -> {
+            eventNode().addListener(TimeTrialTimedLapEndedEvent.class, event -> {
                 final Player player = event.getPlayer();
                 final Track track = event.getInstance().getTrack();
                 final TimedLapResultSource result = event.getResult();
-                final Long delta = event.getDeltaToPreviousBest();
+                final @Nullable TimedLapResultSource best = event.getPreviousBest();
+
 
                 player.sendMessage(lapCompletedMessage(
-                        delta,
                         track,
-                        result
+                        result,
+                        best
                 ));
             });
         }
@@ -216,18 +237,12 @@ public class VanillaInterface implements InterfaceProvider {
                 final Player player = event.getPlayer();
                 final Track track = event.getInstance().getTrack();
                 final TimedLapResultSource result = event.getResult();
-
-                @Nullable final TimedLapResultSource previous = event.getPreviousBestResult();
-
-                Long delta = null;
-                if (previous != null) {
-                    delta = result.getTime() - event.getPreviousBestResult().getTime();
-                }
+                @Nullable final TimedLapResultSource best = event.getPreviousBestResult();
 
                 player.sendMessage(lapCompletedMessage(
-                        delta,
                         track,
-                        result
+                        result,
+                        best
                 ));
             });
         }

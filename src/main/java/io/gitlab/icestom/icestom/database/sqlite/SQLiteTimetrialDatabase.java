@@ -28,12 +28,14 @@ public class SQLiteTimetrialDatabase implements TimetrialDatabase, AutoCloseable
                         player TEXT NOT NULL,
                         track TEXT NOT NULL,
                         time INTEGER NOT NULL,
+                        checkpoints INTEGER NOT NULL,
                         splits TEXT NOT NULL,
                         ticks TEXT NOT NULL
                     );
                     """);
-            stmt.execute("CREATE INDEX IF NOT EXISTS idx_player_track ON attempts (player, track, time);");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_player_track ON attempts (player, track, time, checkpoints);");
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_track_time ON attempts (track, time);");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_track_checkpoint ON attempts (track, checkpoints);");
         }
     }
 
@@ -42,15 +44,16 @@ public class SQLiteTimetrialDatabase implements TimetrialDatabase, AutoCloseable
         UUID id = UUID.randomUUID();
 
         try (PreparedStatement ps = connection.prepareStatement("""
-                INSERT INTO attempts (id, player, track, time, splits, ticks)
-                VALUES (?, ?, ?, ?, ?, ?);
+                INSERT INTO attempts (id, player, track, time, checkpoints, splits, ticks)
+                VALUES (?, ?, ?, ?, ?, ?, ?);
                 """)) {
             ps.setString(1, id.toString());
             ps.setString(2, result.player().toString());
             ps.setString(3, result.track());
             ps.setLong(4, result.getTime());
-            ps.setString(5, TimeTrialSerializer.encodeSplits(result.splits()));
-            ps.setString(6, TimeTrialSerializer.encodeTicks(result.ticks()));
+            ps.setLong(5, result.splits().size());
+            ps.setString(6, TimeTrialSerializer.encodeSplits(result.splits()));
+            ps.setString(7, TimeTrialSerializer.encodeTicks(result.ticks()));
             ps.executeUpdate();
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Failed to insert attempt for player " + result.player(), e);
@@ -102,24 +105,27 @@ public class SQLiteTimetrialDatabase implements TimetrialDatabase, AutoCloseable
         List<TimeTrialResult> results = new ArrayList<>();
 
         try (PreparedStatement ps = connection.prepareStatement("""
-                SELECT id, player, track, time, splits, ticks
-                FROM (
-                    SELECT id, player, track, time, splits, ticks,
-                           ROW_NUMBER() OVER (
-                               PARTITION BY player
-                               ORDER BY time ASC, id ASC
-                           ) AS rn
-                    FROM attempts
-                    WHERE track = ?
-                )
-                WHERE rn = 1
-                ORDER BY time ASC
-                LIMIT ?;
-                """)) {
+            SELECT id, player, track, time, checkpoints, splits, ticks
+            FROM (
+                SELECT id, player, track, time, checkpoints, splits, ticks,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY player
+                           ORDER BY checkpoints DESC, time ASC, id ASC
+                       ) AS rn
+                FROM attempts
+                WHERE track = ?
+            )
+            WHERE rn = 1
+            ORDER BY checkpoints DESC, time ASC, id ASC
+            LIMIT ?;
+            """)) {
             ps.setString(1, track_id);
             ps.setInt(2, number);
+
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) results.add(mapRow(rs));
+                while (rs.next()) {
+                    results.add(mapRow(rs));
+                }
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Failed to fetch best attempts for track " + track_id, e);

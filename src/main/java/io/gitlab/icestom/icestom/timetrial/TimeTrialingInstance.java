@@ -2,13 +2,15 @@ package io.gitlab.icestom.icestom.timetrial;
 
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.config.IceStomConfig;
+import io.gitlab.icestom.icestom.database.TimetrialDatabase;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.TimetrialLeaderboard;
 import io.gitlab.icestom.icestom.instance.SpawnLocation;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
-import io.gitlab.icestom.icestom.timetrial.event.TimeTrialLapCompletedEvent;
+import io.gitlab.icestom.icestom.timetrial.event.TimeTrialTimedLapEndedEvent;
 import io.gitlab.icestom.icestom.timetrial.event.TimeTrialLapTimerEvent;
 import io.gitlab.icestom.icestom.timetrial.lap.TimeTrialResult;
+import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResult;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
 import io.gitlab.icestom.icestom.track.checkpoint.TickMovement;
@@ -19,7 +21,10 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
+import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.player.PlayerGameModeRequestEvent;
 import net.minestom.server.event.player.PlayerStartSneakingEvent;
 import net.minestom.server.event.player.PlayerUseItemEvent;
 import net.minestom.server.inventory.PlayerInventory;
@@ -49,6 +54,20 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
             final Player player = event.getPlayer();
 
             endTimeTrial(player);
+            removeBoat(player);
+        });
+
+        eventNode().addListener(PlayerGameModeRequestEvent.class, event -> {
+            final Player player = event.getPlayer();
+            GameMode requested = event.getRequestedGameMode();
+
+            if (requested == GameMode.SURVIVAL) requested = GameMode.ADVENTURE;
+            if (requested == GameMode.CREATIVE) requested = GameMode.ADVENTURE;
+
+            endTimeTrial(player);
+            removeBoat(player);
+
+            player.setGameMode(requested);
         });
 
         eventNode().addListener(PlayerUseItemEvent.class, event -> {
@@ -60,22 +79,12 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
             }
         });
 
-        eventNode().addListener(PlayerStartSneakingEvent.class, event -> {
-            final Player player = event.getPlayer();
-
-            if (removeBoat(player) != null) {
-                Pos position = player.getPosition();
-
-                player.teleport(player.getPosition().withY(Math.ceil(position.y() + 1)));
-            };
-        });
-
         leaderboard = new TimetrialLeaderboard(track);
     }
 
     @Override
     public void start() {
-        leaderboard.setInstance(this, track.getSpawnLocation());
+        leaderboard.setInstance(this, track.getSpawnLocation().asVec().asPos());
     }
 
     @Override
@@ -127,20 +136,7 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
                         ));
 
                         if (next_no == 0) {
-                            TimedLap completed = endTimeTrial(player);
-
-                            long time = completed.getTime();
-
-                            @Nullable TimeTrialResult best = IceStom.getInstance().getTimetrialDatabase().getBestAttempt(player.getUuid(), track.getId());
-
-                            boolean personal_record = best == null || time < best.getTime();
-
-                            if (personal_record) IceStom.getInstance().getTimetrialDatabase().newAttempt(TimeTrialResult.fromResult(player.getUuid(), track.getId(), completed));
-
-                            MinecraftServer.getGlobalEventHandler()
-                                    .call(new TimeTrialLapCompletedEvent(this, timedLap, player, best == null ? null : time - best.getTime()));
-
-                            leaderboard.updateLeaderboard();
+                            endTimeTrial(player);
 
                             not_started_tt.put(player, movement);
                         }
@@ -201,14 +197,32 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
         return timeTrials.get(player);
     }
 
-    public TimedLap endTimeTrial(Player player) {
-        @Nullable TimedLap timedLap = getTimedLap(player);
+    public void endTimeTrial(Player player) {
+        @Nullable TimedLap timedLap = timeTrials.remove(player);
 
         if (timedLap != null) {
-            timeTrials.remove(player);
+            TimetrialDatabase timetrialDatabase = IceStom.getInstance().getTimetrialDatabase();
+
+            TimedLapResultSource result = TimedLapResult.freeze(timedLap);
+
+            if (result.splits().size() == 1) return;
+
+            @Nullable TimeTrialResult best = timetrialDatabase.getBestAttempt(player.getUuid(), track.getId());
+
+            boolean is_first = best == null;
+            boolean is_best_checkpoints = !is_first && result.splits().size() > best.splits().size();
+            boolean is_best_time = !is_first && result.splits().size() == best.splits().size() && result.getTime() < best.getTime();
+
+            if (is_first || is_best_checkpoints || is_best_time) {
+                IceStom.getInstance().getTimetrialDatabase().newAttempt(TimeTrialResult.fromResult(player.getUuid(), track.getId(), result));
+            }
+
+            MinecraftServer.getGlobalEventHandler()
+                    .call(new TimeTrialTimedLapEndedEvent(this, timedLap, player, best));
+
+            leaderboard.updateLeaderboard();
         }
 
-        return timedLap;
     }
 
     @Override
@@ -223,6 +237,8 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
         super.drop(player);
 
         endTimeTrial(player);
+
+        player.setGameMode(GameMode.ADVENTURE);
 
         interfaceHolder.stopWatching(player);
     }

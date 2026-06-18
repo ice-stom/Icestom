@@ -4,7 +4,6 @@ package io.gitlab.icestom.icestom.entity;
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.config.IceStomConfig;
 import io.gitlab.icestom.icestom.timetrial.lap.TimeTrialResult;
-import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.util.TextFormatter;
 import io.gitlab.icestom.icestom.util.UsernameCache;
@@ -12,7 +11,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.object.ObjectContents;
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityType;
@@ -20,7 +18,6 @@ import net.minestom.server.entity.metadata.display.AbstractDisplayMeta;
 import net.minestom.server.entity.metadata.display.TextDisplayMeta;
 
 import java.util.List;
-import java.util.UUID;
 
 public class TimetrialLeaderboard extends Entity {
 

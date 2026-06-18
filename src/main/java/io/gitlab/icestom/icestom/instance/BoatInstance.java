@@ -33,10 +33,12 @@ public abstract class BoatInstance extends IceStomInstance {
         if (boat != null) {
             Pos position = player.getPosition();
 
+            Boat boat1 = removeBoat(player, boat);
+
             player.teleport(position.withY(Math.ceil(position.y())).withDirection(position.direction()));
             player.setVelocity(Vec.ZERO);
 
-            return removeBoat(player, boat);
+            return boat1;
         }
 
         return null;

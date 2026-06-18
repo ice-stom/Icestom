@@ -185,6 +185,7 @@ public class IceStom {
         commandManager.register(new SpawnCommand());
         commandManager.register(new EventCommand());
         commandManager.register(new ResetCommand());
+        commandManager.register(new GamemodeCommand());
 
         InstanceManager instanceManager = MinecraftServer.getInstanceManager();
         instanceManager.registerInstance(spawnInstance);
@@ -224,9 +225,9 @@ public class IceStom {
 
         globalEventHandler.addListener(PlayerPacketOutEvent.class, playerPacketOutEvent -> {
             Player player = playerPacketOutEvent.getPlayer();
-            Instance instanceContainer = player.getInstance();
 
             if (playerPacketOutEvent.getPacket() instanceof EntityVelocityPacket(int entityId, Vec _)) {
+                Instance instanceContainer = player.getInstance();
                 Entity entity = instanceContainer.getEntityById(entityId);
 
                 if (entity instanceof Boat) {

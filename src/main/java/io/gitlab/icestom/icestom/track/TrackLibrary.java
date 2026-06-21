@@ -45,7 +45,6 @@ public class TrackLibrary {
 
                     for (Track track : loadedTracks) {
                         tracks.put(track.getId(), track);
-                        log.info(" - {}", track.getId());
                     }
 
                 } catch (IOException | StomtrackFormat.TrackLoadException e) {

@@ -1,6 +1,7 @@
 package io.gitlab.icestom.icestom.timetrial;
 
 import io.gitlab.icestom.icestom.IceStom;
+import io.gitlab.icestom.icestom.command.BoatCommand;
 import io.gitlab.icestom.icestom.config.IceStomConfig;
 import io.gitlab.icestom.icestom.database.TimetrialDatabase;
 import io.gitlab.icestom.icestom.entity.Boat;
@@ -19,9 +20,10 @@ import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
-import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerGameModeRequestEvent;
@@ -43,7 +45,10 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
     private final Map<Player, TimedLap> timeTrials = new HashMap<>();
 
     private final ItemStack RESET_ITEM = ItemStack.of(Objects.requireNonNull(Material.fromKey(IceStomConfig.getConfig().icestom.reset_item)))
-            .withCustomName(Component.text("Reset", NamedTextColor.RED));
+            .withCustomName(Component.text("Reset", NamedTextColor.RED).style(Style.style().decoration(TextDecoration.ITALIC, false)));
+
+    private final ItemStack BOAT_ITEM = ItemStack.of(Material.OAK_BOAT)
+            .withCustomName(Component.text("Boat", NamedTextColor.GREEN).style(Style.style().decoration(TextDecoration.ITALIC, false)));
 
     private final TimetrialLeaderboard leaderboard;
 
@@ -76,10 +81,21 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
 
             if (itemStack == RESET_ITEM) {
                 resetPlayer(player);
+            } else if (itemStack == BOAT_ITEM) {
+                BoatCommand.spawnBoat(player);
             }
         });
 
         leaderboard = new TimetrialLeaderboard(track);
+    }
+
+    @Override
+    public @Nullable Boat removeBoat(Player player) {
+        Boat boat = super.removeBoat(player);
+
+        player.setAllowFlying(true);
+
+        return boat;
     }
 
     @Override
@@ -191,6 +207,7 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
 
         inventory.clear();
         inventory.setItemStack(0, RESET_ITEM);
+        inventory.setItemStack(1, BOAT_ITEM);
     }
 
     public @Nullable TimedLap getTimedLap(Player player) {
@@ -239,6 +256,8 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
         endTimeTrial(player);
 
         player.setGameMode(GameMode.ADVENTURE);
+        player.setAllowFlying(false);
+        player.setFlying(false);
 
         interfaceHolder.stopWatching(player);
     }

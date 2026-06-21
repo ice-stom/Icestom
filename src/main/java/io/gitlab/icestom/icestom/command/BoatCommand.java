@@ -14,20 +14,27 @@ public class BoatCommand extends Command {
             if (!(commandSender instanceof Player player)) return;
             if (player.getVehicle() instanceof Boat) return;
 
-            double floor_dist = Math.abs(Math.round(player.getPosition().y()) - player.getPosition().y());
-
-            if (!player.getGameMode().allowFlying() && floor_dist > 0.01) {
-                player.sendMessage(Component.translatable("command.boat.not_on_ground"));
-                return;
-            }
-
-            if (player.getInstance() instanceof BoatInstance boatInstance) {
-                boatInstance.createBoat(player, player.getPosition());
-
-                return;
-            }
-
-            player.sendMessage(Component.translatable("command.boat.not_here"));
+            spawnBoat(player);
         });
+    }
+
+    public static void spawnBoat(Player player) {
+
+        if (player.getVehicle() instanceof Boat) {
+            player.sendMessage(Component.translatable("command.boat.already_in_boat"));
+            return;
+        }
+
+        if (!player.getGameMode().allowFlying() && !player.isOnGround()) {
+            player.sendMessage(Component.translatable("command.boat.not_on_ground"));
+            return;
+        }
+
+        if (player.getInstance() instanceof BoatInstance boatInstance) {
+            boatInstance.createBoat(player, player.getPosition());
+            return;
+        }
+
+        player.sendMessage(Component.translatable("command.boat.not_here"));
     }
 }

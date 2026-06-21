@@ -143,7 +143,6 @@ public class VanillaInterface implements InterfaceProvider {
                 final TimedLapResultSource result = event.getResult();
                 final @Nullable TimedLapResultSource best = event.getPreviousBest();
 
-
                 player.sendMessage(lapCompletedMessage(
                         track,
                         result,

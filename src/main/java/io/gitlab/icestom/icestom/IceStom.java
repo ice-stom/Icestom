@@ -10,8 +10,11 @@ import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
 import io.gitlab.icestom.icestom.event.EventManager;
 import io.gitlab.icestom.icestom.instance.PlayerHolder;
+import io.gitlab.icestom.icestom.instance.DefaultSpawnInstance;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
+import io.gitlab.icestom.icestom.instance.SpawnLocation;
 import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager;
+import io.gitlab.icestom.icestom.plugins.PluginManager;
 import io.gitlab.icestom.icestom.race.RaceInstance;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
@@ -23,18 +26,12 @@ import io.gitlab.icestom.icestom.track.format.TrackEnvironmentData;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
 import io.gitlab.icestom.icestom.ui.interfaces.impl.VanillaInterface;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
-import me.lucko.luckperms.common.config.generic.adapter.EnvironmentVariableConfigAdapter;
-import me.lucko.luckperms.common.config.generic.adapter.MultiConfigurationAdapter;
-import me.lucko.luckperms.common.config.generic.adapter.SystemPropertyConfigAdapter;
-import me.lucko.luckperms.minestom.CommandRegistry;
-import me.lucko.luckperms.minestom.LuckPermsMinestom;
 import me.lucko.spark.minestom.SparkMinestom;
 import net.hollowcube.polar.AnvilPolar;
 import net.hollowcube.polar.PolarLoader;
 import net.hollowcube.polar.PolarWorld;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.luckperms.api.LuckPerms;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
@@ -47,7 +44,6 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.*;
 import net.minestom.server.instance.*;
-import net.minestom.server.instance.anvil.AnvilLoader;
 import net.minestom.server.network.packet.server.play.EntityStatusPacket;
 import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
 import net.minestom.server.network.packet.server.play.VehicleMovePacket;
@@ -57,8 +53,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.security.Provider;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 public class IceStom {
 
@@ -70,58 +68,33 @@ public class IceStom {
 
     private final MinecraftServer minecraftServer;
 
+    private final PluginManager pluginManager;
+
     private final TranslationManager translationManager;
     private final TrackLibrary trackLibrary;
     private final TimeTrialManager timeTrialManager;
     private final EventManager eventManager;
     private final OpenBoatUtilsManager openBoatUtilsManager;
 
-    private final SpawnInstance spawnInstance;
+    private final Instance spawnInstance;
+    private Supplier<SpawnInstance> spawnProvider = DefaultSpawnInstance::new;
 
     private final TimetrialDatabase timetrialDatabase;
 
     private final PerfHud perfHud = new PerfHud();
 
     private SparkMinestom spark;
-    private LuckPerms luckPerms;
 
-    IceStom() {
+    IceStom() throws PluginManager.PluginLoadException, IOException {
         instance = this;
 
         log.info("Hello from IceStom!");
 
         IceStomConfig config = IceStomConfig.loadConfig();
 
-        // Minestom
         System.setProperty("minestom.chunk-view-distance", String.valueOf(config.minestom.chunk_view_distance));
         System.setProperty("minestom.entity-view-distance", String.valueOf(config.minestom.entity_view_distance));
         System.setProperty("minestom.dispatcher-threads", String.valueOf(config.minestom.dispatcher_threads));
-
-        // Luckperms
-        System.setProperty("org.slf4j.simpleLogger.log.me.lucko.luckperms.minestom", "off");
-        System.setProperty("luckperms.server", String.valueOf(config.luckperms.server));
-        System.setProperty("luckperms.storage-method", String.valueOf(config.luckperms.storage_method));
-        System.setProperty("luckperms.data.address", String.valueOf(config.luckperms.data.address));
-        System.setProperty("luckperms.data.database", String.valueOf(config.luckperms.data.database));
-        System.setProperty("luckperms.data.username", String.valueOf(config.luckperms.data.username));
-        System.setProperty("luckperms.data.password", String.valueOf(config.luckperms.data.password));
-        System.setProperty("luckperms.data.table-prefix", String.valueOf(config.luckperms.data.table_prefix));
-        System.setProperty("luckperms.data.mongodb-collection-prefix", String.valueOf(config.luckperms.data.mongodb_collection_prefix));
-        System.setProperty("luckperms.data.mongodb-connection-uri", String.valueOf(config.luckperms.data.mongodb_connection_uri));
-        System.setProperty("luckperms.messaging-service", String.valueOf(config.luckperms.messaging_service));
-        System.setProperty("luckperms.redis.enabled", String.valueOf(config.luckperms.redis.enabled));
-        System.setProperty("luckperms.redis.address", String.valueOf(config.luckperms.redis.address));
-        System.setProperty("luckperms.redis.username", String.valueOf(config.luckperms.redis.username));
-        System.setProperty("luckperms.redis.password", String.valueOf(config.luckperms.redis.password));
-        System.setProperty("luckperms.nats.enabled", String.valueOf(config.luckperms.nats.enabled));
-        System.setProperty("luckperms.nats.address", String.valueOf(config.luckperms.nats.address));
-        System.setProperty("luckperms.nats.username", String.valueOf(config.luckperms.nats.username));
-        System.setProperty("luckperms.nats.password", String.valueOf(config.luckperms.nats.password));
-        System.setProperty("luckperms.rabbitmq.enabled", String.valueOf(config.luckperms.rabbitmq.enabled));
-        System.setProperty("luckperms.rabbitmq.address", String.valueOf(config.luckperms.rabbitmq.address));
-        System.setProperty("luckperms.rabbitmq.vhost", String.valueOf(config.luckperms.rabbitmq.vhost));
-        System.setProperty("luckperms.rabbitmq.username", String.valueOf(config.luckperms.rabbitmq.username));
-        System.setProperty("luckperms.rabbitmq.password", String.valueOf(config.luckperms.rabbitmq.password));
 
         Auth auth = switch (config.auth.forwarding) {
             case NONE -> config.auth.online_mode ? new Auth.Online() : new Auth.Offline();
@@ -145,7 +118,7 @@ public class IceStom {
             case "memory" -> new MemoryTimetrialDatabase();
             case "sqlite" -> {
                 try {
-                    yield new SQLiteTimetrialDatabase("db.sqlite");
+                    yield new SQLiteTimetrialDatabase(Path.of("db"));
                 } catch (Exception e) {
                     throw new RuntimeException("Failed to init SQLite: " + e);
                 }
@@ -153,7 +126,10 @@ public class IceStom {
             default -> throw new RuntimeException("Unknown database type: " + config.database.type);
         };
 
-        spawnInstance = new SpawnInstance();
+        pluginManager = new PluginManager(Path.of("plugins"));
+        pluginManager.loadPlugins();
+
+        spawnInstance = (Instance) spawnProvider.get();
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -162,16 +138,6 @@ public class IceStom {
                 .commands(true)
                 .permissionHandler((_, _) -> true)
                 .enable();
-
-        luckPerms = LuckPermsMinestom.builder(Path.of("luckperms"))
-                .commandRegistry(CommandRegistry.minestom())
-                .configurationAdapter(plugin -> new MultiConfigurationAdapter(plugin,
-                        new EnvironmentVariableConfigAdapter(plugin),
-                        new SystemPropertyConfigAdapter(plugin)
-                ))
-                //.permissionSuggestions("test.permission", "test.other")
-                .enable();
-
 
         MinecraftServer.getConnectionManager().setPlayerProvider(IceStomPlayer::new);
 
@@ -190,13 +156,14 @@ public class IceStom {
         InstanceManager instanceManager = MinecraftServer.getInstanceManager();
         instanceManager.registerInstance(spawnInstance);
 
-        spawnInstance.init();
+        ((SpawnInstance) spawnInstance).init();
 
         GlobalEventHandler globalEventHandler = MinecraftServer.getGlobalEventHandler();
 
         globalEventHandler.addChild(openBoatUtilsManager.eventNode());
         globalEventHandler.addChild(perfHud.eventNode());
         globalEventHandler.addChild(InterfaceManager.EVENT_NODE);
+        globalEventHandler.addChild(pluginManager.eventNode());
 
         globalEventHandler.addListener(AsyncPlayerConfigurationEvent.class, event -> {
             event.setSpawningInstance(spawnInstance);
@@ -250,6 +217,10 @@ public class IceStom {
         minecraftServer.start(config.network.bind, config.network.port);
     }
 
+    public void setSpawnProvider(Supplier<SpawnInstance> spawnProvider) {
+        this.spawnProvider = spawnProvider;
+    }
+
     public TrackLibrary getTrackLibrary() { return trackLibrary; }
 
     public TimeTrialManager getTimeTrialManager() { return timeTrialManager; }
@@ -258,13 +229,11 @@ public class IceStom {
 
     public TranslationManager getTranslationManager() { return translationManager; }
 
-    public SpawnInstance getSpawnInstance() { return spawnInstance; }
+    public SpawnInstance getSpawnInstance() { return (SpawnInstance) spawnInstance; }
 
     public TimetrialDatabase getTimetrialDatabase() { return timetrialDatabase; }
 
-    public LuckPerms getLuckPerms() { return luckPerms; }
-
-    static void main(String[] args) throws IOException, StomtrackFormat.TrackSaveException {
+    static void main(String[] args) throws IOException, StomtrackFormat.TrackSaveException, PluginManager.PluginLoadException {
         instance = new IceStom();
 
         if (args.length == 2 && args[0].equals("--convert")) {

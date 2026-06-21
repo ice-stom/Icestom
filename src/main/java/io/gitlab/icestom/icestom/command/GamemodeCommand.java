@@ -46,10 +46,10 @@ public class GamemodeCommand extends Command {
 
     private static @Nullable GameMode getGamemode(String str) {
         return switch (str.toLowerCase()) {
-            case "survival" -> GameMode.SURVIVAL;
-            case "adventure" -> GameMode.ADVENTURE;
-            case "creative" -> GameMode.CREATIVE;
-            case "spectator" -> GameMode.SPECTATOR;
+            case "0", "survival" -> GameMode.SURVIVAL;
+            case "a", "adventure" -> GameMode.ADVENTURE;
+            case "c", "creative" -> GameMode.CREATIVE;
+            case "s", "spec", "spectator" -> GameMode.SPECTATOR;
             default -> null;
         };
     }

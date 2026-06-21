@@ -40,16 +40,6 @@ public class UsernameCache {
         }));
     }
 
-    public static @NotNull String getUsernameWithTempFallback(UUID uuid, String fallback) {
-        CompletableFuture<String> username = getUsername(uuid);
-
-        if (username.isDone()) {
-            return username.join();
-        }
-
-        return fallback;
-    }
-
     public static @Nullable String getUsernameCached(UUID uuid) {
         return name.computeIfAbsent(uuid, uuid2 -> {
             Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid2);

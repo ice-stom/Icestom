@@ -6,6 +6,9 @@ import io.gitlab.icestom.icestom.timetrial.lap.TimeTrialResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.*;
 import java.util.*;
 import java.util.logging.Level;
@@ -17,8 +20,10 @@ public class SQLiteTimetrialDatabase implements TimetrialDatabase, AutoCloseable
 
     private final Connection connection;
 
-    public SQLiteTimetrialDatabase(@NotNull String databasePath) throws SQLException {
-        this.connection = DriverManager.getConnection("jdbc:sqlite:" + databasePath);
+    public SQLiteTimetrialDatabase(@NotNull Path databasePath) throws SQLException, IOException {
+        Files.createDirectories(databasePath);
+
+        this.connection = DriverManager.getConnection("jdbc:sqlite:" + databasePath.resolve("db.sqlite").toString());
 
         try (Statement stmt = connection.createStatement()) {
             stmt.execute("PRAGMA journal_mode=WAL;");

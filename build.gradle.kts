@@ -1,10 +1,10 @@
 plugins {
     id("java")
+    id("maven-publish")
     id("com.gradleup.shadow") version "8.3.0"
 }
 
 group = "io.gitlab.icestom"
-version = "0.0.1"
 
 repositories {
     mavenCentral()
@@ -46,6 +46,7 @@ tasks {
             attributes["Main-Class"] = "io.gitlab.icestom.icestom.IceStom"
             attributes["Enable-Native-Access"] = "ALL-UNNAMED"
         }
+        archiveClassifier.set("plain")
     }
 
     build {
@@ -55,5 +56,13 @@ tasks {
     shadowJar {
         mergeServiceFiles()
         archiveClassifier.set("")
+    }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            artifact(tasks.shadowJar)
+        }
     }
 }

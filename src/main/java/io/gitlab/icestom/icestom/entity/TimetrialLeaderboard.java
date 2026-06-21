@@ -18,6 +18,7 @@ import net.minestom.server.entity.metadata.display.AbstractDisplayMeta;
 import net.minestom.server.entity.metadata.display.TextDisplayMeta;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class TimetrialLeaderboard extends Entity {
 
@@ -50,7 +51,15 @@ public class TimetrialLeaderboard extends Entity {
         leaderboard.append(track.getName());
 
         for (TimeTrialResult attempt : topAttempts) {
-            final String name = UsernameCache.getUsernameWithTempFallback(attempt.player(), "Loading..");
+
+            CompletableFuture<String> username = UsernameCache.getUsername(attempt.player());
+
+            if (!username.isDone()) {
+                username.thenRun(this::updateLeaderboard);
+                return;
+            };
+
+            final String name = username.join();
 
             leaderboard.appendNewline();
             leaderboard.append(Component.object(ObjectContents.playerHead(attempt.player())));

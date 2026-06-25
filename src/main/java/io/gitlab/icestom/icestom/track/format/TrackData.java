@@ -109,15 +109,17 @@ public interface TrackData {
             }, index);
         }
 
-        Toml grid_data = expect(toml.getTable("grid"), new TrackDeserializationException("Missing grid locations"));
+        Toml grid_data = toml.getTable("grid");
         List<Pos> grid_locations = new ArrayList<>();
 
-        for (int i = 0; i < grid_data.entrySet().size(); i++) {
-            @Nullable Pos pos = PosAdapter.deserializePos(grid_data, String.valueOf(i));
+        if (grid_data != null) {
+            for (int i = 0; i < grid_data.entrySet().size(); i++) {
+                @Nullable Pos pos = PosAdapter.deserializePos(grid_data, String.valueOf(i));
 
-            if (pos == null) throw new TrackDeserializationException("Missing grid location index " + i);
+                if (pos == null) throw new TrackDeserializationException("Missing grid location index " + i);
 
-            grid_locations.add(pos);
+                grid_locations.add(pos);
+            }
         }
 
         List<Toml> openboatutils_data = expect(toml.getTables("openboatutils"), new TrackDeserializationException("Missing openboatutils entry"));

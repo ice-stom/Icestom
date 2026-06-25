@@ -42,6 +42,7 @@ public class PlaneCheckpoint implements Checkpoint {
     public Vec getA() { return a; }
     public Vec getB() { return b; }
     public Vec getUp() { return up; }
+    public double getHeight() { return height; }
 
     @Override
     public @Nullable Long detectCross(TickMovement movement) {

@@ -7,12 +7,9 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import io.github.openboatutils.protocol.channels.OBUSettingsPacket;
-import io.gitlab.icestom.stomtrack.TrackLoader;
-import io.gitlab.icestom.stomtrack.TrackRegion;
+import io.gitlab.icestom.stomtrack.*;
 import io.gitlab.icestom.stomtrack.serde.*;
 import io.gitlab.icestom.stomtrack.type.Location;
-import io.gitlab.icestom.stomtrack.TrackCheckpoint;
-import io.gitlab.icestom.stomtrack.TrackFile;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
@@ -50,9 +47,9 @@ public class MutableTrackFile implements TrackFile {
     @JsonDeserialize(using = TaggedRegionMapDecoder.Deserializer.class)
     @NotNull private Map<TrackRegion, Set<String>> regions;
 
-    @JsonSerialize(using = TaggedCheckpointMapDecoder.Serializer.class)
-    @JsonDeserialize(using = TaggedCheckpointMapDecoder.Deserializer.class)
-    @NotNull private Map<TrackCheckpoint, Set<String>> triggers;
+    @JsonSerialize(using = TaggedTriggerMapDecoder.Serializer.class)
+    @JsonDeserialize(using = TaggedTriggerMapDecoder.Deserializer.class)
+    @NotNull private Map<TrackTrigger, Set<String>> triggers;
 
     @NotNull private Map<String, Location> locations;
 
@@ -112,7 +109,7 @@ public class MutableTrackFile implements TrackFile {
         return openBoatUtils;
     }
     @Override public @NotNull Map<TrackRegion, Set<String>> getRegions() { return regions; }
-    @Override public @NotNull Map<TrackCheckpoint, Set<String>> getTriggers() { return triggers; }
+    @Override public @NotNull Map<TrackTrigger, Set<String>> getTriggers() { return triggers; }
     @Override public @NotNull Map<String, Location> getLocations() { return locations; }
 
     @Override public int getVersion() { return version; }

@@ -30,6 +30,6 @@ public interface TrackFile {
     @NotNull List<Location> getGrid();
     @NotNull List<OBUSettingsPacket> getOpenBoatUtils();
     @NotNull Map<TrackRegion, Set<String>> getRegions();
-    @NotNull Map<TrackCheckpoint, Set<String>> getTriggers();
+    @NotNull Map<TrackTrigger, Set<String>> getTriggers();
     @NotNull Map<String, Location> getLocations();
 }

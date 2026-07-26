@@ -92,7 +92,7 @@ public class MutableTrackFile implements TrackFile {
     public void setGrid(@NotNull List<Location> grid) { this.grid = grid;}
     public void setOpenBoatUtils(@NotNull List<OBUSettingsPacket> openBoatUtils) { this.openBoatUtils = openBoatUtils; }
     public void setRegions(@NotNull Map<TrackRegion, Set<String>> regions) { this.regions = regions; }
-    public void setTriggers(@NotNull Map<TrackCheckpoint, Set<String>> triggers) { this.triggers = triggers; }
+    public void setTriggers(@NotNull Map<TrackTrigger, Set<String>> triggers) { this.triggers = triggers; }
 
     public void setVersion(int version) { this.version = version; }
 

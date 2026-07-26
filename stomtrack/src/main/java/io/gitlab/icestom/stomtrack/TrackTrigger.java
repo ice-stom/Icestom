@@ -9,8 +9,8 @@ import java.util.List;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.WRAPPER_OBJECT)
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = TrackTrigger.LineCheckpoint.class, name = "line"),
+        @JsonSubTypes.Type(value = TrackTrigger.LineTrigger.class, name = "line"),
 })
 public interface TrackTrigger {
-    record LineCheckpoint(Vec2 a, Vec2 b, double y, double height) implements TrackCheckpoint {}
+    record LineTrigger(Vec2 a, Vec2 b, double y, double height) implements TrackTrigger {}
 }

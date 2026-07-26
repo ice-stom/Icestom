@@ -37,7 +37,7 @@ public class TestEntrypoint {
         file.getRegions().put(new TrackRegion.PolyRegion(List.of(new Vec2(0, 0), new Vec2(10, 0), new Vec2(10, 10)), 0, 10), Set.of("test", "xyz"));
         file.getRegions().put(new TrackRegion.PolyRegion(List.of(new Vec2(0, 0), new Vec2(0, 10), new Vec2(10, 10)), 0, 10), Set.of("test"));
 
-        file.getTriggers().put(new TrackCheckpoint.LineCheckpoint(new Vec2(0, 0), new Vec2(1, 1), 0, 4), Set.of("abc", "xyz"));
+        file.getTriggers().put(new TrackTrigger.LineTrigger(new Vec2(0, 0), new Vec2(1, 1), 0, 2f), Set.of("abc", "xyz"));
 
         file.getLocations().put("test", new Location(0, 0, 0, 90, 0));
 

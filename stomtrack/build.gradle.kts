@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.gitlab.icestom"
-version = "0.0.17"
+version = "0.0.20"
 
 repositories {
     mavenCentral()

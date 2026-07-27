@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 public class IceStomConfig {
 
@@ -15,6 +16,8 @@ public class IceStomConfig {
     public NetworkConfigSection network;
     public AuthConfigSection auth;
     public MinestomConfigSection minestom;
+
+    public Map<String, String> library;
 
     private static final Path config_file = Path.of("config.toml");
     private static final FileConfig config = FileConfig.builder(config_file)

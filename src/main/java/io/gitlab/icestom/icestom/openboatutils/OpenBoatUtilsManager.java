@@ -1,5 +1,9 @@
 package io.gitlab.icestom.icestom.openboatutils;
 
+import io.github.openboatutils.protocol.OBUChannel;
+import io.github.openboatutils.protocol.OBUPacket;
+import io.github.openboatutils.protocol.channels.OBUSettingsPacket;
+import io.github.openboatutils.protocol.impl.DataOutputStreamWriter;
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.config.IceStomConfig;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
@@ -38,11 +42,13 @@ public class OpenBoatUtilsManager implements EventHandler<Event> {
 
     public OpenBoatUtilsManager() {
         try {
-            join_setting_packet = new OBUSettingsPackets.TransactionPacket(new GroupedPacketPayload(List.of(
-                    new OBUSettingsPackets.InterpolationCompatPacket(IceStomConfig.getConfig().openboatutils.interpolation_compatibility),
-                    new OBUSettingsPackets.SetResetOnWorldLoad(false),
-                    new OBUSettingsPackets.ResendVersionPacket()
-            ))).toPacket(OBUSettingsPackets.getChannel());
+            OBUPacket packet = new OBUSettingsPacket.Compound(new OBUSettingsPacket.CompoundPayload(List.of(
+                    new OBUSettingsPacket.InterpolationCompatibility(IceStomConfig.getConfig().openboatutils.interpolation_compatibility),
+                    new OBUSettingsPacket.ResetOnWorldLoad(false),
+                    new OBUSettingsPacket.ResendVersion()
+            )));
+
+            join_setting_packet = writePacket(packet);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -53,7 +59,7 @@ public class OpenBoatUtilsManager implements EventHandler<Event> {
     public void playerPluginMessageEvent(PlayerPluginMessageEvent event) {
         final Player player = event.getPlayer();
 
-        if (!event.getIdentifier().equals(OBUSettingsPackets.getChannel())) return;
+        if (!event.getIdentifier().equals(OBUChannel.SETTINGS.getChannel())) return;
 
         try {
             DataInputStream in = new DataInputStream(new ByteArrayInputStream(event.getMessage()));
@@ -91,7 +97,7 @@ public class OpenBoatUtilsManager implements EventHandler<Event> {
             // if we get the ping packet before the plugin message we know something is up
             EventListener<@NotNull PlayerPacketEvent> listener = EventListener.builder(PlayerPacketEvent.class)
                     .filter(e -> e.getPlayer() == player && (
-                            (e.getPacket() instanceof ClientPluginMessagePacket pluginMessagePacket && pluginMessagePacket.channel().equals(OBUSettingsPackets.getChannel())) ||
+                            (e.getPacket() instanceof ClientPluginMessagePacket pluginMessagePacket && pluginMessagePacket.channel().equals(OBUChannel.SETTINGS.getChannel())) ||
                                     e.getPacket() instanceof ClientPongPacket
                     ))
                     .handler(event2 -> {
@@ -125,5 +131,18 @@ public class OpenBoatUtilsManager implements EventHandler<Event> {
 
     public @NonNull EventNode<Event> eventNode() {
         return eventNode;
+    }
+
+    public static PluginMessagePacket writePacket(OBUPacket packet) throws IOException {
+        DataOutputStreamWriter writer = new DataOutputStreamWriter();
+
+        try {
+            packet.write(writer);
+        } catch (IOException e) {
+            log.error("Failed to write OpenBoatUtils plugin message {}", e.toString());
+            throw new IOException(e);
+        }
+
+        return new PluginMessagePacket(packet.getChannel().getChannel(), writer.toBytes());
     }
 }

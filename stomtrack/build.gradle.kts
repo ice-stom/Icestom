@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.gitlab.icestom"
-version = "0.0.21"
+version = "0.0.24"
 
 repositories {
     mavenCentral()
@@ -18,11 +18,21 @@ dependencies {
     implementation("net.kyori:adventure-api:5.2.0")
     implementation("net.kyori:adventure-text-serializer-gson")
 
-    implementation("io.github.openboatutils:Protocol:0.0.4")
+    implementation("io.github.openboatutils:Protocol:0.0.7")
 
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.21.2")
     implementation("com.fasterxml.woodstox:woodstox-core:6.5.0")
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
+
+tasks.withType<JavaCompile> {
+    options.release.set(21)
 }
 
 tasks.shadowJar {

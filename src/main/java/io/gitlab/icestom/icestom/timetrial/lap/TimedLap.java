@@ -52,7 +52,7 @@ public class TimedLap implements TimedLapResultSource {
 
         splits.add(local_split);
 
-        if (this_checkpoint_index == getFinalCheckpointIndex() && lastReachedCheckpoint != -1) {
+        if (track.wrapCheckpointIndex(this_checkpoint_index) == 0 && lastReachedCheckpoint != -1) {
             lastReachedCheckpoint = -1;
             return true;
         }
@@ -60,20 +60,16 @@ public class TimedLap implements TimedLapResultSource {
         lastReachedCheckpoint++;
 
         if (best_previous_result != null) {
-            Split best_previous = best_previous_result.splits().get(split.checkpoint_no());
+            if (best_previous_result.splits().size() >= split.checkpoint_no()) {
+                recentSplit = 0;
+            } else {
+                Split best_previous = best_previous_result.splits().get(split.checkpoint_no());
 
-            recentSplit = local_split.ms() - best_previous.ms();
+                recentSplit = local_split.ms() - best_previous.ms();
+            }
         }
 
         return false;
-    }
-
-    public int getFinalCheckpointIndex() {
-        if (!track.isLooped()) {
-            return track.getCheckpoints().size() - 1;
-        }
-
-        return 0;
     }
 
     public long getCurrentTime(long worldAge) {

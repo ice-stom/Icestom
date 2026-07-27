@@ -4,6 +4,9 @@
 leaderboard_rows = 15
 reset_item = "minecraft:barrier"
 
+[library]
+local = "file://tracks"
+
 [database]
 type = "memory" # memory, sqlite
 address = "localhost"

@@ -10,13 +10,12 @@ import io.gitlab.icestom.icestom.race.event.RaceLapCompletedEvent;
 import io.gitlab.icestom.icestom.race.event.RaceLapTimerEvent;
 import io.gitlab.icestom.icestom.race.event.RaceLeaderboardUpdateEvent;
 import io.gitlab.icestom.icestom.timetrial.Split;
-import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResult;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.track.Track;
-import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
-import io.gitlab.icestom.icestom.track.checkpoint.TickMovement;
+import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
+import io.gitlab.icestom.icestom.track.TickMovement;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
@@ -64,7 +63,7 @@ public class RaceInstance extends TrackInstance implements SingleInstanceStage<T
     }
 
     @Override
-    protected void onPlayerMovements(Map<Player, TickMovement> movements) {
+    protected void onPlayerMovements(Map<Player, TickMovement> movements, Map<Player, Set<String>> inside_tags, Map<Player, Map<String, Long>> crossed_triggers) {
         Map<Integer, Map<Player, TickMovement>> grouped = new HashMap<>();
 
         for (Map.Entry<Player, TickMovement> entry : movements.entrySet()) {
@@ -85,7 +84,7 @@ public class RaceInstance extends TrackInstance implements SingleInstanceStage<T
         for (Map.Entry<Integer, Map<Player, TickMovement>> integerMapEntry : grouped.entrySet()) {
             int checkpoint_index = integerMapEntry.getKey();
 
-            for (Checkpoint checkpoint : track.getCheckpoints(checkpoint_index)) {
+            for (CrossCollider checkpoint : track.getCheckpoints(checkpoint_index)) {
                 Map<Player, Long> crosses = checkpoint.detectCrosses(integerMapEntry.getValue());
 
                 crosses.forEach((player, tick_delta) -> {

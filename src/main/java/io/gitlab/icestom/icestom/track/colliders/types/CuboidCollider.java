@@ -1,35 +1,22 @@
-package io.gitlab.icestom.icestom.track.checkpoint;
+package io.gitlab.icestom.icestom.track.colliders.types;
 
-import com.moandjiezana.toml.Toml;
-import io.gitlab.icestom.icestom.track.format.TrackData;
-import io.gitlab.icestom.icestom.track.format.serialization.PosAdapter;
+import io.gitlab.icestom.icestom.track.TickMovement;
+import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
+import io.gitlab.icestom.icestom.track.colliders.InsideCollider;
 import net.minestom.server.coordinate.Vec;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import static io.gitlab.icestom.icestom.util.Expect.expect;
-
-public class CuboidCheckpoint implements Checkpoint {
-
+public class CuboidCollider implements InsideCollider, CrossCollider {
     protected final Vec a;
     protected final Vec b;
 
-    public CuboidCheckpoint(Vec a, Vec b) {
+    public CuboidCollider(Vec a, Vec b) {
         this.a = a;
         this.b = b;
     }
 
     public Vec getA() { return a; }
     public Vec getB() { return b; }
-
-    public static Checkpoint deserialize(Toml properties) {
-        return new CuboidCheckpoint(
-                PosAdapter.deserializeVec(properties, "a"),
-                PosAdapter.deserializeVec(properties, "b")
-        );
-    }
 
     public @Nullable Long detectCross(TickMovement movement) {
         Vec before  = movement.before();
@@ -66,17 +53,14 @@ public class CuboidCheckpoint implements Checkpoint {
         return (long) (Math.clamp(tMin, 0.0, 1.0) * 50.0);
     }
 
-    private boolean isInside(Vec p) {
+    @Override
+    public boolean detectInside(TickMovement movement) {
+        return isInside(movement.current());
+    }
+
+    protected boolean isInside(Vec p) {
         return p.x() >= a.x() && p.x() <= b.x()
                 && p.y() >= a.y() && p.y() <= b.y()
                 && p.z() >= a.z() && p.z() <= b.z();
-    }
-
-    @Override
-    public Map<String, Object> serialize() {
-        return Map.of(
-                "a", PosAdapter.serialize(a),
-                "b", PosAdapter.serialize(b)
-        );
     }
 }

@@ -4,7 +4,7 @@ import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.track.Track;
-import io.gitlab.icestom.icestom.track.TrackLibrary;
+import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.Command;
@@ -16,7 +16,6 @@ import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
-import java.util.List;
 
 public class TimeTrialCommand extends Command {
 
@@ -37,7 +36,7 @@ public class TimeTrialCommand extends Command {
 
             final String track_id = commandContext.get(trackArgument);
 
-            @Nullable Track track = trackLibrary.getTracks().get(track_id);
+            @Nullable Track track = trackLibrary.loadTrack(track_id);
 
             if (track == null) {
                 commandSender.sendMessage(Component.translatable("command.timetrial.unknown_track", Component.text(track_id)));
@@ -51,14 +50,15 @@ public class TimeTrialCommand extends Command {
                 }
             }
 
-            timeTrialManager.starTimeTrialing(player, track);
+            timeTrialManager.startTimeTrialing(player, track);
         }, trackArgument);
     }
 
     private void suggestionCallback(CommandSender commandSender, CommandContext commandContext, Suggestion suggestion) {
         String input = Arrays.stream(commandContext.getInput().split(" ")).toList().getLast().toLowerCase();
 
-        trackLibrary.getTracks().keySet().stream()
+        trackLibrary.getAvailableTracks()
+                .stream()
                 .filter(track -> input.isBlank() || input.charAt(0) == 0 || track.toLowerCase().startsWith(input))
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .limit(20)

@@ -1,10 +1,11 @@
 package io.gitlab.icestom.icestom.track;
 
 import io.gitlab.icestom.icestom.IceStom;
-import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
-import io.gitlab.icestom.icestom.track.format.TrackData;
-import io.gitlab.icestom.icestom.openboatutils.OBUSettingsPackets;
-import io.gitlab.icestom.icestom.track.format.TrackEnvironmentData;
+import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
+import io.github.openboatutils.protocol.channels.OBUSettingsPacket;
+import io.gitlab.icestom.icestom.track.colliders.InsideCollider;
+import io.gitlab.icestom.stomtrack.EnvironmentFile;
+import io.gitlab.icestom.stomtrack.TrackFile;
 import net.hollowcube.polar.PolarWorld;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.coordinate.Pos;
@@ -15,88 +16,102 @@ import org.jspecify.annotations.NonNull;
 
 import java.util.*;
 
-public class Track implements TrackData {
+public class Track {
 
     private final String id;
-    private final String worldId;
+    private final String environmentId;
     private final Component name;
     private final boolean looped;
     private final Pos spawnLocation;
-    private final Map<Checkpoint, Integer> checkpoints;
+    private final Map<CrossCollider, Integer> checkpoints;
     private final List<Pos> gridLocations;
-    private final List<OBUSettingsPackets> openBoatUtilsPackets;
-    private final TrackEnvironmentData trackEnvironmentData;
+    private final Map<String, String> tags;
+    private final List<OBUSettingsPacket> openBoatUtilsPackets;
+    private final Map<InsideCollider, Set<String>> regions;
+    private final Map<CrossCollider, Set<String>> triggers;
+    private final Map<String, Pos> locations;
+    private final EnvironmentFile trackEnvironmentData;
 
-    private final Map<Integer, List<Checkpoint>> checkpoint_lookup = new HashMap<>();
+    private final Map<Integer, List<CrossCollider>> checkpoint_lookup = new HashMap<>();
 
     private final PolarWorld world;
 
-    public Track(TrackData trackData, PolarWorld world, TrackEnvironmentData environmentData, @Nullable String worldId) {
-        this.id = trackData.getId();
-        this.worldId = worldId;
-        this.name = trackData.getName();
-        this.looped = trackData.isLooped();
-        this.spawnLocation = trackData.getSpawnLocation();
-        this.checkpoints = trackData.getCheckpoints();
-        this.gridLocations = trackData.getGridLocations();
-        this.openBoatUtilsPackets = trackData.getOpenBoatUtilsPackets();
+    private final int wrapIndex;
+
+    public Track(TrackFile trackFile, PolarWorld world, EnvironmentFile environmentData, @Nullable String environmentId) {
+        this.id = trackFile.getId();
+        this.environmentId = environmentId;
+        this.name = trackFile.getName();
+        this.looped = trackFile.isLooped();
+        this.tags = trackFile.getTags();
+        this.spawnLocation = PositionConverter.fromLocation(trackFile.getSpawnLocation());
+        this.checkpoints = CheckpointConverter.fromCheckpointDef(trackFile.getCheckpoints());
+        this.gridLocations = trackFile.getGrid().stream().map(PositionConverter::fromLocation).toList();
+        this.openBoatUtilsPackets = trackFile.getOpenBoatUtils();
+        this.regions = RegionConverter.fromRegionDef(trackFile.getRegions());
+        this.triggers = TriggerConverter.fromTriggerDef(trackFile.getTriggers());
+        this.locations = LocationConverter.fromLocationDef(trackFile.getLocations());
         this.trackEnvironmentData = environmentData;
 
         this.world = world;
 
-        for (Map.Entry<Checkpoint, Integer> entry : checkpoints.entrySet()) {
-            Checkpoint checkpoint = entry.getKey();
+        for (Map.Entry<CrossCollider, Integer> entry : checkpoints.entrySet()) {
+            CrossCollider checkpoint = entry.getKey();
             int index = entry.getValue();
 
-            List<Checkpoint> checkpoints = checkpoint_lookup.computeIfAbsent(index, _ -> new ArrayList<>());
+            List<CrossCollider> checkpoints = checkpoint_lookup.computeIfAbsent(index, _ -> new ArrayList<>());
 
             checkpoints.add(checkpoint);
         }
+
+        wrapIndex = checkpoints.values().stream().max(Integer::compareTo).orElse(-1) + 1;
     }
 
     public int wrapCheckpointIndex(int checkpoint) {
-        return checkpoint % checkpoints.size();
+        if (!looped) return checkpoint % (wrapIndex - 1);
+
+        return checkpoint % wrapIndex;
     }
 
-    @Override
     public @Subst(IceStom.NAMESPACE) @NonNull String getId() { return id; }
 
-    @Override
     public @NonNull Component getName() { return name; }
 
-    @Override
-    public @NonNull String getWorldId() {
-        if (worldId != null) {
-            return worldId;
+    public @NonNull String getEnvironmentId() {
+        if (environmentId != null) {
+            return environmentId;
         }
 
         return id;
     }
 
-    @Override
     public boolean isLooped() { return looped; }
 
-    @Override
     public @NonNull Pos getSpawnLocation() { return spawnLocation; }
 
-    @Override
-    public @NonNull Map<Checkpoint, Integer> getCheckpoints() { return checkpoints; }
+    public @NonNull Map<CrossCollider, Integer> getCheckpoints() { return checkpoints; }
 
-    @Override
     public @NonNull List<Pos> getGridLocations() {
         return gridLocations;
     }
 
-    @Override
-    public @NonNull List<OBUSettingsPackets> getOpenBoatUtilsPackets() {
+    public @NonNull List<OBUSettingsPacket> getOpenBoatUtilsPackets() {
         return openBoatUtilsPackets;
     }
 
-    public @NotNull TrackEnvironmentData getEnvironmentData() { return trackEnvironmentData; }
+    public @NotNull EnvironmentFile getEnvironmentData() { return trackEnvironmentData; }
 
-    public List<Checkpoint> getCheckpoints(int index) {
+    public List<CrossCollider> getCheckpoints(int index) {
         return checkpoint_lookup.get(index);
     }
+
+    public Map<String, String> getTags() { return tags; }
+
+    public Map<InsideCollider, Set<String>> getRegions() { return regions; }
+
+    public Map<CrossCollider, Set<String>> getTriggers() { return triggers; }
+
+    public Map<String, Pos> getLocations() { return locations; }
 
     public PolarWorld getWorld() { return world; }
 }

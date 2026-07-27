@@ -27,8 +27,8 @@ public class TestEntrypoint {
         file.getGrid().add(new Location(0, 1, 2, 3, 4));
         file.getGrid().add(new Location(4, 3, 2, 1, 0));
 
-        file.getOpenBoatUtils().add(new OBUSettingsPacket.AirControlPacket(true));
-        file.getOpenBoatUtils().add(new OBUSettingsPacket.RemoveBlocksSlipperinessPacket(List.of("minecraft:air")));
+        file.getOpenBoatUtils().add(new OBUSettingsPacket.AirControl(true));
+        file.getOpenBoatUtils().add(new OBUSettingsPacket.RemoveBlockSlipperiness(List.of("minecraft:air")));
 
         file.getTags().put("icestom.test", "hello");
         file.getTags().put("icestom.empty", "");

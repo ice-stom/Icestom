@@ -1,17 +1,14 @@
-package io.gitlab.icestom.icestom.track.checkpoint;
+package io.gitlab.icestom.icestom.track.colliders.types;
 
-import com.moandjiezana.toml.Toml;
-import io.gitlab.icestom.icestom.track.format.TrackData;
-import io.gitlab.icestom.icestom.track.format.serialization.PosAdapter;
+import io.gitlab.icestom.icestom.track.TickMovement;
+import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
 import net.minestom.server.coordinate.Vec;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.gitlab.icestom.icestom.util.Expect.expect;
-
-public class PlaneCheckpoint implements Checkpoint {
+public class PlaneCollider implements CrossCollider {
 
     protected final Vec a;
     protected final Vec b;
@@ -25,18 +22,18 @@ public class PlaneCheckpoint implements Checkpoint {
     private final double upD;
     protected final double height;
 
-    public PlaneCheckpoint(Vec a, Vec b, Vec up, double height) {
+    public PlaneCollider(Vec a, Vec b, Vec up, double height) {
         this.a = a;
         this.b = b;
         this.height = height;
 
         this.edge = b.sub(a);
-        this.up = up;
-        this.normal = edge.cross(up).normalize();
+        this.up = up.normalize();
+        this.normal = edge.cross(this.up).normalize();
 
         this.edgeLenSq = edge.dot(edge);
         this.planeD = -normal.dot(a);
-        this.upD = -up.dot(a);
+        this.upD = -this.up.dot(a);
     }
 
     public Vec getA() { return a; }
@@ -149,24 +146,5 @@ public class PlaneCheckpoint implements Checkpoint {
         }
 
         return crosses;
-    }
-
-    public static Checkpoint deserialize(Toml properties) throws TrackData.TrackDeserializationException {
-        return new PlaneCheckpoint(
-                PosAdapter.deserializeVec(properties, "a"),
-                PosAdapter.deserializeVec(properties, "b"),
-                PosAdapter.deserializeVec(properties, "up"),
-                expect(properties.getDouble("height"), new TrackData.TrackDeserializationException("Plane Checkpoint missing 'height'")).floatValue()
-        );
-    }
-
-    @Override
-    public Map<String, Object> serialize() {
-        return Map.of(
-                "a", PosAdapter.serialize(a),
-                "b", PosAdapter.serialize(b),
-                "up", PosAdapter.serialize(up),
-                "height", height
-        );
     }
 }

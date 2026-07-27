@@ -13,7 +13,7 @@ import java.util.*;
 public class TimeTrialManager {
     private final Map<String, TimeTrialingInstance> trials = new HashMap<>();
 
-    public void starTimeTrialing(Player player, Track track) {
+    public void startTimeTrialing(Player player, Track track) {
         stopTimeTrialing(player);
 
         @Nullable TimeTrialingInstance instance = trials.get(track.getId());

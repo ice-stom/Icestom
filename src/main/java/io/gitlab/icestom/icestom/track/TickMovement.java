@@ -1,4 +1,4 @@
-package io.gitlab.icestom.icestom.track.checkpoint;
+package io.gitlab.icestom.icestom.track;
 
 import net.minestom.server.coordinate.Vec;
 import org.jetbrains.annotations.Nullable;

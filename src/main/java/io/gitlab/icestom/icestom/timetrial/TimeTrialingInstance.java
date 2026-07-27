@@ -13,8 +13,8 @@ import io.gitlab.icestom.icestom.timetrial.event.TimeTrialLapTimerEvent;
 import io.gitlab.icestom.icestom.timetrial.lap.TimeTrialResult;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResult;
 import io.gitlab.icestom.icestom.track.Track;
-import io.gitlab.icestom.icestom.track.checkpoint.Checkpoint;
-import io.gitlab.icestom.icestom.track.checkpoint.TickMovement;
+import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
+import io.gitlab.icestom.icestom.track.TickMovement;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
@@ -100,7 +100,14 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
 
     @Override
     public void start() {
-        leaderboard.setInstance(this, track.getSpawnLocation().asVec().asPos());
+        Pos leaderboard_pos = track.getLocations().getOrDefault(
+                "icestom.leaderboard",
+                track.getSpawnLocation().asVec().asPos() // remove pitch/yaw
+        );
+
+        leaderboard.setInstance(this, leaderboard_pos);
+
+        subscribeRegionId("icestom.reset");
     }
 
     @Override
@@ -124,10 +131,10 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
     }
 
     @Override
-    protected void onPlayerMovements(Map<Player, TickMovement> movements) {
+    protected void onPlayerMovements(Map<Player, TickMovement> movements, Map<Player, Set<String>> inside_regions, Map<Player, Map<String, Long>> crossed_triggers) {
         if (movements.isEmpty()) return;
 
-        List<Checkpoint> initial_checkpoints = track.getCheckpoints(0);
+        List<CrossCollider> initial_checkpoints = track.getCheckpoints(0);
 
         Map<Player, TickMovement> not_started_tt = new HashMap<>();
 
@@ -135,13 +142,15 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
             Player player = entry.getKey();
             TickMovement movement = entry.getValue();
 
+            Set<String> playerRegions = inside_regions.getOrDefault(player, Set.of());
+
             @Nullable TimedLap timedLap = getTimedLap(player);
 
             if (timedLap != null) {
                 int next_no = track.wrapCheckpointIndex(timedLap.getLastReachedCheckpoint() + 1);
-                Collection<Checkpoint> checkpoints = track.getCheckpoints(next_no);
+                Collection<CrossCollider> checkpoints = track.getCheckpoints(next_no);
 
-                for (Checkpoint checkpoint : checkpoints) {
+                for (CrossCollider checkpoint : checkpoints) {
                     @Nullable Long tick_delta = checkpoint.detectCross(movement);
 
                     if (tick_delta != null) {
@@ -159,6 +168,12 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
                     }
                 }
 
+                if (playerRegions.contains("icestom.reset")) {
+                    Pos reset_point = track.getLocations().getOrDefault("icestom.reset_" + timedLap.getLastReachedCheckpoint(), track.getSpawnLocation());
+
+                    createBoat(player, reset_point);
+                }
+
             } else {
                 not_started_tt.put(player, movement);
             }
@@ -166,7 +181,7 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
 
         Set<Player> crossed = new HashSet<>();
 
-        for (Checkpoint initialCheckpoint : initial_checkpoints) {
+        for (CrossCollider initialCheckpoint : initial_checkpoints) {
             for (Map.Entry<Player, Long> entry : initialCheckpoint.detectCrosses(not_started_tt).entrySet()) {
                 Player player = entry.getKey();
 

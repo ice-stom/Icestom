@@ -1,10 +1,6 @@
 package io.gitlab.icestom.icestom.command;
 
-import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
-import io.gitlab.icestom.icestom.openboatutils.OBUContextPackets;
-import io.gitlab.icestom.icestom.openboatutils.OBUSettingsPackets;
-import io.gitlab.icestom.icestom.openboatutils.GroupedPacketPayload;
 import io.gitlab.icestom.icestom.race.RaceInstance;
 import io.gitlab.icestom.icestom.track.Track;
 import net.kyori.adventure.text.Component;
@@ -17,9 +13,6 @@ import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.LightingChunk;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
-import java.util.List;
-
 public class DebugCommand extends Command {
     public DebugCommand() {
         super("debug");
@@ -29,7 +22,6 @@ public class DebugCommand extends Command {
         addSubcommand(new EscapeGrid());
         addSubcommand(new InstanceList());
         addSubcommand(new StartRace());
-        addSubcommand(new TestEntityContext());
         addSubcommand(new Block());
         addSubcommand(new Relight());
     }
@@ -143,27 +135,6 @@ public class DebugCommand extends Command {
 
                 player.getInstance().setChunkSupplier(LightingChunk::new);
                 LightingChunk.relight(player.getInstance(), player.getInstance().getChunks());
-            });
-        }
-    }
-
-    public static class TestEntityContext extends Command {
-        public TestEntityContext() {
-            super("testentityContext");
-
-            setDefaultExecutor((commandSender, _) -> {
-                if (!(commandSender instanceof Player player)) return;
-
-                if (player.getVehicle() instanceof Boat boat) {
-                    try {
-                        player.sendPacket(new OBUContextPackets.EntityContext(
-                                boat.getUuid(),
-                                new GroupedPacketPayload(List.of(
-                                        new OBUSettingsPackets.ForwardAccelPacket(-1)
-                                ))
-                        ).toPacket(OBUContextPackets.getChannel()));
-                    } catch (IOException _) {}
-                }
             });
         }
     }

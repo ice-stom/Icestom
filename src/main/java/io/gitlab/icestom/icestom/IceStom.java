@@ -12,30 +12,19 @@ import io.gitlab.icestom.icestom.event.EventManager;
 import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import io.gitlab.icestom.icestom.instance.DefaultSpawnInstance;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
-import io.gitlab.icestom.icestom.instance.SpawnLocation;
 import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager;
 import io.gitlab.icestom.icestom.plugins.PluginManager;
 import io.gitlab.icestom.icestom.race.RaceInstance;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
-import io.gitlab.icestom.icestom.track.format.MutableTrack;
-import io.gitlab.icestom.icestom.track.Track;
-import io.gitlab.icestom.icestom.track.format.StomtrackFormat;
-import io.gitlab.icestom.icestom.track.TrackLibrary;
-import io.gitlab.icestom.icestom.track.format.TrackEnvironmentData;
+import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
 import io.gitlab.icestom.icestom.ui.interfaces.impl.VanillaInterface;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
 import me.lucko.spark.minestom.SparkMinestom;
-import net.hollowcube.polar.AnvilPolar;
-import net.hollowcube.polar.PolarLoader;
-import net.hollowcube.polar.PolarWorld;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
-import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityStatuses;
@@ -47,15 +36,12 @@ import net.minestom.server.instance.*;
 import net.minestom.server.network.packet.server.play.EntityStatusPacket;
 import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
 import net.minestom.server.network.packet.server.play.VehicleMovePacket;
-import net.minestom.server.world.DimensionType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.security.Provider;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 public class IceStom {
@@ -195,6 +181,9 @@ public class IceStom {
 
             if (playerPacketOutEvent.getPacket() instanceof EntityVelocityPacket(int entityId, Vec _)) {
                 Instance instanceContainer = player.getInstance();
+
+                if (instanceContainer == null) return; // we can get unlucky when people leave
+
                 Entity entity = instanceContainer.getEntityById(entityId);
 
                 if (entity instanceof Boat) {
@@ -233,48 +222,9 @@ public class IceStom {
 
     public TimetrialDatabase getTimetrialDatabase() { return timetrialDatabase; }
 
-    static void main(String[] args) throws IOException, StomtrackFormat.TrackSaveException, PluginManager.PluginLoadException {
+    static void main(String[] args) throws IOException, PluginManager.PluginLoadException {
         instance = new IceStom();
 
-        if (args.length == 2 && args[0].equals("--convert")) {
-            Path path = Path.of(args[1]);
-
-            System.out.println("Converting " + path + " to stomtrack.");
-
-            PolarWorld world = AnvilPolar.anvilToPolar(path);
-
-            MinecraftServer.getInstanceManager().createInstanceContainer();
-            InstanceContainer temp = new InstanceContainer(UUID.randomUUID(), DimensionType.OVERWORLD);
-            temp.setChunkSupplier(LightingChunk::new);
-            temp.setChunkLoader(new PolarLoader(world));
-
-            List<CompletableFuture<Chunk>> futures = world.chunks().stream()
-                    .map(chunk -> temp.loadChunk(chunk.x(), chunk.z()))
-                    .toList();
-
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                    .thenRun(() -> {
-                        LightingChunk.relight(temp, temp.getChunks());
-                    }).join();
-
-            String id = path.getFileName().toString();
-
-            StomtrackFormat.saveStomtrack(TrackLibrary.TRACK_STORAGE_PATH.resolve(
-                            id + "." + StomtrackFormat.FILE_EXTENSION).toFile(),
-                    world,
-                    List.of(new Track(new MutableTrack(
-                            id,
-                            Component.text(id, NamedTextColor.RED),
-                            true,
-                            new Pos(0, 0, 0, 0, 0),
-                            Map.of(),
-                            List.of(),
-                            List.of()
-                    ), world, new TrackEnvironmentData(0, -64, 384, false, "OVERWORLD"), id))
-            );
-
-            return;
-        }
         instance.start();
     }
 

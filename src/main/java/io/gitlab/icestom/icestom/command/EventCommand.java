@@ -43,17 +43,17 @@ public class EventCommand extends Command {
             super("test");
 
             setDefaultExecutor((commandSender, commandContext) -> {
-                ActiveEvent event = new ActiveEvent("test_event", List.of(
-//                        new TrackExploration(IceStom.getInstance().getTrackLibrary().getTracks().values().stream().findFirst().get()),
-                        new RaceInstance(IceStom.getInstance().getTrackLibrary().getTracks().values().stream().findFirst().get(), 10, 2)
-                ));
-                eventManager.addEvent(event);
-
-                for (Player player : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
-                    event.addPlayer(player);
-                }
-
-                event.nextStage();
+//                ActiveEvent event = new ActiveEvent("test_event", List.of(
+////                        new TrackExploration(IceStom.getInstance().getTrackLibrary().getTracks().values().stream().findFirst().get()),
+//                        new RaceInstance(IceStom.getInstance().getTrackLibrary().getTracks().values().stream().findFirst().get(), 10, 2)
+//                ));
+//                eventManager.addEvent(event);
+//
+//                for (Player player : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
+//                    event.addPlayer(player);
+//                }
+//
+//                event.nextStage();
             });
         }
     }

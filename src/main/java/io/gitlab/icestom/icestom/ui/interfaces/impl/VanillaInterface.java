@@ -6,6 +6,7 @@ import io.gitlab.icestom.icestom.race.RaceLeaderboardRow;
 import io.gitlab.icestom.icestom.race.event.RaceLapCompletedEvent;
 import io.gitlab.icestom.icestom.race.event.RaceLapTimerEvent;
 import io.gitlab.icestom.icestom.race.event.RaceLeaderboardUpdateEvent;
+import io.gitlab.icestom.icestom.timetrial.Split;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.timetrial.event.TimeTrialTimedLapEndedEvent;
 import io.gitlab.icestom.icestom.timetrial.event.TimeTrialLapTimerEvent;
@@ -64,7 +65,7 @@ public class VanillaInterface implements InterfaceProvider {
     private static @NotNull Component lapCompletedMessage(Track track, TimedLapResultSource result, @Nullable TimedLapResultSource best) {
 
         boolean is_first = best == null;
-        boolean is_full_run = track.getCheckpoints().size() == result.splits().size();
+        boolean is_full_run = track.wrapCheckpointIndex(result.splits().size() - 1) == 0;
 
         if (is_first || best.splits().size() < result.splits().size()) {
             if (is_full_run) {

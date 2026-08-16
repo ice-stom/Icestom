@@ -52,7 +52,7 @@ public class TimedLap implements TimedLapResultSource {
 
         splits.add(local_split);
 
-        if (track.wrapCheckpointIndex(this_checkpoint_index) == 0 && lastReachedCheckpoint != -1) {
+        if (track.isLastCheckpoint(this_checkpoint_index) && lastReachedCheckpoint != -1) {
             lastReachedCheckpoint = -1;
             return true;
         }

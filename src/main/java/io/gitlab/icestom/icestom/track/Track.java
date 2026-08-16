@@ -68,9 +68,15 @@ public class Track {
     }
 
     public int wrapCheckpointIndex(int checkpoint) {
-        if (!looped) return checkpoint % (wrapIndex - 1);
+        if (!looped) return checkpoint % (wrapIndex + 1);
 
         return checkpoint % wrapIndex;
+    }
+
+    public boolean isLastCheckpoint(int checkpoint) {
+        if (!looped) return checkpoint == (wrapIndex - 1);
+
+        return checkpoint % wrapIndex == 0;
     }
 
     public @Subst(IceStom.NAMESPACE) @NonNull String getId() { return id; }

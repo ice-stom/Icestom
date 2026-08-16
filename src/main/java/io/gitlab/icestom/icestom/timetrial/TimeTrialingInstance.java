@@ -6,6 +6,7 @@ import io.gitlab.icestom.icestom.config.IceStomConfig;
 import io.gitlab.icestom.icestom.database.TimetrialDatabase;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.TimetrialLeaderboard;
+import io.gitlab.icestom.icestom.instance.BoatedTrackInstance;
 import io.gitlab.icestom.icestom.instance.SpawnLocation;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
 import io.gitlab.icestom.icestom.timetrial.event.TimeTrialTimedLapEndedEvent;
@@ -39,7 +40,7 @@ import java.util.*;
 import static io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager.getHolder;
 
 @SuppressWarnings("UnstableApiUsage")
-public class TimeTrialingInstance extends TrackInstance implements SpawnLocation {
+public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLocation {
     private final InterfaceManager.InterfaceHolder interfaceHolder = getHolder(TimeTrialingInstance.class, this);
 
     private final Map<Player, TimedLap> timeTrials = new HashMap<>();
@@ -160,7 +161,7 @@ public class TimeTrialingInstance extends TrackInstance implements SpawnLocation
                                 next_no
                         ));
 
-                        if (next_no == 0) {
+                        if (track.isLastCheckpoint(next_no)) {
                             endTimeTrial(player);
 
                             not_started_tt.put(player, movement);

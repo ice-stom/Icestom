@@ -3,6 +3,7 @@ package io.gitlab.icestom.icestom.race;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.GridBoatHolder;
 import io.gitlab.icestom.icestom.event.stage.SingleInstanceStage;
+import io.gitlab.icestom.icestom.instance.BoatedTrackInstance;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
 import io.gitlab.icestom.icestom.leaderboard.LeaderboardParticipant;
 import io.gitlab.icestom.icestom.race.event.RaceCheckpointReachedEvent;
@@ -32,7 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager.getHolder;
 
-public class RaceInstance extends TrackInstance implements SingleInstanceStage<TrackInstance> {
+public class RaceInstance extends BoatedTrackInstance implements SingleInstanceStage<TrackInstance> {
     private final InterfaceManager.InterfaceHolder interfaceHolder = getHolder(RaceInstance.class, this);
 
     private final int totalLaps;

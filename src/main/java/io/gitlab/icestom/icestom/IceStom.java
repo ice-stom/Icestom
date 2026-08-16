@@ -12,6 +12,7 @@ import io.gitlab.icestom.icestom.event.EventManager;
 import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import io.gitlab.icestom.icestom.instance.DefaultSpawnInstance;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
+import io.gitlab.icestom.icestom.instance.SpawnLocation;
 import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager;
 import io.gitlab.icestom.icestom.plugins.PluginManager;
 import io.gitlab.icestom.icestom.race.RaceInstance;
@@ -114,6 +115,7 @@ public class IceStom {
 
         pluginManager = new PluginManager(Path.of("plugins"));
         pluginManager.loadPlugins();
+        trackLibrary.init();
 
         spawnInstance = (Instance) spawnProvider.get();
     }
@@ -126,8 +128,6 @@ public class IceStom {
                 .enable();
 
         MinecraftServer.getConnectionManager().setPlayerProvider(IceStomPlayer::new);
-
-        trackLibrary.init();
 
         CommandManager commandManager = MinecraftServer.getCommandManager();
         commandManager.register(new BoatCommand());
@@ -152,7 +152,10 @@ public class IceStom {
         globalEventHandler.addChild(pluginManager.eventNode());
 
         globalEventHandler.addListener(AsyncPlayerConfigurationEvent.class, event -> {
+            final Player player = event.getPlayer();
+
             event.setSpawningInstance(spawnInstance);
+            player.setRespawnPoint(((SpawnInstance) spawnInstance).spawnLocation(player));
         });
 
         globalEventHandler.addListener(PlayerSpawnEvent.class, event -> {

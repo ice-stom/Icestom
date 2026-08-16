@@ -65,7 +65,7 @@ public class VanillaInterface implements InterfaceProvider {
     private static @NotNull Component lapCompletedMessage(Track track, TimedLapResultSource result, @Nullable TimedLapResultSource best) {
 
         boolean is_first = best == null;
-        boolean is_full_run = track.wrapCheckpointIndex(result.splits().size() - 1) == 0;
+        boolean is_full_run = track.isLastCheckpoint(result.splits().size() - 1);
 
         if (is_first || best.splits().size() < result.splits().size()) {
             if (is_full_run) {

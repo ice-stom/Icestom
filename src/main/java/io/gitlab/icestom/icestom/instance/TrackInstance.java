@@ -14,7 +14,6 @@ import net.hollowcube.polar.PolarLoader;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.item.ItemDropEvent;
@@ -107,9 +106,7 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
 
     @Override
     public void resetPlayer(Player player) {
-        Pos spawn = track.getSpawnLocation();
-
-        removeBoat(player);
+        SpawnLocation.super.resetPlayer(player);
 
         if (!track.getOpenBoatUtilsPackets().isEmpty()) {
             if (((IceStomPlayer) player).getOpenBoatUtilsVersion() == null) {
@@ -128,8 +125,6 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
                 } catch (IOException _) {}
             }
         }
-
-        createBoat(player, spawn);
     }
 
     @Override

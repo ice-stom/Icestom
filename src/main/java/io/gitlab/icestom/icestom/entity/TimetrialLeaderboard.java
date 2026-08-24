@@ -10,6 +10,7 @@ import io.gitlab.icestom.icestom.util.UsernameCache;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.object.ObjectContents;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
@@ -69,7 +70,7 @@ public class TimetrialLeaderboard extends Entity {
 
             if (attempt.splits().size() < track.getCheckpoints().size()) {
                 int checkpoints = attempt.splits().size() - 1;
-                leaderboard.append(Component.text("C" + checkpoints));
+                leaderboard.append(Component.text(checkpoints + "C", NamedTextColor.GREEN));
                 leaderboard.appendSpace();
             }
 

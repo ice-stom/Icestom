@@ -1,8 +1,10 @@
 package io.gitlab.icestom.icestom.timetrial;
 
 import io.gitlab.icestom.icestom.IceStom;
+import io.gitlab.icestom.icestom.entity.IceStomPlayer;
 import io.gitlab.icestom.icestom.timetrial.event.TimeTrialStartEvent;
 import io.gitlab.icestom.icestom.track.Track;
+import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -14,6 +16,14 @@ public class TimeTrialManager {
     private final Map<String, TimeTrialingInstance> trials = new HashMap<>();
 
     public void startTimeTrialing(Player player, Track track) {
+
+        if (!track.getOpenBoatUtilsPackets().isEmpty()) {
+            if (((IceStomPlayer) player).getOpenBoatUtilsVersion() == null) {
+                player.sendMessage(Component.translatable("message.timetrial.requires_open_boat_utils"));
+                return;
+            }
+        }
+
         stopTimeTrialing(player);
 
         @Nullable TimeTrialingInstance instance = trials.get(track.getId());

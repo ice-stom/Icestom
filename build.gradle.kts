@@ -18,7 +18,7 @@ repositories {
 
 
 dependencies {
-    implementation("io.github.openboatutils:Protocol:0.0.5")
+    implementation("io.github.openboatutils:Protocol:0.0.7")
     implementation(project(":stomtrack"))
 
     implementation("net.minestom:minestom:2026.01.08-1.21.11")

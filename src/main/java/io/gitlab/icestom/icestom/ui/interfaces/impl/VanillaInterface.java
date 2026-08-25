@@ -63,11 +63,9 @@ public class VanillaInterface implements InterfaceProvider {
     }
 
     private static @NotNull Component lapCompletedMessage(Track track, TimedLapResultSource result, @Nullable TimedLapResultSource best) {
-
         boolean is_first = best == null;
         boolean is_full_run = track.isLastCheckpoint(result.splits().size() - 1);
-
-        if (is_first || best.splits().size() < result.splits().size()) {
+        if (is_first) {
             if (is_full_run) {
                 return Component.translatable("message.timetrial.complete_first",
                         Argument.component("track", track.getName()),
@@ -81,8 +79,8 @@ public class VanillaInterface implements InterfaceProvider {
                 );
             }
         } else {
-            long delta = result.getTime() - best.getTime();
-
+            int compareIndex = Math.min(best.splits().size(), result.splits().size()) - 1;
+            long delta = result.getSplitTime(compareIndex) - best.getSplitTime(compareIndex);
             if (is_full_run) {
                 return Component.translatable("message.timetrial.complete",
                         Argument.component("track", track.getName()),

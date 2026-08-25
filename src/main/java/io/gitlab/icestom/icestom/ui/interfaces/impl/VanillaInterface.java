@@ -6,8 +6,8 @@ import io.gitlab.icestom.icestom.race.RaceLeaderboardRow;
 import io.gitlab.icestom.icestom.race.event.RaceLapCompletedEvent;
 import io.gitlab.icestom.icestom.race.event.RaceLapTimerEvent;
 import io.gitlab.icestom.icestom.race.event.RaceLeaderboardUpdateEvent;
-import io.gitlab.icestom.icestom.timetrial.Split;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
+import io.gitlab.icestom.icestom.timetrial.event.TimedLapCheckpointAdvancedEvent;
 import io.gitlab.icestom.icestom.timetrial.event.TimeTrialTimedLapEndedEvent;
 import io.gitlab.icestom.icestom.timetrial.event.TimeTrialLapTimerEvent;
 import io.gitlab.icestom.icestom.timetrial.event.TimeTrialStartEvent;
@@ -107,6 +107,17 @@ public class VanillaInterface implements InterfaceProvider {
 
         public VanillaTimetrialInterface(TimeTrialingInstance holder) {
             super(holder);
+
+            eventNode().addListener(TimedLapCheckpointAdvancedEvent.class, event -> {
+                final Player player = event.getPlayer();
+                final TimedLap lap = event.getLap();
+                player.sendMessage(Component.translatable(
+                        "message.timetrail.checkpoint_pass",
+                        Argument.component("checkpoint", Component.text(lap.getLastReachedCheckpoint())),
+                        Argument.component("time", TextFormatter.getTime(lap.getSplitTime(lap.getLastReachedCheckpoint()))),
+                        Argument.component("delta", TextFormatter.getDelta(lap.getRecentSplit()))
+                ));
+            });
 
             eventNode().addListener(TimeTrialStartEvent.class, event -> {
                 final Player player = event.getPlayer();

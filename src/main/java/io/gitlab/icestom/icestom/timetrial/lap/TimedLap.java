@@ -5,7 +5,6 @@ import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.coordinate.Pos;
-import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -23,6 +22,8 @@ public class TimedLap implements TimedLapResultSource {
 
     private long msStart;
     private int lastReachedCheckpoint = -1;
+
+    private boolean runFurther = true;
 
     private long recentSplit = 0;
 
@@ -62,6 +63,7 @@ public class TimedLap implements TimedLapResultSource {
         if (best_previous_result != null) {
             if (best_previous_result.splits().size() <= split.checkpoint_no()) {
                 recentSplit = 0;
+                runFurther = false;
             } else {
                 Split best_previous = best_previous_result.splits().get(split.checkpoint_no());
 
@@ -86,9 +88,14 @@ public class TimedLap implements TimedLapResultSource {
         Component text = Component.text(String.format("%.2f", t_seconds));
 
         if (best_previous_result != null) {
-            text = text
-                    .append(Component.space())
-                    .append(TextFormatter.getDelta(recentSplit));
+            if (lastReachedCheckpoint != 0) {
+                text = text
+                        .append(Component.space())
+                        .append(TextFormatter.getDelta(recentSplit));
+            } else {
+                text = text
+                        .append(Component.space());
+            }
         }
 
         return text;

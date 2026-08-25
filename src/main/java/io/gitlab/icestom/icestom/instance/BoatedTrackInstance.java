@@ -12,10 +12,13 @@ public abstract class BoatedTrackInstance extends TrackInstance {
     @Override
     public void resetPlayer(Player player) {
         Pos spawn = track.getSpawnLocation();
+        float pitch = player.getPosition().pitch();
+
         removeBoat(player);
 
         super.resetPlayer(player);
 
         createBoat(player, spawn);
+        player.teleport(player.getPosition().withPitch(pitch));
     }
 }

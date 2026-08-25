@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -82,83 +83,85 @@ public class FileSystemSource extends TrackSource {
     }
 
     @Override
-    public Optional<Track> getTrack(String track_id) {
+    public CompletableFuture<Optional<Track>> getTrack(String track_id) {
 
         Path file = sourceFiles.get(track_id);
 
         if (file == null) {
             log.warn("Failed to fetch uncached track {}.", track_id);
-            return Optional.empty();
+            return CompletableFuture.completedFuture(Optional.empty());
         }
 
         Track cached = tracks.get(track_id);
 
         if (cached != null) {
-            return Optional.of(cached);
+            return CompletableFuture.completedFuture(Optional.of(cached));
         }
 
-        PolarLoader world = null;
-        EnvironmentFile environmentFile = null;
-        List<TrackFile> trackFiles = new ArrayList<>();
+        return CompletableFuture.supplyAsync(() -> {
+            PolarLoader world = null;
+            EnvironmentFile environmentFile = null;
+            List<TrackFile> trackFiles = new ArrayList<>();
 
-        String env_name = null;
+            String env_name = null;
 
-        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(file.toFile()))) {
-            ZipEntry entry;
+            try (ZipInputStream zis = new ZipInputStream(new FileInputStream(file.toFile()))) {
+                ZipEntry entry;
 
-            while ((entry = zis.getNextEntry()) != null) {
-                if (!entry.isDirectory()) {
-                    byte[] bytes = zis.readAllBytes();
+                while ((entry = zis.getNextEntry()) != null) {
+                    if (!entry.isDirectory()) {
+                        byte[] bytes = zis.readAllBytes();
 
-                    if (entry.getName().endsWith(".polar")) {
-                        world = new PolarLoader(new ByteArrayInputStream(bytes));
-                        env_name = entry.getName().substring(0, entry.getName().length() - ".polar".length());
-                    } else if (entry.getName().endsWith(".environment.xml")) {
-                        environmentFile = TrackLoader.loadEnvironmentFile(new ByteArrayInputStream(bytes));
-                    } else if (entry.getName().endsWith(".track.xml")) {
-                        trackFiles.add(TrackLoader.loadTrack(new ByteArrayInputStream(bytes)));
+                        if (entry.getName().endsWith(".polar")) {
+                            world = new PolarLoader(new ByteArrayInputStream(bytes));
+                            env_name = entry.getName().substring(0, entry.getName().length() - ".polar".length());
+                        } else if (entry.getName().endsWith(".environment.xml")) {
+                            environmentFile = TrackLoader.loadEnvironmentFile(new ByteArrayInputStream(bytes));
+                        } else if (entry.getName().endsWith(".track.xml")) {
+                            trackFiles.add(TrackLoader.loadTrack(new ByteArrayInputStream(bytes)));
+                        }
                     }
+
+                    zis.closeEntry();
                 }
-
-                zis.closeEntry();
+            } catch (IOException e) {
+                log.error("Failed to load stomtrack from file", e);
+                return Optional.empty();
             }
-        } catch (IOException e) {
-            log.error("Failed to load stomtrack from file", e);
-            return Optional.empty();
-        }
 
-        if (trackFiles.isEmpty()) {
-            log.warn("Track file has no tracks! {}", file);
-            return Optional.empty();
-        }
-
-        if (world == null) {
-            log.warn("Track file has no world! {}", file);
-            return Optional.empty();
-        }
-
-        if (environmentFile == null) {
-            log.warn("Track file has no environment data! {}", file);
-            return Optional.empty();
-        }
-
-        Track source = null;
-
-        for (TrackFile trackFile : trackFiles) {
-            Track track = new Track(
-                    trackFile,
-                    world.world(),
-                    environmentFile,
-                    env_name
-            );
-
-            tracks.put(trackFile.getId(), track);
-
-            if (trackFile.getId().equals(track_id)) {
-                source = track;
+            if (trackFiles.isEmpty()) {
+                log.warn("Track file has no tracks! {}", file);
+                return Optional.empty();
             }
-        }
 
-        return Optional.ofNullable(source);
+            if (world == null) {
+                log.warn("Track file has no world! {}", file);
+                return Optional.empty();
+            }
+
+            if (environmentFile == null) {
+                log.warn("Track file has no environment data! {}", file);
+                return Optional.empty();
+            }
+
+            Track source = null;
+
+            for (TrackFile trackFile : trackFiles) {
+                Track track = new Track(
+                        trackFile,
+                        world.world(),
+                        environmentFile,
+                        env_name
+                );
+
+                tracks.put(trackFile.getId(), track);
+
+                if (trackFile.getId().equals(track_id)) {
+                    source = track;
+                }
+            }
+
+            return Optional.ofNullable(source);
+        });
     }
 }

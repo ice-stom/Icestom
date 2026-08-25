@@ -61,7 +61,7 @@ public class TimedLap implements TimedLapResultSource {
         lastReachedCheckpoint++;
 
         if (best_previous_result != null) {
-            if (best_previous_result.splits().size() >= split.checkpoint_no()) {
+            if (best_previous_result.splits().size() <= split.checkpoint_no()) {
                 recentSplit = 0;
                 runFurther = false;
             } else {
@@ -88,7 +88,7 @@ public class TimedLap implements TimedLapResultSource {
         Component text = Component.text(String.format("%.2f", t_seconds));
 
         if (best_previous_result != null) {
-            if (lastReachedCheckpoint != 0 && runFurther) {
+            if (lastReachedCheckpoint != 0) {
                 text = text
                         .append(Component.space())
                         .append(TextFormatter.getDelta(recentSplit));

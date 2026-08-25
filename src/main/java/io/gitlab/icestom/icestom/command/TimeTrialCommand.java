@@ -1,9 +1,9 @@
 package io.gitlab.icestom.icestom.command;
 
 import io.gitlab.icestom.icestom.IceStom;
+import io.gitlab.icestom.icestom.command.common.CommandLoadTrack;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
-import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.command.CommandSender;
@@ -13,14 +13,18 @@ import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.command.builder.suggestion.Suggestion;
 import net.minestom.server.command.builder.suggestion.SuggestionEntry;
 import net.minestom.server.entity.Player;
-import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 
 public class TimeTrialCommand extends Command {
 
-    private final TrackLibrary trackLibrary = IceStom.getInstance().getTrackLibrary();
+    private static final Logger log = LoggerFactory.getLogger(TimeTrialCommand.class);
+
     private final TimeTrialManager timeTrialManager = IceStom.getInstance().getTimeTrialManager();
+    private final TrackLibrary trackLibrary = IceStom.getInstance().getTrackLibrary();
+
 
     public TimeTrialCommand() {
         super("timetrial", "tt");
@@ -36,21 +40,16 @@ public class TimeTrialCommand extends Command {
 
             final String track_id = commandContext.get(trackArgument);
 
-            @Nullable Track track = trackLibrary.loadTrack(track_id);
-
-            if (track == null) {
-                commandSender.sendMessage(Component.translatable("command.timetrial.unknown_track", Component.text(track_id)));
-                return;
-            }
-
             if (player.getInstance() instanceof TimeTrialingInstance timeTrialingInstance) {
-                if (timeTrialingInstance.getTrack() == track) {
+                if (timeTrialingInstance.getTrack().getId().equals(track_id)) {
                     timeTrialingInstance.resetPlayer(player);
                     return;
                 }
             }
 
-            timeTrialManager.startTimeTrialing(player, track);
+            CommandLoadTrack.loadTrack(commandSender, track_id, track -> {
+                timeTrialManager.startTimeTrialing(player, track);
+            });
         }, trackArgument);
     }
 

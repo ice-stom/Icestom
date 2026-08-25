@@ -86,9 +86,14 @@ public class TimedLap implements TimedLapResultSource {
         Component text = Component.text(String.format("%.2f", t_seconds));
 
         if (best_previous_result != null) {
-            text = text
-                    .append(Component.space())
-                    .append(TextFormatter.getDelta(recentSplit));
+            if (lastReachedCheckpoint != 0) {
+                text = text
+                        .append(Component.space())
+                        .append(TextFormatter.getDelta(recentSplit));
+            } else {
+                text = text
+                        .append(Component.space());
+            }
         }
 
         return text;

@@ -55,7 +55,6 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
 
         eventNode().addListener(PlayerBlockBreakEvent.class, event -> event.setCancelled(true));
         eventNode().addListener(PlayerBlockPlaceEvent.class, event -> event.setCancelled(true));
-        eventNode().addListener(ItemDropEvent.class, event -> event.setCancelled(true));
     }
 
     @Override

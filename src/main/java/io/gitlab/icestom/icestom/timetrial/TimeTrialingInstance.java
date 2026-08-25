@@ -27,6 +27,7 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.player.PlayerGameModeRequestEvent;
 import net.minestom.server.event.player.PlayerStartSneakingEvent;
 import net.minestom.server.event.player.PlayerUseItemEvent;
@@ -79,6 +80,19 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         eventNode().addListener(PlayerUseItemEvent.class, event -> {
             final Player player = event.getPlayer();
             final ItemStack itemStack = event.getItemStack();
+
+            if (itemStack == RESET_ITEM) {
+                resetPlayer(player);
+            } else if (itemStack == BOAT_ITEM) {
+                BoatCommand.spawnBoat(player);
+            }
+        });
+
+        eventNode().addListener(ItemDropEvent.class, event -> {
+            final Player player = event.getPlayer();
+            final ItemStack itemStack = event.getItemStack();
+
+            event.setCancelled(true);
 
             if (itemStack == RESET_ITEM) {
                 resetPlayer(player);

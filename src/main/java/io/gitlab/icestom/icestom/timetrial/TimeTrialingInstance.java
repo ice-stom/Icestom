@@ -8,7 +8,7 @@ import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.TimetrialLeaderboard;
 import io.gitlab.icestom.icestom.instance.BoatedTrackInstance;
 import io.gitlab.icestom.icestom.instance.SpawnLocation;
-import io.gitlab.icestom.icestom.timetrial.event.TimedLapCheckpointAdvancedEvent;
+import io.gitlab.icestom.icestom.instance.TrackInstance;
 import io.gitlab.icestom.icestom.timetrial.event.TimeTrialTimedLapEndedEvent;
 import io.gitlab.icestom.icestom.timetrial.event.TimeTrialLapTimerEvent;
 import io.gitlab.icestom.icestom.timetrial.lap.TimeTrialResult;
@@ -160,9 +160,6 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                                 tick_delta,
                                 next_no
                         ));
-
-                        MinecraftServer.getGlobalEventHandler()
-                                .call(new TimedLapCheckpointAdvancedEvent(timedLap, player));
 
                         if (track.isLastCheckpoint(next_no)) {
                             endTimeTrial(player);

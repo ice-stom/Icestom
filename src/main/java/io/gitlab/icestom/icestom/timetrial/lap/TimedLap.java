@@ -60,7 +60,7 @@ public class TimedLap implements TimedLapResultSource {
         lastReachedCheckpoint++;
 
         if (best_previous_result != null) {
-            if (best_previous_result.splits().size() >= split.checkpoint_no()) {
+            if (best_previous_result.splits().size() <= split.checkpoint_no()) {
                 recentSplit = 0;
             } else {
                 Split best_previous = best_previous_result.splits().get(split.checkpoint_no());

@@ -13,6 +13,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 
 public class TrackLibrary {
@@ -57,39 +59,38 @@ public class TrackLibrary {
         });
     }
 
-    public @Nullable Track loadTrack(String track_id) {
+    public CompletableFuture<Optional<Track>> loadTrack(String track_id) {
 
         Track preloaded = loadedTracks.get(track_id);
 
         if (preloaded != null) {
-            return preloaded;
+            return CompletableFuture.completedFuture(Optional.of(preloaded));
         }
 
         String source_id = load_preferences.get(track_id);
 
         if (source_id == null) {
             log.warn("Attempt to load unknown track '{}'.", track_id);
-            return null;
+            return CompletableFuture.failedFuture(new TrackLoadException("Failed to load unknown track " + track_id + "."));
         }
 
         TrackSource source = sources.get(source_id);
 
         if (source == null) {
-            log.warn("Attempt to load  '{}' from unknown source '{}'.", track_id, source_id);
-            return null;
+            log.warn("Attempt to load '{}' from unknown source '{}'.", track_id, source_id);
+            return CompletableFuture.failedFuture(new TrackLoadException("Failed to load track " + track_id + " from unknown source " + source_id + "."));
         }
 
-        Optional<Track> track = source.getTrack(track_id);
-
-        if (track.isEmpty()) {
-            log.warn("Failed to load '{}' from '{}'.", track_id, source_id);
-            return null;
-        }
-
-        return track.get();
+        return source.getTrack(track_id);
     }
 
     public Set<String> getAvailableTracks() {
         return load_preferences.keySet();
+    }
+
+    public static class TrackLoadException extends Exception {
+        TrackLoadException(String message) {
+            super(message);
+        }
     }
 }

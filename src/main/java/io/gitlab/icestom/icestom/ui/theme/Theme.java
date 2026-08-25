@@ -7,6 +7,7 @@ public interface Theme {
     Key getId();
 
     TextColor main();
+    TextColor special();
     TextColor error();
     TextColor delta_positive();
     TextColor delta_equal();

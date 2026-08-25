@@ -14,6 +14,7 @@ public class DefaultTheme implements Theme {
     }
 
     @Override public TextColor main() { return NamedTextColor.WHITE; }
+    @Override public TextColor special() { return NamedTextColor.YELLOW; }
     @Override public TextColor error() { return NamedTextColor.RED; }
     @Override public TextColor delta_positive() { return NamedTextColor.GREEN; }
     @Override public TextColor delta_equal() { return NamedTextColor.YELLOW; }

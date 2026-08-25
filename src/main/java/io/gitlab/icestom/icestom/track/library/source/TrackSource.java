@@ -5,6 +5,7 @@ import io.gitlab.icestom.icestom.track.Track;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 public abstract class TrackSource {
     private final URI uri;
@@ -18,5 +19,5 @@ public abstract class TrackSource {
     }
 
     public abstract List<String> preloadTracks();
-    public abstract Optional<Track> getTrack(String track_id);
+    public abstract CompletableFuture<Optional<Track>> getTrack(String track_id);
 }

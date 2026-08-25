@@ -23,5 +23,4 @@ public class TimedLapCheckpointAdvancedEvent implements TimedLapEvent {
     public @NotNull Player getPlayer() {
         return player;
     }
-
 }

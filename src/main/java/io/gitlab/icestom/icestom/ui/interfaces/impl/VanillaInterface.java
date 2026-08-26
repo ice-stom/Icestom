@@ -111,12 +111,21 @@ public class VanillaInterface implements InterfaceProvider {
             eventNode().addListener(TimedLapCheckpointAdvancedEvent.class, event -> {
                 final Player player = event.getPlayer();
                 final TimedLap lap = event.getLap();
-                player.sendMessage(Component.translatable(
-                        "message.timetrail.checkpoint_pass",
-                        Argument.component("checkpoint", Component.text(lap.getLastReachedCheckpoint())),
-                        Argument.component("time", TextFormatter.getTime(lap.getSplitTime(lap.getLastReachedCheckpoint()))),
-                        Argument.component("delta", TextFormatter.getDelta(lap.getRecentSplit()))
-                ));
+                final TimedLapResultSource result = lap.getBestPreviousResult();
+                if (result != null && result.splits().size() > lap.getLastReachedCheckpoint()) {
+                    player.sendMessage(Component.translatable(
+                            "message.timetrail.checkpoint_pass",
+                            Argument.component("checkpoint", Component.text(lap.getLastReachedCheckpoint())),
+                            Argument.component("time", TextFormatter.getTime(lap.getSplitTime(lap.getLastReachedCheckpoint()))),
+                            Argument.component("delta", TextFormatter.getDelta(lap.getRecentSplit()))
+                    ));
+                } else {
+                    player.sendMessage(Component.translatable(
+                            "message.timetrail.checkpoint_pass_no_delta",
+                            Argument.component("checkpoint", Component.text(lap.getLastReachedCheckpoint())),
+                            Argument.component("time", TextFormatter.getTime(lap.getSplitTime(lap.getLastReachedCheckpoint())))
+                    ));
+                }
             });
 
             eventNode().addListener(TimeTrialStartEvent.class, event -> {

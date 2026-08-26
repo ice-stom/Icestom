@@ -8,9 +8,7 @@ import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.TimetrialLeaderboard;
 import io.gitlab.icestom.icestom.instance.BoatedTrackInstance;
 import io.gitlab.icestom.icestom.instance.SpawnLocation;
-import io.gitlab.icestom.icestom.timetrial.event.TimedLapCheckpointAdvancedEvent;
-import io.gitlab.icestom.icestom.timetrial.event.TimeTrialTimedLapEndedEvent;
-import io.gitlab.icestom.icestom.timetrial.event.TimeTrialLapTimerEvent;
+import io.gitlab.icestom.icestom.timetrial.event.*;
 import io.gitlab.icestom.icestom.timetrial.lap.TimeTrialResult;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResult;
 import io.gitlab.icestom.icestom.track.Track;
@@ -46,11 +44,16 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
     private final Map<Player, TimedLap> timeTrials = new HashMap<>();
 
+    private final Map<UUID, Pos> practicePoints = new HashMap<>();
+
     private final ItemStack RESET_ITEM = ItemStack.of(Objects.requireNonNull(Material.fromKey(IceStomConfig.getConfig().icestom.reset_item)))
             .withCustomName(Component.text("Reset", NamedTextColor.RED).style(Style.style().decoration(TextDecoration.ITALIC, false)));
 
     private final ItemStack BOAT_ITEM = ItemStack.of(Material.OAK_BOAT)
             .withCustomName(Component.text("Boat", NamedTextColor.GREEN).style(Style.style().decoration(TextDecoration.ITALIC, false)));
+
+    private final ItemStack PRACTICE_ITEM = ItemStack.of(Material.APPLE)
+            .withCustomName(Component.text("Practice Point", NamedTextColor.YELLOW).style(Style.style().decoration(TextDecoration.ITALIC, false)));
 
     private final TimetrialLeaderboard leaderboard;
 
@@ -85,6 +88,14 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                 resetPlayer(player);
             } else if (itemStack == BOAT_ITEM) {
                 BoatCommand.spawnBoat(player);
+            } else if (itemStack == PRACTICE_ITEM) {
+                @Nullable Pos practicePoint = practicePoints.get(player.getUuid());
+
+                endTimeTrial(player);
+
+                if (practicePoint != null) {
+                    createBoat(player, practicePoint);
+                }
             }
         });
 
@@ -98,6 +109,18 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                 resetPlayer(player);
             } else if (itemStack == BOAT_ITEM) {
                 BoatCommand.spawnBoat(player);
+            } else if (itemStack == PRACTICE_ITEM) {
+                if (practicePoints.containsKey(player.getUuid())) {
+                    practicePoints.remove(player.getUuid());
+
+                    MinecraftServer.getGlobalEventHandler()
+                            .call(new TimeTrialPracticePointDeleteEvent(player, this));
+                } else {
+                    practicePoints.put(player.getUuid(), player.getPosition());
+
+                    MinecraftServer.getGlobalEventHandler()
+                            .call(new TimeTrialPracticePointCreateEvent(player, this));
+                }
             }
         });
 
@@ -241,6 +264,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         inventory.clear();
         inventory.setItemStack(0, RESET_ITEM);
         inventory.setItemStack(1, BOAT_ITEM);
+        inventory.setItemStack(2, PRACTICE_ITEM);
     }
 
     public @Nullable TimedLap getTimedLap(Player player) {

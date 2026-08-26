@@ -7,10 +7,7 @@ import io.gitlab.icestom.icestom.race.event.RaceLapCompletedEvent;
 import io.gitlab.icestom.icestom.race.event.RaceLapTimerEvent;
 import io.gitlab.icestom.icestom.race.event.RaceLeaderboardUpdateEvent;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
-import io.gitlab.icestom.icestom.timetrial.event.TimedLapCheckpointAdvancedEvent;
-import io.gitlab.icestom.icestom.timetrial.event.TimeTrialTimedLapEndedEvent;
-import io.gitlab.icestom.icestom.timetrial.event.TimeTrialLapTimerEvent;
-import io.gitlab.icestom.icestom.timetrial.event.TimeTrialStartEvent;
+import io.gitlab.icestom.icestom.timetrial.event.*;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.track.Track;
@@ -114,14 +111,14 @@ public class VanillaInterface implements InterfaceProvider {
                 final TimedLapResultSource result = lap.getBestPreviousResult();
                 if (result != null && result.splits().size() > lap.getLastReachedCheckpoint()) {
                     player.sendMessage(Component.translatable(
-                            "message.timetrail.checkpoint_pass",
+                            "message.timetrial.checkpoint_pass",
                             Argument.component("checkpoint", Component.text(lap.getLastReachedCheckpoint())),
                             Argument.component("time", TextFormatter.getTime(lap.getSplitTime(lap.getLastReachedCheckpoint()))),
                             Argument.component("delta", TextFormatter.getDelta(lap.getRecentSplit()))
                     ));
                 } else {
                     player.sendMessage(Component.translatable(
-                            "message.timetrail.checkpoint_pass_no_delta",
+                            "message.timetrial.checkpoint_pass_no_delta",
                             Argument.component("checkpoint", Component.text(lap.getLastReachedCheckpoint())),
                             Argument.component("time", TextFormatter.getTime(lap.getSplitTime(lap.getLastReachedCheckpoint())))
                     ));
@@ -167,6 +164,18 @@ public class VanillaInterface implements InterfaceProvider {
                         result,
                         best
                 ));
+            });
+
+            eventNode().addListener(TimeTrialPracticePointCreateEvent.class, event -> {
+                final Player player = event.getPlayer();
+
+                player.sendMessage(Component.translatable("message.timetrail.practicepoint_place"));
+            });
+
+            eventNode().addListener(TimeTrialPracticePointDeleteEvent.class, event -> {
+                final Player player = event.getPlayer();
+
+                player.sendMessage(Component.translatable("message.timetrail.practicepoint_remove"));
             });
         }
 

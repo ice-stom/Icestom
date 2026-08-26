@@ -7,12 +7,12 @@ import org.jspecify.annotations.NonNull;
 
 public class TimeTrialPracticePointCreateEvent implements TimeTrialEvent {
 
-    @NotNull private final Player player;
     @NotNull private final TimeTrialingInstance instance;
+    @NotNull private final Player player;
 
     public TimeTrialPracticePointCreateEvent(@NotNull Player player, @NotNull TimeTrialingInstance instance) {
-        this.player = player;
         this.instance = instance;
+        this.player = player;
     }
 
     @Override
@@ -21,7 +21,7 @@ public class TimeTrialPracticePointCreateEvent implements TimeTrialEvent {
     }
 
     @Override
-    public @NonNull Player getPlayer() {
+    public @NotNull Player getPlayer() {
         return player;
     }
 

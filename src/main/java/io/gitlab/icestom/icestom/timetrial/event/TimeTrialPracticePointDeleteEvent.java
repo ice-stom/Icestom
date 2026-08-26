@@ -21,7 +21,7 @@ public class TimeTrialPracticePointDeleteEvent implements TimeTrialEvent {
     }
 
     @Override
-    public @NonNull Player getPlayer() {
+    public @NotNull Player getPlayer() {
         return player;
     }
 

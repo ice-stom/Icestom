@@ -23,6 +23,8 @@ public class SpawnCommand extends Command {
                 return;
             }
 
+            player.getInventory().clear();
+
             Instance instance = player.getInstance();
 
             if (instance instanceof SpawnInstance spawnInstance) {

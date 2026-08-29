@@ -2,11 +2,13 @@ package io.gitlab.icestom.icestom.timetrial;
 
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.command.BoatCommand;
+import io.gitlab.icestom.icestom.command.SpawnCommand;
 import io.gitlab.icestom.icestom.config.IceStomConfig;
 import io.gitlab.icestom.icestom.database.TimetrialDatabase;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.TimetrialLeaderboard;
 import io.gitlab.icestom.icestom.instance.BoatedTrackInstance;
+import io.gitlab.icestom.icestom.instance.SpawnInstance;
 import io.gitlab.icestom.icestom.instance.SpawnLocation;
 import io.gitlab.icestom.icestom.timetrial.event.*;
 import io.gitlab.icestom.icestom.timetrial.lap.TimeTrialResult;
@@ -29,6 +31,7 @@ import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.player.PlayerGameModeRequestEvent;
 import net.minestom.server.event.player.PlayerStartSneakingEvent;
 import net.minestom.server.event.player.PlayerUseItemEvent;
+import net.minestom.server.instance.Instance;
 import net.minestom.server.inventory.PlayerInventory;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
@@ -54,6 +57,9 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
     private final ItemStack PRACTICE_ITEM = ItemStack.of(Material.APPLE)
             .withCustomName(Component.text("Practice Point", NamedTextColor.YELLOW).style(Style.style().decoration(TextDecoration.ITALIC, false)));
+
+    private final ItemStack SPAWN_ITEM = ItemStack.of(Material.RED_BED)
+            .withCustomName(Component.text("Return to spawn", NamedTextColor.RED).style(Style.style().decoration(TextDecoration.ITALIC, false)));
 
     private final TimetrialLeaderboard leaderboard;
 
@@ -96,6 +102,14 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                 if (practicePoint != null) {
                     createBoat(player, practicePoint);
                 }
+            } else if (itemStack == SPAWN_ITEM) {
+                Instance instance = player.getInstance();
+
+                if (instance instanceof TimeTrialingInstance) {
+                    endTimeTrial(player);
+                    IceStom.getInstance().getSpawnInstance().consume(player);
+                    player.getInventory().clear();
+                }
             }
         });
 
@@ -120,6 +134,14 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
                     MinecraftServer.getGlobalEventHandler()
                             .call(new TimeTrialPracticePointCreateEvent(player, this));
+                }
+            } else if (itemStack == SPAWN_ITEM) {
+                Instance instance = player.getInstance();
+
+                if (instance instanceof TimeTrialingInstance) {
+                    endTimeTrial(player);
+                    IceStom.getInstance().getSpawnInstance().consume(player);
+                    player.getInventory().clear();
                 }
             }
         });
@@ -265,6 +287,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         inventory.setItemStack(0, RESET_ITEM);
         inventory.setItemStack(1, BOAT_ITEM);
         inventory.setItemStack(2, PRACTICE_ITEM);
+        inventory.setItemStack(8, SPAWN_ITEM);
     }
 
     public @Nullable TimedLap getTimedLap(Player player) {

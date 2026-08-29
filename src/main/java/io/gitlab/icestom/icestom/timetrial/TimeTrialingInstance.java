@@ -329,13 +329,13 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         player.setAllowFlying(false);
         player.setFlying(false);
 
+        player.getInventory().clear();
+
         interfaceHolder.stopWatching(player);
     }
 
     private void teleportToSpawn(Player player) {
-        Instance instance = player.getInstance();
-        endTimeTrial(player);
+        drop(player);
         IceStom.getInstance().getSpawnInstance().consume(player);
-        player.getInventory().clear();
     }
 }

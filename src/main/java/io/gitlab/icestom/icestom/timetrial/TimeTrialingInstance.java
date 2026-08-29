@@ -29,6 +29,7 @@ import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.player.PlayerGameModeRequestEvent;
 import net.minestom.server.event.player.PlayerStartSneakingEvent;
 import net.minestom.server.event.player.PlayerUseItemEvent;
+import net.minestom.server.instance.Instance;
 import net.minestom.server.inventory.PlayerInventory;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
@@ -54,6 +55,9 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
     private final ItemStack PRACTICE_ITEM = ItemStack.of(Material.APPLE)
             .withCustomName(Component.text("Practice Point", NamedTextColor.YELLOW).style(Style.style().decoration(TextDecoration.ITALIC, false)));
+
+    private final ItemStack SPAWN_ITEM = ItemStack.of(Material.RED_BED)
+            .withCustomName(Component.text("Return to spawn", NamedTextColor.RED).style(Style.style().decoration(TextDecoration.ITALIC, false)));
 
     private final TimetrialLeaderboard leaderboard;
 
@@ -96,6 +100,8 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                 if (practicePoint != null) {
                     createBoat(player, practicePoint);
                 }
+            } else if (itemStack == SPAWN_ITEM) {
+                teleportToSpawn(player);
             }
         });
 
@@ -121,6 +127,8 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                     MinecraftServer.getGlobalEventHandler()
                             .call(new TimeTrialPracticePointCreateEvent(player, this));
                 }
+            } else if (itemStack == SPAWN_ITEM) {
+                teleportToSpawn(player);
             }
         });
 
@@ -265,6 +273,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         inventory.setItemStack(0, RESET_ITEM);
         inventory.setItemStack(1, BOAT_ITEM);
         inventory.setItemStack(2, PRACTICE_ITEM);
+        inventory.setItemStack(8, SPAWN_ITEM);
     }
 
     public @Nullable TimedLap getTimedLap(Player player) {
@@ -316,6 +325,13 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         player.setAllowFlying(false);
         player.setFlying(false);
 
+        player.getInventory().clear();
+
         interfaceHolder.stopWatching(player);
+    }
+
+    private void teleportToSpawn(Player player) {
+        drop(player);
+        IceStom.getInstance().getSpawnInstance().consume(player);
     }
 }

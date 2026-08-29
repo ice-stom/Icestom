@@ -101,11 +101,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                     createBoat(player, practicePoint);
                 }
             } else if (itemStack == SPAWN_ITEM) {
-                Instance instance = player.getInstance();
-
-                if (instance instanceof TimeTrialingInstance) {
-                    teleportToSpawn(player);
-                }
+                teleportToSpawn(player);
             }
         });
 

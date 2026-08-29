@@ -104,9 +104,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                 Instance instance = player.getInstance();
 
                 if (instance instanceof TimeTrialingInstance) {
-                    endTimeTrial(player);
-                    IceStom.getInstance().getSpawnInstance().consume(player);
-                    player.getInventory().clear();
+                    teleportToSpawn(player);
                 }
             }
         });
@@ -134,13 +132,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                             .call(new TimeTrialPracticePointCreateEvent(player, this));
                 }
             } else if (itemStack == SPAWN_ITEM) {
-                Instance instance = player.getInstance();
-
-                if (instance instanceof TimeTrialingInstance) {
-                    endTimeTrial(player);
-                    IceStom.getInstance().getSpawnInstance().consume(player);
-                    player.getInventory().clear();
-                }
+                teleportToSpawn(player);
             }
         });
 
@@ -338,5 +330,12 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         player.setFlying(false);
 
         interfaceHolder.stopWatching(player);
+    }
+
+    private void teleportToSpawn(Player player) {
+        Instance instance = player.getInstance();
+        endTimeTrial(player);
+        IceStom.getInstance().getSpawnInstance().consume(player);
+        player.getInventory().clear();
     }
 }

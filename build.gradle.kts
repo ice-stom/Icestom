@@ -36,6 +36,10 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.5.32")
 
     implementation("com.electronwill.night-config:toml:3.8.4")
+
+    implementation("dev.hollowcube:luau:${version}")
+    implementation("dev.hollowcube:luau-natives-linux-x64:${version}")
+    implementation("dev.hollowcube:luau-natives-windows-x64:${version}")
 }
 
 configurations.all {

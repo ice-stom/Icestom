@@ -23,8 +23,6 @@ public class TimedLap implements TimedLapResultSource {
     private long msStart;
     private int lastReachedCheckpoint = -1;
 
-    private boolean runFurther = true;
-
     private long recentSplit = 0;
 
     public TimedLap(Track track, @Nullable TimedLapResultSource bestPreviousResult, Split split) {
@@ -53,17 +51,15 @@ public class TimedLap implements TimedLapResultSource {
 
         splits.add(local_split);
 
+        lastReachedCheckpoint++;
+
         if (track.isLastCheckpoint(this_checkpoint_index) && lastReachedCheckpoint != -1) {
-            lastReachedCheckpoint = -1;
             return true;
         }
-
-        lastReachedCheckpoint++;
 
         if (bestPreviousResult != null) {
             if (bestPreviousResult.splits().size() <= split.checkpoint_no()) {
                 recentSplit = 0;
-                runFurther = false;
             } else {
                 Split best_previous = bestPreviousResult.splits().get(split.checkpoint_no());
 

@@ -30,6 +30,9 @@ public class TimetrialLeaderboard extends Entity {
 
         this.track = track;
 
+        hasPhysics = false;
+        setNoGravity(true);
+
         TextDisplayMeta meta = (TextDisplayMeta) getEntityMeta();
 
         meta.setText(Component.text("Loading..."));

@@ -122,10 +122,17 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                     MinecraftServer.getGlobalEventHandler()
                             .call(new TimeTrialPracticePointDeleteEvent(player, this));
                 } else {
-                    practicePoints.put(player.getUuid(), player.getPosition());
+                    if (player.isOnGround()) {
+                        practicePoints.put(player.getUuid(), player.getPosition());
 
-                    MinecraftServer.getGlobalEventHandler()
-                            .call(new TimeTrialPracticePointCreateEvent(player, this));
+                        MinecraftServer.getGlobalEventHandler()
+                                .call(new TimeTrialPracticePointCreateEvent(player, this));
+                    } else if (player.getVehicle() instanceof Boat boat) {
+                        practicePoints.put(player.getUuid(), boat.getPosition());
+
+                        MinecraftServer.getGlobalEventHandler()
+                                .call(new TimeTrialPracticePointCreateEvent(player, this));
+                    }
                 }
             } else if (itemStack == SPAWN_ITEM) {
                 teleportToSpawn(player);

@@ -1,6 +1,7 @@
 package io.gitlab.icestom.icestom.entity;
 
 import io.gitlab.icestom.icestom.IceStom;
+import io.gitlab.icestom.icestom.event.EventParticipant;
 import io.gitlab.icestom.icestom.ui.theme.Themes;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
 import net.kyori.adventure.text.Component;
@@ -10,7 +11,9 @@ import net.minestom.server.network.player.PlayerConnection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class IceStomPlayer extends Player {
+import java.util.List;
+
+public class IceStomPlayer extends Player implements EventParticipant {
 
     private static final TranslationManager translationManager = IceStom.getInstance().getTranslationManager();
 
@@ -38,5 +41,15 @@ public class IceStomPlayer extends Player {
 
     public @Nullable Integer getOpenBoatUtilsVersion() {
         return openBoatUtilsVersion;
+    }
+
+    @Override
+    public Player getPlayer() {
+        return this;
+    }
+
+    @Override
+    public List<Player> getParticipants() {
+        return List.of(this);
     }
 }

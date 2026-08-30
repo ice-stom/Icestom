@@ -8,14 +8,14 @@ import io.gitlab.icestom.icestom.database.sqlite.SQLiteTimetrialDatabase;
 import io.gitlab.icestom.icestom.debug.PerfHud;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
-import io.gitlab.icestom.icestom.event.EventManager;
+import io.gitlab.icestom.icestom.event.StageRegistry;
 import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import io.gitlab.icestom.icestom.instance.DefaultSpawnInstance;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
-import io.gitlab.icestom.icestom.instance.SpawnLocation;
 import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager;
 import io.gitlab.icestom.icestom.plugins.PluginManager;
 import io.gitlab.icestom.icestom.race.RaceInstance;
+import io.gitlab.icestom.icestom.stages.PracticeStage;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
@@ -23,6 +23,7 @@ import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
 import io.gitlab.icestom.icestom.ui.interfaces.impl.VanillaInterface;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
 import me.lucko.spark.minestom.SparkMinestom;
+import net.kyori.adventure.key.Key;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
@@ -59,8 +60,8 @@ public class IceStom {
 
     private final TranslationManager translationManager;
     private final TrackLibrary trackLibrary;
+    private final StageRegistry stageRegistry;
     private final TimeTrialManager timeTrialManager;
-    private final EventManager eventManager;
     private final OpenBoatUtilsManager openBoatUtilsManager;
 
     private final Instance spawnInstance;
@@ -98,7 +99,7 @@ public class IceStom {
 
         translationManager = new TranslationManager(getClass());
         timeTrialManager = new TimeTrialManager();
-        eventManager = new EventManager();
+        stageRegistry = new StageRegistry();
         openBoatUtilsManager = new OpenBoatUtilsManager();
 
         timetrialDatabase = switch (config.database.type) {
@@ -115,6 +116,7 @@ public class IceStom {
 
         pluginManager = new PluginManager(Path.of("plugins"));
         pluginManager.loadPlugins();
+
         trackLibrary.init();
 
         spawnInstance = (Instance) spawnProvider.get();
@@ -128,6 +130,8 @@ public class IceStom {
                 .enable();
 
         MinecraftServer.getConnectionManager().setPlayerProvider(IceStomPlayer::new);
+
+        stageRegistry.register(Key.key(NAMESPACE, "practice"), PracticeStage.class, PracticeStage::create);
 
         CommandManager commandManager = MinecraftServer.getCommandManager();
         commandManager.register(new BoatCommand());
@@ -217,7 +221,7 @@ public class IceStom {
 
     public TimeTrialManager getTimeTrialManager() { return timeTrialManager; }
 
-    public EventManager getEventManager() { return eventManager; }
+    public StageRegistry getStageRegistry() { return stageRegistry; }
 
     public TranslationManager getTranslationManager() { return translationManager; }
 

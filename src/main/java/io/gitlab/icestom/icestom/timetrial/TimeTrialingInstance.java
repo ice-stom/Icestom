@@ -200,7 +200,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                     @Nullable Long tick_delta = checkpoint.detectCross(movement);
 
                     if (tick_delta != null) {
-                        timedLap.advanceCheckpoint(new Split(
+                        boolean finished = timedLap.advanceCheckpoint(new Split(
                                 getWorldAge() * 50,
                                 tick_delta,
                                 next_no
@@ -209,7 +209,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                         MinecraftServer.getGlobalEventHandler()
                                 .call(new TimedLapCheckpointAdvancedEvent(timedLap, player));
 
-                        if (track.isLastCheckpoint(next_no)) {
+                        if (finished) {
                             endTimeTrial(player);
 
                             not_started_tt.put(player, movement);
@@ -246,6 +246,9 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                         tick_delta,
                         0
                 ));
+
+                MinecraftServer.getGlobalEventHandler()
+                        .call(new TimedLapCheckpointAdvancedEvent(timedLap, player));
 
                 timeTrials.put(player, timedLap);
             }

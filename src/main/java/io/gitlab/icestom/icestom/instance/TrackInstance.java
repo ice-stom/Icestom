@@ -5,6 +5,7 @@ import io.github.openboatutils.protocol.channels.OBUContextPacket;
 import io.github.openboatutils.protocol.channels.OBUSettingsPacket;
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
+import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.TickMovement;
 import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
@@ -14,6 +15,7 @@ import net.hollowcube.polar.PolarLoader;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.item.ItemDropEvent;
@@ -44,6 +46,8 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
 
     private Set<InsideCollider> watchingRegions = Set.of();
     private Set<CrossCollider> watchingTriggers = Set.of();
+
+    private boolean defaultRegions = false;
 
     public TrackInstance(Track track) {
         super(Key.key(IceStom.NAMESPACE, "track/" + track.getEnvironmentId()), getDimensionKey(track.getEnvironmentData()));
@@ -228,6 +232,24 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
         } catch (UnsupportedOperationException e) {
             log.warn("Couldn't find a suitable dimension type candidate for environment. (maybe preload failed?)");
             return DimensionType.OVERWORLD;
+        }
+    }
+
+    public static void tickResetRegions(
+            TrackInstance instance,
+            Player player,
+            Set<String> playerRegions,
+            Map<String, Long> playerTriggers,
+            TimedLap lap
+    ) {
+        boolean hitResetRegion = playerRegions != null && playerRegions.contains("icestom.reset");
+        boolean hitResetTrigger = playerTriggers != null && playerTriggers.containsKey("icestom.reset");
+
+        if (hitResetRegion || hitResetTrigger) {
+            Track track = instance.getTrack();
+            Pos reset_point = track.getLocations().getOrDefault("icestom.reset_" + lap.getLastReachedCheckpoint(), track.getSpawnLocation());
+
+            instance.createBoat(player, reset_point);
         }
     }
 }

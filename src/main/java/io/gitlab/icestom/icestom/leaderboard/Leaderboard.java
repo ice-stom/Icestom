@@ -35,8 +35,8 @@ public class Leaderboard<Row extends LeaderboardRow<Participant>, Participant ex
             if (checkpointLead > 0) break;
 
             if (checkpointLead == 0) {
-                if (aheadParticipation.getSplits().isEmpty() || latest == null) break;
-                if (aheadParticipation.getSplits().getLast().ms() < latest.ms()) break;
+                if (aheadParticipation.getRaceSplits().isEmpty() || latest == null) break;
+                if (aheadParticipation.getRaceSplits().getLast().ms() < latest.ms()) break;
             }
 
             newPos--;
@@ -44,8 +44,6 @@ public class Leaderboard<Row extends LeaderboardRow<Participant>, Participant ex
 
         leaderboard.remove(currentPosition);
         leaderboard.add(newPos, row);
-
-        row.update();
 
         if (newPos > 0) {
             Row aheadRow = leaderboard.get(newPos - 1);

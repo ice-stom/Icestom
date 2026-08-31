@@ -1,7 +1,7 @@
 package io.gitlab.icestom.icestom.command;
 
 import io.gitlab.icestom.icestom.instance.TrackInstance;
-import io.gitlab.icestom.icestom.race.RaceInstance;
+import io.gitlab.icestom.icestom.race.RaceStage;
 import io.gitlab.icestom.icestom.track.Track;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
@@ -109,7 +109,7 @@ public class DebugCommand extends Command {
             setDefaultExecutor((commandSender, _) -> {
                 if (!(commandSender instanceof Player player)) return;
 
-                if (player.getInstance() instanceof RaceInstance raceInstance) raceInstance.startCountdown();
+                if (player.getInstance() instanceof RaceStage raceInstance) raceInstance.startCountdown();
             });
         }
     }

@@ -4,10 +4,10 @@ import io.gitlab.icestom.icestom.leaderboard.Leaderboard;
 
 import java.util.function.Function;
 
-public class RaceLeaderboard<Row extends RaceLeaderboardRow> extends Leaderboard<Row, RaceInstance.RaceParticipant> {
-    private final RaceInstance race;
+public class RaceLeaderboard<Row extends RaceLeaderboardRow> extends Leaderboard<Row, RaceStage.RaceParticipant> {
+    private final RaceStage race;
 
-    public RaceLeaderboard(Function<RaceInstance.RaceParticipant, Row> newRowFactory, RaceInstance raceInstance) {
+    public RaceLeaderboard(Function<RaceStage.RaceParticipant, Row> newRowFactory, RaceStage raceInstance) {
         super(newRowFactory);
         this.race = raceInstance;
     }

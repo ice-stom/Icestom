@@ -14,7 +14,7 @@ public class Result<Participant extends EventParticipant> {
         this.participant = participant;
     }
 
-    Participant getParticipant() {
+    public Participant getParticipant() {
         return participant;
     }
 

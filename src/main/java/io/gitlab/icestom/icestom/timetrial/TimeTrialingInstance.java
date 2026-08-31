@@ -8,6 +8,7 @@ import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.TimetrialLeaderboard;
 import io.gitlab.icestom.icestom.instance.BoatedTrackInstance;
 import io.gitlab.icestom.icestom.instance.SpawnLocation;
+import io.gitlab.icestom.icestom.instance.TrackInstance;
 import io.gitlab.icestom.icestom.timetrial.event.*;
 import io.gitlab.icestom.icestom.timetrial.lap.TimeTrialResult;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResult;
@@ -158,9 +159,10 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                 track.getSpawnLocation().asVec().asPos() // remove pitch/yaw
         );
 
-        leaderboard.setInstance(this, leaderboard_pos);
-
         subscribeRegionId("icestom.reset");
+        subscribeTriggerId("icestom.reset");
+
+        leaderboard.setInstance(this, leaderboard_pos);
     }
 
     @Override
@@ -195,7 +197,8 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
             Player player = entry.getKey();
             TickMovement movement = entry.getValue();
 
-            Set<String> playerRegions = inside_regions.getOrDefault(player, Set.of());
+            Set<String> playerRegions = inside_regions.get(player);
+            Map<String, Long> playerTriggers = crossed_triggers.get(player);
 
             @Nullable TimedLap timedLap = getTimedLap(player);
 
@@ -224,12 +227,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                     }
                 }
 
-                if (playerRegions.contains("icestom.reset")) {
-                    Pos reset_point = track.getLocations().getOrDefault("icestom.reset_" + timedLap.getLastReachedCheckpoint(), track.getSpawnLocation());
-
-                    createBoat(player, reset_point);
-                }
-
+                TrackInstance.tickResetRegions(this, player, playerRegions, playerTriggers, timedLap);
             } else {
                 not_started_tt.put(player, movement);
             }

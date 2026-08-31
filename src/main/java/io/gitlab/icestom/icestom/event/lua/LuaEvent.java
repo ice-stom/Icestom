@@ -53,7 +53,7 @@ public class LuaEvent<Participant extends EventParticipant> extends IceStomEvent
         lua = vm.newThread();
         lua.sandboxThread();
 
-        LuaPrint.register(lua, LoggerFactory.getLogger("LuaEvent." + filename));
+        LuaPrint.register(lua, LoggerFactory.getLogger("LuaEvent@" + filename));
 
         lua.load("@" + filename, bytecode);
 

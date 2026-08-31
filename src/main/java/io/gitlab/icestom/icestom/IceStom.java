@@ -14,7 +14,7 @@ import io.gitlab.icestom.icestom.instance.DefaultSpawnInstance;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
 import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager;
 import io.gitlab.icestom.icestom.plugins.PluginManager;
-import io.gitlab.icestom.icestom.race.RaceInstance;
+import io.gitlab.icestom.icestom.race.RaceStage;
 import io.gitlab.icestom.icestom.stages.PracticeStage;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
@@ -46,6 +46,8 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Supplier;
 
+import static io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager.getHolder;
+
 public class IceStom {
 
     public static final String NAMESPACE = "icestom";
@@ -53,6 +55,8 @@ public class IceStom {
     private static final Logger log = LoggerFactory.getLogger(IceStom.class);
 
     private static IceStom instance;
+
+    private final InterfaceManager.InterfaceHolder interfaceHolder;
 
     private final MinecraftServer minecraftServer;
 
@@ -120,6 +124,12 @@ public class IceStom {
         trackLibrary.init();
 
         spawnInstance = (Instance) spawnProvider.get();
+
+        InterfaceManager.register(TimeTrialingInstance.class, new VanillaInterface());
+        InterfaceManager.register(RaceStage.class, new VanillaInterface());
+        InterfaceManager.register(IceStom.class, new VanillaInterface());
+
+        interfaceHolder = getHolder(IceStom.class, this);
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -132,6 +142,7 @@ public class IceStom {
         MinecraftServer.getConnectionManager().setPlayerProvider(IceStomPlayer::new);
 
         stageRegistry.register(Key.key(NAMESPACE, "practice"), PracticeStage.class, PracticeStage::create);
+        stageRegistry.register(Key.key(NAMESPACE, "race"), RaceStage.class, RaceStage::create);
 
         CommandManager commandManager = MinecraftServer.getCommandManager();
         commandManager.register(new BoatCommand());
@@ -171,6 +182,8 @@ public class IceStom {
                     (byte) (EntityStatuses.Player.PERMISSION_LEVEL_0 + 2))
             );
 
+            interfaceHolder.startWatching(player);
+
             if (!player.hasPermission("icestom.perfhud")) return;
 
             perfHud.addViewer(player);
@@ -178,6 +191,9 @@ public class IceStom {
 
         globalEventHandler.addListener(PlayerDisconnectEvent.class,playerDisconnectEvent -> {
             final Player player = playerDisconnectEvent.getPlayer();
+
+            interfaceHolder.stopWatching(player);
+
             if (player.getInstance() instanceof PlayerHolder playerHolder) {
                 playerHolder.drop(player);
             }
@@ -202,9 +218,6 @@ public class IceStom {
                 playerPacketOutEvent.setCancelled(true);
             }
         });
-
-        InterfaceManager.register(TimeTrialingInstance.class, new VanillaInterface());
-        InterfaceManager.register(RaceInstance.class, new VanillaInterface());
 
         IceStomConfig config = IceStomConfig.getConfig();
 

@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface LeaderboardParticipant<P extends LeaderboardParticipant<P>> {
     int getGlobalCheckpointIndex();
-    List<Split> getSplits();
+    List<Split> getRaceSplits();
 
     long deltaTo(P other);
 }

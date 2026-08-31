@@ -8,6 +8,6 @@ import java.util.UUID;
 public interface EventParticipant {
     UUID getUuid();
 
-    Player getPlayer();
+    Player getCurrentPlayer();
     List<Player> getParticipants();
 }

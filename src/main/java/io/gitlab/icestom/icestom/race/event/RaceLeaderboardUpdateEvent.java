@@ -1,20 +1,18 @@
 package io.gitlab.icestom.icestom.race.event;
 
-import io.gitlab.icestom.icestom.race.RaceInstance;
-import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
+import io.gitlab.icestom.icestom.race.RaceStage;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-public class RaceLeaderboardUpdateEvent implements RaceInstanceEvent {
+public class RaceLeaderboardUpdateEvent implements RaceEvent {
 
-    @NotNull private final RaceInstance race;
+    private final @NotNull RaceStage instance;
 
-    public RaceLeaderboardUpdateEvent(@NotNull RaceInstance raceInstance) {
-        this.race = raceInstance;
+    public RaceLeaderboardUpdateEvent(@NotNull RaceStage instance) {
+        this.instance = instance;
     }
 
     @Override
-    public @NotNull RaceInstance getInstance() {
-        return race;
+    public @NotNull RaceStage getInstance() {
+        return instance;
     }
 }

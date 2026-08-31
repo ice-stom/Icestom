@@ -1,10 +1,8 @@
 
 package io.gitlab.icestom.icestom.ui.interfaces;
 
-import io.gitlab.icestom.icestom.race.RaceInstance;
+import io.gitlab.icestom.icestom.race.RaceStage;
 import io.gitlab.icestom.icestom.race.event.RaceEvent;
-import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
-import io.gitlab.icestom.icestom.timetrial.event.TimeTrialEvent;
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventFilter;
 import net.minestom.server.event.EventHandler;
@@ -14,13 +12,13 @@ import org.jspecify.annotations.NonNull;
 
 import java.lang.ref.WeakReference;
 
-public abstract class AbstractRaceInterface extends Interface<RaceInstance, AbstractRaceInterface> implements EventHandler<Event> {
+public abstract class AbstractRaceInterface extends Interface<RaceStage, AbstractRaceInterface> implements EventHandler<Event> {
 
-    private final WeakReference<RaceInstance> holder;
+    private final WeakReference<RaceStage> holder;
     private final EventNode<Event> eventNode;
 
-    public AbstractRaceInterface(RaceInstance holder) {
-        WeakReference<RaceInstance> weakReference = new WeakReference<>(holder);
+    public AbstractRaceInterface(RaceStage holder) {
+        WeakReference<RaceStage> weakReference = new WeakReference<>(holder);
 
         this.holder = weakReference;
 
@@ -40,7 +38,7 @@ public abstract class AbstractRaceInterface extends Interface<RaceInstance, Abst
     }
 
     @Override
-    public RaceInstance getHolder() { return holder.get(); }
+    public RaceStage getHolder() { return holder.get(); }
 
     @Override
     public @NonNull EventNode<Event> eventNode() {

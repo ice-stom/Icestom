@@ -40,9 +40,11 @@ public class PracticeStage extends TimeTrialingInstance implements EventStage {
 
         teleportAllParticipants(results);
 
-        shim.join();
+        return CompletableFuture.supplyAsync(() -> {
+            shim.join();
 
-        return CompletableFuture.completedFuture(results);
+            return results;
+        });
     }
 
     @Override

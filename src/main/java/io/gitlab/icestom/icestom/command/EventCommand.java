@@ -46,8 +46,10 @@ public class EventCommand extends Command {
                                 print("making the practice stage!")
                                 print("event: " .. tostring(event))
                 
-                                local practice = event:makeStage("icestom:practice", {
+                                local practice = event:makeStage("icestom:race", {
                                     track = track,
+                                    laps = 1,
+                                    pits = 0
                                 })
                 
                                 print("Practice: " .. tostring(practice))

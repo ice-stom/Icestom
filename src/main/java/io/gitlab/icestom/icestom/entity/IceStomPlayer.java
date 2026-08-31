@@ -44,7 +44,7 @@ public class IceStomPlayer extends Player implements EventParticipant {
     }
 
     @Override
-    public Player getPlayer() {
+    public Player getCurrentPlayer() {
         return this;
     }
 

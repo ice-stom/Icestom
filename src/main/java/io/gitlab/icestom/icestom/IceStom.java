@@ -16,6 +16,7 @@ import io.gitlab.icestom.icestom.instance.SpawnInstance;
 import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager;
 import io.gitlab.icestom.icestom.plugins.PluginManager;
 import io.gitlab.icestom.icestom.race.RaceStage;
+import io.gitlab.icestom.icestom.stages.PodiumStage;
 import io.gitlab.icestom.icestom.stages.PracticeStage;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
@@ -113,6 +114,7 @@ public class IceStom {
         stageRegistry = new StageRegistry();
         stageRegistry.register(Key.key(NAMESPACE, "practice"), PracticeStage.class, PracticeStage::create);
         stageRegistry.register(Key.key(NAMESPACE, "race"), RaceStage.class, RaceStage::create);
+        stageRegistry.register(Key.key(NAMESPACE, "podium"), PodiumStage.class, PodiumStage::create);
 
         translationManager = new TranslationManager(getClass());
         timeTrialManager = new TimeTrialManager();

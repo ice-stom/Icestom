@@ -15,22 +15,20 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Stream;
 
 public class PluginManager implements EventHandler<Event> {
 
-    private static final int API_VERSION = 0;
+    private static final int API_VERSION = 1;
     private static final Logger log = LoggerFactory.getLogger(PluginManager.class);
 
     private final Path pluginFolder;
 
     private final Map<String, IceStomPlugin> loadedPlugins = new LinkedHashMap<>();
+    private final Map<String, Boolean> enabled = new HashMap<>();
     private final EventNode<Event> eventNode = EventNode.all("plugin_manager");
 
     public PluginManager(Path pluginFolder) {
@@ -65,6 +63,10 @@ public class PluginManager implements EventHandler<Event> {
             if (loaded == null) continue;
             enable(source.descriptor.id, loaded);
         }
+    }
+
+    public void startPlugins() {
+        loadedPlugins.forEach(this::start);
     }
 
     private List<PluginSource> discoverJarSources() throws IOException {
@@ -141,8 +143,21 @@ public class PluginManager implements EventHandler<Event> {
 
             log.info("Enabling plugin '{}'", id);
             plugin.onEnable(pluginEventNode);
+            enabled.put(id, true);
         } catch (Throwable t) {
             log.error("Plugin '{}' threw during onEnable()", id, t);
+        }
+    }
+
+    private void start(String id, IceStomPlugin plugin) {
+        try {
+            if (enabled.getOrDefault(id, false)) {
+                plugin.onStart();
+            } else {
+                log.warn("Plugin '{}' not starting because disabled.", id);
+            }
+        } catch (Throwable t) {
+            log.error("Plugin '{}' threw during onStart()", id, t);
         }
     }
 

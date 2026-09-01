@@ -23,6 +23,7 @@ import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
 import io.gitlab.icestom.icestom.ui.event.GenericErrorMessageEvent;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
 import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import net.minestom.server.MinecraftServer;
@@ -54,6 +55,7 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
     private final int totalPits;
 
     private int countdown = 0;
+    private int chequeredFlagTicks = 0;
 
     private RaceState raceState = RaceState.GRID;
 
@@ -159,6 +161,8 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
                             if (raceParticipant.isFinished()) {
                                 MinecraftServer.getGlobalEventHandler()
                                         .call(new RaceCompletedEvent(participation, this));
+
+                                if (raceState == RaceState.RACE) finishRace();
                             }
                         }
 
@@ -195,9 +199,23 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
                 forEachAudience(Audience::clearTitle);
                 startRace();
             } else if (countdown % 20 == 0) {
+                // TODO: replace this with UI hooks
                 forEachAudience(audience -> audience.showTitle(
                         Title.title(Component.text(countdown / 20), Component.empty())
                 ));
+            }
+        }
+
+        if (chequeredFlagTicks > 0) {
+            chequeredFlagTicks--;
+
+            if (chequeredFlagTicks == 0) {
+                endRace();
+            } else if (chequeredFlagTicks % 20 == 0) {
+                // TODO: replace this with UI hooks
+                forEachAudience(audience -> {
+                    audience.sendMessage(Component.text("Race end in " + (chequeredFlagTicks / 20)));
+                });
             }
         }
     }
@@ -219,6 +237,38 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
                 holder.remove();
             }
         }
+    }
+
+    public void finishRace() {
+        if (raceState != RaceState.RACE) return;
+        raceState = RaceState.CHEQUERED_FLAG;
+
+        chequeredFlagTicks = 10 * 20;
+    }
+
+    public void endRace() {
+        if (raceState != RaceState.CHEQUERED_FLAG) return;
+        raceState = RaceState.END;
+
+        List<Result<EventParticipant>> results = new ArrayList<>();
+
+        for (RaceLeaderboardRow row : raceLeaderboard.getSnapshot().getRows()) {
+            RaceParticipant racer = row.getParticipant();
+            EventParticipant participant = participants.getParticipantFromId(getParticipantId(
+                    racer
+            ));
+
+            Result<EventParticipant> result = new Result<>(participant);
+
+            // TODO: figure out how i'm gonna put tables n shit in here for splits / lap times
+
+            result.set(Key.key(IceStom.NAMESPACE, "completed_laps"), racer.getCompletedLaps());
+            result.set(Key.key(IceStom.NAMESPACE, "completed_pits"), racer.getCompletedLaps());
+
+            results.add(result);
+        }
+
+        future.complete(results);
     }
 
     @Override
@@ -254,7 +304,7 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 
     @Override
     protected boolean shouldTrackPlayer(Player player) {
-        return raceState == RaceState.RACE && participants.isPlayerActivelyParticipating(player);
+        return (raceState == RaceState.RACE || raceState == RaceState.CHEQUERED_FLAG) && participants.isPlayerActivelyParticipating(player);
     }
 
     public @Nullable Pos getGridLocation(@NotNull EventParticipant participation) {
@@ -346,7 +396,9 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
     public enum RaceState {
         GRID,
         COUNTDOWN,
-        RACE
+        RACE,
+        CHEQUERED_FLAG,
+        END
     }
 
     public class RaceParticipant implements LeaderboardParticipant<RaceParticipant> {
@@ -402,7 +454,7 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 
             TimedLap completedLap = currentLap;
 
-            if (completedLapCount < totalLaps) {
+            if (completedLapCount < totalLaps && raceState != RaceState.CHEQUERED_FLAG) {
                 currentLap = new TimedLap(
                         track,
                         flap,

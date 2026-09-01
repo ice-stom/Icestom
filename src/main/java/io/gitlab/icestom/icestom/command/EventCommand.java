@@ -72,7 +72,7 @@ public class EventCommand extends Command {
                     );
                     luaEvent.begin(List.of(new Result<>(player))).whenComplete((results, throwable) -> {
                         log.info("results={}", results, throwable);
-                        luaEvent.close();
+                        luaEvent.cleanup();
                     });
                 } catch (LuauCompileException e) {
                     throw new RuntimeException(e);

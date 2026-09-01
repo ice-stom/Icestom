@@ -9,6 +9,7 @@ import io.gitlab.icestom.icestom.event.lua.adapter.UserdataWrapper;
 import net.hollowcube.luau.BuilinLibrary;
 import net.hollowcube.luau.LuaState;
 import net.kyori.adventure.key.Key;
+import net.minestom.server.entity.Player;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,6 +102,8 @@ public class LuaEvent<Participant extends EventParticipant> extends IceStomEvent
 
         EventStage stage = EventStage.makeStage(namespacedKey, options).join();
 
+        addStage(stage);
+
         return new LuaStage(stage);
     }
 
@@ -108,11 +111,8 @@ public class LuaEvent<Participant extends EventParticipant> extends IceStomEvent
     public CompletableFuture<List<Result<EventParticipant>>> begin(
             List<Result<EventParticipant>> results
     ) {
-        return CompletableFuture.supplyAsync(() -> {
-
+        future = CompletableFuture.supplyAsync(() -> {
             lua.getRef(eventFn);
-
-            log.info("Event FN: {}", eventFn);
 
             eventUserdataWrapper.push(lua, this);
 
@@ -132,15 +132,14 @@ public class LuaEvent<Participant extends EventParticipant> extends IceStomEvent
 
             return output;
         });
+
+        return future;
     }
 
     @Override
     public void cleanup() {
-        // TODO!!!
-    }
+        super.cleanup();
 
-    @Override
-    public void close() {
         if (eventFn != null) {
             lua.unref(eventFn);
             eventFn = null;

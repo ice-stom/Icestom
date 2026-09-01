@@ -3,6 +3,7 @@ package io.gitlab.icestom.icestom.command;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
 import io.gitlab.icestom.icestom.race.RaceStage;
 import io.gitlab.icestom.icestom.track.Track;
+import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.Command;
@@ -23,6 +24,7 @@ public class DebugCommand extends Command {
         addSubcommand(new InstanceList());
         addSubcommand(new Block());
         addSubcommand(new Relight());
+        addSubcommand(new Logo());
     }
 
     public static class LetMeOutCommand extends Command {
@@ -122,6 +124,20 @@ public class DebugCommand extends Command {
 
                 player.getInstance().setChunkSupplier(LightingChunk::new);
                 LightingChunk.relight(player.getInstance(), player.getInstance().getChunks());
+            });
+        }
+    }
+
+    public static class Logo extends Command {
+        public Logo() {
+            super("logo");
+
+            setDefaultExecutor((commandSender, _) -> {
+                if (!(commandSender instanceof Player player)) return;
+
+                for (int y = 0; y < 9; y++) {
+                    player.sendMessage(TextFormatter.getIcestomLogoRow(y));
+                }
             });
         }
     }

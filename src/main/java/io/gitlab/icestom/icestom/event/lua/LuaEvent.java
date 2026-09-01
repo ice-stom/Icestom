@@ -61,7 +61,7 @@ public class LuaEvent<Participant extends EventParticipant> extends IceStomEvent
 
         lua.newTable();
         lua.pushString("track");
-        lua.pushString("icestom_test");
+        lua.pushString("67circuit");
         lua.setTable(-3);
 
         lua.call(1, 2);

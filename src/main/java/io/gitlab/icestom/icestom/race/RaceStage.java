@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager.getHolder;
 
-public class RaceStage extends BoatedTrackInstance implements EventStage, ParticipantStoreHolder {
+public class RaceStage extends BoatedTrackInstance implements EventStage, ParticipantStoreHolder, Stateful<RaceStage.RaceState> {
 
     private final InterfaceManager.InterfaceHolder interfaceHolder = getHolder(RaceStage.class, this);
 
@@ -61,8 +61,12 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 
     private final CompletableFuture<List<Result<EventParticipant>>> future = new CompletableFuture<>();
 
-    public RaceStage(Track track, int totalLaps, int totalPits) {
+    private final String name;
+
+    public RaceStage(String stageName, Track track, int totalLaps, int totalPits) {
         super(track);
+
+        this.name = stageName;
 
         this.totalLaps = totalLaps;
         this.totalPits = totalPits;
@@ -74,6 +78,10 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
     }
 
     public static CompletableFuture<RaceStage> create(Map<String, Object> options) {
+        if (!(options.get("name") instanceof String name)) {
+            return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'name' isn't a string"));
+        }
+
         if (!(options.get("track") instanceof String track_id)) {
             return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'track' isn't a string"));
         }
@@ -95,7 +103,7 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
         return IceStom.getInstance().getTrackLibrary()
                 .loadTrack(track_id)
                 .thenApply(Optional::get)
-                .thenApply(track1 -> new RaceStage(track1, laps, pits));
+                .thenApply(track1 -> new RaceStage(name, track1, laps, pits));
     }
 
     @Override
@@ -220,7 +228,7 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
         }
     }
 
-    public void startCountdown() {
+    private void startCountdown() {
         if (raceState != RaceState.GRID) return;
         raceState = RaceState.COUNTDOWN;
 
@@ -228,7 +236,7 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
         countdown = 10 * 20 + 1;
     }
 
-    public void startRace() {
+    private void startRace() {
         if (raceState != RaceState.COUNTDOWN) return;
         raceState = RaceState.RACE;
 
@@ -239,14 +247,14 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
         }
     }
 
-    public void finishRace() {
+    private void finishRace() {
         if (raceState != RaceState.RACE) return;
         raceState = RaceState.CHEQUERED_FLAG;
 
         chequeredFlagTicks = 10 * 20;
     }
 
-    public void endRace() {
+    private void endRace() {
         if (raceState != RaceState.CHEQUERED_FLAG) return;
         raceState = RaceState.END;
 
@@ -278,6 +286,11 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 
     public UUID getParticipantId(RaceParticipant raceParticipant) {
         return racersLookup.get(raceParticipant);
+    }
+
+    @Override
+    public String getStageName() {
+        return name;
     }
 
     @Override
@@ -391,6 +404,19 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
     public void cleanup() {
         MinecraftServer.getInstanceManager()
                 .unregisterInstance(this);
+    }
+
+    @Override
+    public RaceState getState() {
+        return raceState;
+    }
+
+    @Override
+    public List<StateChange<RaceState>> getStageChanges() {
+        return List.of(
+                new StateChange<>("StartCountdown", RaceState.GRID, RaceState.COUNTDOWN, this::startCountdown),
+                new StateChange<>("FinishRace", RaceState.RACE, RaceState.CHEQUERED_FLAG, this::finishRace)
+        );
     }
 
     public enum RaceState {

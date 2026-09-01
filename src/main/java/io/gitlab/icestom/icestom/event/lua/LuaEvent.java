@@ -9,7 +9,6 @@ import io.gitlab.icestom.icestom.event.lua.adapter.UserdataWrapper;
 import net.hollowcube.luau.BuilinLibrary;
 import net.hollowcube.luau.LuaState;
 import net.kyori.adventure.key.Key;
-import net.minestom.server.entity.Player;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +45,8 @@ public class LuaEvent<Participant extends EventParticipant> extends IceStomEvent
 
         vm.sandbox();
     }
+
+    private final String stageName;
 
     private final LuaState lua;
     private Integer eventFn;
@@ -94,10 +95,17 @@ public class LuaEvent<Participant extends EventParticipant> extends IceStomEvent
 
         lua.pop(2);
         vm.pop(1);
+
+        Object name = manifest.get("name");
+
+        if (name == null) throw new InvalidEventManifestException("Missing 'name'");
+        if (!(name instanceof String nameString)) throw new InvalidEventManifestException("'name' isn't a string");
+
+        this.stageName = nameString;
     }
 
     @LuaFunction("makeStage")
-    public LuaStage makeStage(String key, Map<String, Object> options) {
+    protected LuaStage makeStage(String key, Map<String, Object> options) {
         Key namespacedKey = Key.key(key);
 
         EventStage stage = EventStage.makeStage(namespacedKey, options).join();
@@ -108,10 +116,15 @@ public class LuaEvent<Participant extends EventParticipant> extends IceStomEvent
     }
 
     @Override
+    public String getStageName() {
+        return stageName;
+    }
+
+    @Override
     public CompletableFuture<List<Result<EventParticipant>>> begin(
             List<Result<EventParticipant>> results
     ) {
-        future = CompletableFuture.supplyAsync(() -> {
+        futureResultsFuture.complete(CompletableFuture.supplyAsync(() -> {
             lua.getRef(eventFn);
 
             eventUserdataWrapper.push(lua, this);
@@ -131,9 +144,9 @@ public class LuaEvent<Participant extends EventParticipant> extends IceStomEvent
             lua.pop(1);
 
             return output;
-        });
+        }));
 
-        return future;
+        return futureResultsFuture.join();
     }
 
     @Override

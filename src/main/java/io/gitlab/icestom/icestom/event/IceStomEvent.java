@@ -16,7 +16,7 @@ public abstract class IceStomEvent<Participant extends EventParticipant> impleme
 
     private final List<EventStage> stages = new ArrayList<>();
 
-    protected CompletableFuture<List<Result<EventParticipant>>> future;
+    protected final CompletableFuture<CompletableFuture<List<Result<EventParticipant>>>> futureResultsFuture = new CompletableFuture<>();
 
     public IceStomEvent() {}
 
@@ -43,7 +43,7 @@ public abstract class IceStomEvent<Participant extends EventParticipant> impleme
 
     @Override
     public void cleanup() {
-        future.completeExceptionally(new EventCancelledException());
+        futureResultsFuture.join().completeExceptionally(new EventCancelledException());
 
         stages.forEach(stage -> {
             SpawnInstance spawnInstance = IceStom.getInstance().getSpawnInstance();
@@ -55,6 +55,10 @@ public abstract class IceStomEvent<Participant extends EventParticipant> impleme
 
             stage.cleanup();
         });
+    }
+
+    public List<EventStage> getLoadedStages() {
+        return stages;
     }
 
     public static class EventCancelledException extends RuntimeException {

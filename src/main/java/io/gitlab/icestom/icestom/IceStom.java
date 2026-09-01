@@ -8,6 +8,7 @@ import io.gitlab.icestom.icestom.database.sqlite.SQLiteTimetrialDatabase;
 import io.gitlab.icestom.icestom.debug.PerfHud;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
+import io.gitlab.icestom.icestom.event.EventManager;
 import io.gitlab.icestom.icestom.event.StageRegistry;
 import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import io.gitlab.icestom.icestom.instance.DefaultSpawnInstance;
@@ -67,6 +68,7 @@ public class IceStom {
     private final StageRegistry stageRegistry;
     private final TimeTrialManager timeTrialManager;
     private final OpenBoatUtilsManager openBoatUtilsManager;
+    private final EventManager eventManager;
 
     private final Instance spawnInstance;
     private Supplier<SpawnInstance> spawnProvider = DefaultSpawnInstance::new;
@@ -115,6 +117,8 @@ public class IceStom {
         translationManager = new TranslationManager(getClass());
         timeTrialManager = new TimeTrialManager();
         openBoatUtilsManager = new OpenBoatUtilsManager();
+
+        eventManager = new EventManager(Path.of("events"));
 
         timetrialDatabase = switch (config.database.type) {
             case "memory" -> new MemoryTimetrialDatabase();
@@ -245,6 +249,10 @@ public class IceStom {
     public SpawnInstance getSpawnInstance() { return (SpawnInstance) spawnInstance; }
 
     public TimetrialDatabase getTimetrialDatabase() { return timetrialDatabase; }
+
+    public EventManager getEventManager() {
+        return eventManager;
+    }
 
     static void main(String[] args) throws IOException, PluginManager.PluginLoadException {
         instance = new IceStom();

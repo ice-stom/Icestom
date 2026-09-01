@@ -21,7 +21,6 @@ public class DebugCommand extends Command {
         addSubcommand(new ToGrid());
         addSubcommand(new EscapeGrid());
         addSubcommand(new InstanceList());
-        addSubcommand(new StartRace());
         addSubcommand(new Block());
         addSubcommand(new Relight());
     }
@@ -98,18 +97,6 @@ public class DebugCommand extends Command {
                 }
 
                 commandSender.sendMessage(text);
-            });
-        }
-    }
-
-    public static class StartRace extends Command {
-        public StartRace() {
-            super("startrace");
-
-            setDefaultExecutor((commandSender, _) -> {
-                if (!(commandSender instanceof Player player)) return;
-
-                if (player.getInstance() instanceof RaceStage raceInstance) raceInstance.startCountdown();
             });
         }
     }

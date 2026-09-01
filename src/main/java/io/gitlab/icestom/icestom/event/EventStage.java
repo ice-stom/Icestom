@@ -11,7 +11,11 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public interface EventStage extends PlayerHolder {
+
+    String getStageName();
+
     CompletableFuture<List<Result<EventParticipant>>> begin(List<Result<EventParticipant>> results);
+
     void cleanup();
 
     default void teleportAllParticipants(List<Result<EventParticipant>> results) {

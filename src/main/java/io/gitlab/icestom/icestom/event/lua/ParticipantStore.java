@@ -88,6 +88,10 @@ public class ParticipantStore {
         return weakActiveParticipants.get(player);
     }
 
+    public EventParticipant getParticipantFromPlayer(Player player) {
+        return weakParticipants.get(player);
+    }
+
     public int getIndexofParticipant(EventParticipant participant) {
         return participants.indexOf(participant);
     }

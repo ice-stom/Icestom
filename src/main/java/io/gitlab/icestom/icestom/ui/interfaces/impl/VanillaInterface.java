@@ -133,7 +133,7 @@ public class VanillaInterface implements InterfaceProvider {
 
                 final int checkpoint = lap.getLastReachedCheckpoint();
 
-                if (result != null && result.splits().size() > checkpoint && checkpoint != -1) {
+                if (result != null && result.splits().size() > checkpoint && checkpoint != 0) {
                     player.sendMessage(Component.translatable(
                             "message.timetrial.checkpoint_pass",
                             Argument.component("checkpoint", Component.text(checkpoint)),
@@ -141,11 +141,14 @@ public class VanillaInterface implements InterfaceProvider {
                             Argument.component("delta", TextFormatter.getDelta(lap.getRecentSplit()))
                     ));
                 } else {
-                    player.sendMessage(Component.translatable(
-                            "message.timetrial.checkpoint_pass_no_delta",
-                            Argument.component("checkpoint", Component.text(checkpoint)),
-                            Argument.component("time", TextFormatter.getTime(lap.getSplitTime(checkpoint)))
-                    ));
+                    if (checkpoint != 0) {
+                        player.sendMessage(Component.translatable(
+                                "message.timetrial.checkpoint_pass_no_delta",
+                                Argument.component("checkpoint", Component.text(checkpoint)),
+                                Argument.component("time", TextFormatter.getTime(lap.getSplitTime(checkpoint)))
+
+                        ));
+                    }
                 }
             });
 

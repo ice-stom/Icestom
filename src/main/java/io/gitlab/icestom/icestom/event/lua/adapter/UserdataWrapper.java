@@ -91,7 +91,10 @@ public class UserdataWrapper<T> implements LuaCodec<T> {
         Throwable cause = e.getCause();
         if (cause instanceof RuntimeException re) return re;
         if (cause instanceof Error err) throw err;
-        return new RuntimeException(cause);
+
+        RuntimeException wrapped = new RuntimeException(cause.toString(), cause);
+        wrapped.setStackTrace(cause.getStackTrace());
+        return wrapped;
     }
 
     private static Object readArg(LuaState state, Type type, int index) {

@@ -6,6 +6,7 @@ import io.gitlab.icestom.stomtrack.EnvironmentFile;
 import io.gitlab.icestom.stomtrack.TrackFile;
 import io.gitlab.icestom.stomtrack.TrackLoader;
 import net.hollowcube.polar.PolarLoader;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,7 +84,7 @@ public class FileSystemSource extends TrackSource {
     }
 
     @Override
-    public CompletableFuture<Optional<Track>> getTrack(String track_id) {
+    public @NotNull CompletableFuture<Optional<Track>> getTrack(String track_id) {
 
         Path file = sourceFiles.get(track_id);
 

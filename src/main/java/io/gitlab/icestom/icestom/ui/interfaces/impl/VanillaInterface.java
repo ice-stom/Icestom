@@ -14,11 +14,15 @@ import io.gitlab.icestom.icestom.timetrial.event.*;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.track.Track;
+import io.gitlab.icestom.icestom.ui.TickCountdown;
 import io.gitlab.icestom.icestom.ui.event.GenericErrorMessageEvent;
 import io.gitlab.icestom.icestom.ui.event.GenericMessageEvent;
 import io.gitlab.icestom.icestom.ui.interfaces.*;
 import io.gitlab.icestom.icestom.util.TextFormatter;
 import io.gitlab.icestom.icestom.util.UsernameCache;
+import net.kyori.adventure.bossbar.BossBar;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -27,9 +31,12 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.translation.Argument;
 import net.kyori.adventure.text.object.ObjectContents;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.instance.InstanceTickEvent;
 import net.minestom.server.scoreboard.Sidebar;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -37,15 +44,30 @@ public class VanillaInterface implements InterfaceProvider {
 
     private static final Map<Player, Sidebar> sidebars = new HashMap<>();
 
+    private static final Sound PING = Sound.sound(
+            Key.key("entity.experience_orb.pickup"),
+            Sound.Source.MASTER,
+            1f,
+            1f
+    );
+    private static final Logger log = LoggerFactory.getLogger(VanillaInterface.class);
+
     @Override
-    @SuppressWarnings("unchecked")
     public <H, I extends Interface<H, I>> I getInterface(H holder) {
-        return (I) switch (holder) {
-            case TimeTrialingInstance instance -> new VanillaTimetrialInterface(instance);
-            case RaceStage instance -> new VanillaRaceInterface(instance);
-            case IceStom instance -> new VanillaGeneralInterface(instance);
-            default -> throw new RuntimeException("Unsupported Interface type: " + holder.getClass().getSimpleName());
-        };
+        try {
+            return (I) switch (holder) {
+                case TimeTrialingInstance instance -> new VanillaTimetrialInterface(instance);
+                case RaceStage instance -> new VanillaRaceInterface(instance);
+                case IceStom instance -> new VanillaGeneralInterface(instance);
+                default -> throw new RuntimeException(
+                        "Unsupported Interface type: " +
+                                holder.getClass().getSimpleName()
+                );
+            };
+        } catch (Exception e) {
+            log.error("getInterface failed for {}", holder, e);
+            throw e;
+        }
     }
 
     protected static void createSidebar(Player player) {
@@ -183,6 +205,8 @@ public class VanillaInterface implements InterfaceProvider {
                 final TimedLapResultSource result = event.getResult();
                 final @Nullable TimedLapResultSource best = event.getLap().getBestPreviousResult();
 
+                player.playSound(PING);
+
                 player.sendMessage(lapCompletedMessage(
                         track,
                         result,
@@ -218,8 +242,54 @@ public class VanillaInterface implements InterfaceProvider {
 
     public static class VanillaRaceInterface extends AbstractRaceInterface {
 
+        private final Map<TickCountdown, BossBar> countdowns = new HashMap<>();
+        private final Map<TickCountdown, Set<Player>> countdownViewers = new HashMap<>();
+
         public VanillaRaceInterface(RaceStage holder) {
             super(holder);
+
+            Map<TickCountdown, String> translations = Map.of(
+                    holder.getStartingCountdown(), "race.bossbar.starting_countdown",
+                    holder.getChequeredFlagCountdown(), "race.bossbar.chequered_flag_countdown"
+            );
+
+            translations.keySet().forEach((tickCountdown) -> {
+                countdowns.put(
+                        tickCountdown,
+                        BossBar.bossBar(
+                                Component.empty(),
+                                0f,
+                                BossBar.Color.WHITE,
+                                BossBar.Overlay.PROGRESS
+                        )
+                );
+
+                countdownViewers.put(tickCountdown, new HashSet<>());
+            });
+
+            eventNode().addListener(InstanceTickEvent.class, event -> {
+                countdowns.forEach((tickCountdown, bossBar) -> {
+                    Set<Player> viewers = countdownViewers.get(tickCountdown);
+                    boolean running = tickCountdown.isRunning();
+
+                    if (running) {
+                        Component translatable = Component.translatable(translations.get(tickCountdown));
+
+                        // adventure's global translator is crazy
+                        bossBar.name(translatable);
+
+                        for (Player player : getWatching()) {
+                            if (viewers.add(player)) bossBar.addViewer(player);
+                        }
+                    } else if (!viewers.isEmpty()) {
+                        for (Player player : viewers) {
+                            bossBar.removeViewer(player);
+                        }
+
+                        viewers.clear();
+                    }
+                });
+            });
 
             eventNode().addListener(RaceLeaderboardUpdateEvent.class, event -> {
                 final @NotNull RaceStage raceStage = event.getInstance();
@@ -335,6 +405,12 @@ public class VanillaInterface implements InterfaceProvider {
         public void stopWatching(Player player) {
             super.stopWatching(player);
             destroySidebar(player);
+
+            countdownViewers.forEach((viewers, players) -> {
+                if (players.remove(player)) {
+                    countdowns.get(viewers).removeViewer(player);
+                }
+            });
         }
     }
 }

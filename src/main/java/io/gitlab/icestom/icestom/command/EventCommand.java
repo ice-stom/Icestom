@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
 public class EventCommand extends Command {
@@ -51,20 +52,20 @@ public class EventCommand extends Command {
                         LuaEvent<EventParticipant> event = IceStom.getInstance().getEventManager().loadLuauEvent(filename);
 
                         if (event == null) {
-                            sender.sendMessage(Component.translatable("command.event.load.failed_to_find_event",
+                            sender.sendMessage(Component.translatable("command.event.run.failed_to_find_event",
                                     Argument.component("filename", Component.text(filename))
                             ));
                         }
 
                         return event;
                     } catch (LuauCompileException e) {
-                        sender.sendMessage(Component.translatable("command.event.load.failed_to_compile_file",
+                        sender.sendMessage(Component.translatable("command.event.run.failed_to_compile_file",
                                 Argument.component("filename", Component.text(filename))
                         ));
                         log.error("Failed to compile {}", filename, e);
                         return null;
                     } catch (Exception e) {
-                        sender.sendMessage(Component.translatable("command.event.load.failed_to_load_file",
+                        sender.sendMessage(Component.translatable("command.event.run.failed_to_load_file",
                                 Argument.component("filename", Component.text(filename))
                         ));
                         log.error("Failed to load {}", filename, e);
@@ -73,7 +74,7 @@ public class EventCommand extends Command {
                 }).thenAccept(event -> {
                     if (event == null) return;
 
-                    sender.sendMessage(Component.translatable("command.event.load.compiled_in",
+                    sender.sendMessage(Component.translatable("command.event.run.compiled_in",
                             Argument.component("filename", Component.text(filename)),
                             Argument.component("time", Component.text(System.currentTimeMillis() - compileStart))
                     ));
@@ -84,7 +85,30 @@ public class EventCommand extends Command {
                         results.add(new Result<>(participant));
                     }
 
-                    event.begin(results).thenRun(event::cleanup);
+                    event.begin(results).whenComplete((results1, throwable) -> {
+                        if (throwable != null) {
+                            Throwable cause = throwable;
+
+                            throwable.printStackTrace();
+
+                            if (cause instanceof CompletionException && cause.getCause() != null) {
+                                cause = cause.getCause();
+                            }
+
+
+
+                            log.error(
+                                    "Event {} failed",
+                                    event.getClass().getName(),
+                                    cause
+                            );
+
+                            sender.sendMessage(
+                                    Component.translatable("command.event.run.exception")
+                            );
+                            return;
+                        }
+                    }).thenRun(event::cleanup);
                 });
             }, fileArgument);
         }

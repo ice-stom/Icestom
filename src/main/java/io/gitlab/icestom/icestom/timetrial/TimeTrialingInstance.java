@@ -30,11 +30,12 @@ import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.player.PlayerGameModeRequestEvent;
 import net.minestom.server.event.player.PlayerStartSneakingEvent;
 import net.minestom.server.event.player.PlayerUseItemEvent;
-import net.minestom.server.instance.Instance;
 import net.minestom.server.inventory.PlayerInventory;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -42,7 +43,10 @@ import static io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager.getHolder
 
 @SuppressWarnings("UnstableApiUsage")
 public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLocation {
-    private final InterfaceManager.InterfaceHolder interfaceHolder = getHolder(TimeTrialingInstance.class, this);
+
+    private static final Logger log = LoggerFactory.getLogger(TimeTrialingInstance.class);
+
+    private final InterfaceManager.InterfaceHolder interfaceHolder;
 
     private final Map<Player, TimedLap> timeTrials = new HashMap<>();
 
@@ -141,6 +145,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         });
 
         leaderboard = new TimetrialLeaderboard(track);
+        interfaceHolder = getHolder(TimeTrialingInstance.class, this);
     }
 
     @Override

@@ -20,12 +20,11 @@ import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.track.TickMovement;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
+import io.gitlab.icestom.icestom.ui.TickCountdown;
 import io.gitlab.icestom.icestom.ui.event.GenericErrorMessageEvent;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
-import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.title.Title;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.GameMode;
@@ -41,7 +40,7 @@ import static io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager.getHolder
 
 public class RaceStage extends BoatedTrackInstance implements EventStage, ParticipantStoreHolder, Stateful<RaceStage.RaceState> {
 
-    private final InterfaceManager.InterfaceHolder interfaceHolder = getHolder(RaceStage.class, this);
+    private final InterfaceManager.InterfaceHolder interfaceHolder;
 
     private final ParticipantStore participants = new ParticipantStore();
     private final List<EventParticipant> startOrder = new ArrayList<>();
@@ -54,8 +53,8 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
     private final int totalLaps;
     private final int totalPits;
 
-    private int countdown = 0;
-    private int chequeredFlagTicks = 0;
+    private final TickCountdown startingCountdown = new TickCountdown();
+    private final TickCountdown chequeredFlag = new TickCountdown();
 
     private RaceState raceState = RaceState.GRID;
 
@@ -75,6 +74,8 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 
         subscribeRegionId("icestom.reset");
         subscribeTriggerId("icestom.reset");
+
+        interfaceHolder = getHolder(RaceStage.class, this);
     }
 
     public static CompletableFuture<RaceStage> create(Map<String, Object> options) {
@@ -102,8 +103,13 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 
         return IceStom.getInstance().getTrackLibrary()
                 .loadTrack(track_id)
-                .thenApply(Optional::get)
-                .thenApply(track1 -> new RaceStage(name, track1, laps, pits));
+                .thenCompose(trackOpt -> trackOpt.map(value -> CompletableFuture.completedFuture(
+                        new RaceStage(name, value, laps, pits)
+                )).orElseGet(() -> CompletableFuture.failedFuture(
+                        new InvalidStageArgumentsException(
+                                "Track '" + track_id + "' doesn't exist"
+                        )
+                )));
     }
 
     @Override
@@ -200,32 +206,8 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
             }
         }
 
-        if (countdown > 0) {
-            countdown--;
-
-            if (countdown == 0) {
-                forEachAudience(Audience::clearTitle);
-                startRace();
-            } else if (countdown % 20 == 0) {
-                // TODO: replace this with UI hooks
-                forEachAudience(audience -> audience.showTitle(
-                        Title.title(Component.text(countdown / 20), Component.empty())
-                ));
-            }
-        }
-
-        if (chequeredFlagTicks > 0) {
-            chequeredFlagTicks--;
-
-            if (chequeredFlagTicks == 0) {
-                endRace();
-            } else if (chequeredFlagTicks % 20 == 0) {
-                // TODO: replace this with UI hooks
-                forEachAudience(audience -> {
-                    audience.sendMessage(Component.text("Race end in " + (chequeredFlagTicks / 20)));
-                });
-            }
-        }
+        if (startingCountdown.tick()) startRace();
+        if (chequeredFlag.tick()) endRace();
     }
 
     private void startCountdown() {
@@ -233,7 +215,7 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
         raceState = RaceState.COUNTDOWN;
 
         // trust
-        countdown = 10 * 20 + 1;
+        startingCountdown.start(10 * 20);
     }
 
     private void startRace() {
@@ -251,7 +233,7 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
         if (raceState != RaceState.RACE) return;
         raceState = RaceState.CHEQUERED_FLAG;
 
-        chequeredFlagTicks = 10 * 20;
+        chequeredFlag.start(60 * 20);
     }
 
     private void endRace() {
@@ -271,7 +253,7 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
             // TODO: figure out how i'm gonna put tables n shit in here for splits / lap times
 
             result.set(Key.key(IceStom.NAMESPACE, "completed_laps"), racer.getCompletedLaps());
-            result.set(Key.key(IceStom.NAMESPACE, "completed_pits"), racer.getCompletedLaps());
+            result.set(Key.key(IceStom.NAMESPACE, "completed_pits"), racer.getCompletedPitCount());
 
             results.add(result);
         }
@@ -417,6 +399,18 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
                 new StateChange<>("StartCountdown", RaceState.GRID, RaceState.COUNTDOWN, this::startCountdown),
                 new StateChange<>("FinishRace", RaceState.RACE, RaceState.CHEQUERED_FLAG, this::finishRace)
         );
+    }
+
+    public List<EventParticipant> getStartOrder() {
+        return startOrder;
+    }
+
+    public TickCountdown getStartingCountdown() {
+        return startingCountdown;
+    }
+
+    public TickCountdown getChequeredFlagCountdown() {
+        return chequeredFlag;
     }
 
     public enum RaceState {

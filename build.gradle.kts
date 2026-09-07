@@ -40,12 +40,10 @@ dependencies {
     implementation("dev.hollowcube:luau:1.2.1")
     implementation("dev.hollowcube:luau-natives-linux-x64:1.2.1")
     implementation("dev.hollowcube:luau-natives-windows-x64:1.2.1")
-}
 
-configurations.all {
-    resolutionStrategy {
-        force("net.kyori:adventure-api:4.25.0")
-    }
+    implementation("org.jline:jline-terminal-jna:3.30.9")
+    implementation("org.jline:jline-terminal-jansi:3.30.9")
+    implementation("org.jline:jline-reader:3.30.9")
 }
 
 tasks {

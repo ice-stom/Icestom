@@ -201,6 +201,10 @@ public class IceStom {
 
         pluginManager.startPlugins();
 
+
+        CommandManager commandManager = MinecraftServer.getCommandManager();
+        commandManager.register(new DebugCommand());
+        commandManager.register(new StopCommand());
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -208,7 +212,6 @@ public class IceStom {
         CommandManager commandManager = MinecraftServer.getCommandManager();
         commandManager.register(new BoatCommand());
         commandManager.register(new TimeTrialCommand());
-        commandManager.register(new DebugCommand());
         commandManager.register(new TrackCommand());
         commandManager.register(new SpawnCommand());
         commandManager.register(new EventCommand());
@@ -234,6 +237,15 @@ public class IceStom {
         log.info("Starting IceStom server on {}:{}", config.network.bind, config.network.port);
 
         minecraftServer.start(config.network.bind, config.network.port);
+
+        Console console = new Console();
+        Thread consoleThread = new Thread(console::start, "console");
+        consoleThread.setDaemon(true);
+        consoleThread.start();
+
+
+        MinecraftServer.getSchedulerManager().buildShutdownTask(console::stop);
+        MinecraftServer.getSchedulerManager().buildShutdownTask(spark::shutdown);
     }
 
     public void setSpawnProvider(Supplier<SpawnInstance> spawnProvider) {

@@ -2,6 +2,7 @@ package io.gitlab.icestom.icestom;
 
 import io.gitlab.icestom.icestom.command.*;
 import io.gitlab.icestom.icestom.config.IceStomConfig;
+import io.gitlab.icestom.icestom.console.Console;
 import io.gitlab.icestom.icestom.database.TimetrialDatabase;
 import io.gitlab.icestom.icestom.database.memory.MemoryTimetrialDatabase;
 import io.gitlab.icestom.icestom.database.sqlite.SQLiteTimetrialDatabase;

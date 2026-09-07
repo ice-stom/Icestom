@@ -1,6 +1,7 @@
 <configuration>
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener"/>
 
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <appender name="CONSOLE" class="io.gitlab.icestom.icestom.console.JLineLogbackAppender">
         <encoder>
             <pattern>
                 %d{HH:mm:ss.SSS} %highlight(%-5level) %cyan(%class{0}) - %msg%n
@@ -8,8 +9,24 @@
         </encoder>
     </appender>
 
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/icestom.log</file>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>logs/icestom.%i.log.gz</fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>10</maxIndex>
+        </rollingPolicy>
+
+        <triggeringPolicy class="io.gitlab.icestom.icestom.logging.StartupTriggeringPolicy"/>
+
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %class{0} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
     </root>
-
 </configuration>

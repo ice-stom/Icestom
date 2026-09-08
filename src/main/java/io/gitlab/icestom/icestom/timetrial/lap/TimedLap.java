@@ -77,7 +77,7 @@ public class TimedLap implements TimedLapResultSource {
     }
 
     public Component getActionBar(long worldAge) {
-        long time = worldAge * 50 - getMsStart();
+        long time = Math.max(0, worldAge * 50 - getMsStart());
 
         float t_seconds = (float) Math.ceil((float) time / 50) * 50 / 1000;
 

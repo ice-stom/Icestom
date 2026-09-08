@@ -8,9 +8,8 @@ import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.TimetrialLeaderboard;
 import io.gitlab.icestom.icestom.instance.BoatedTrackInstance;
 import io.gitlab.icestom.icestom.instance.SpawnLocation;
-import io.gitlab.icestom.icestom.timetrial.event.TimedLapCheckpointAdvancedEvent;
-import io.gitlab.icestom.icestom.timetrial.event.TimeTrialTimedLapEndedEvent;
-import io.gitlab.icestom.icestom.timetrial.event.TimeTrialLapTimerEvent;
+import io.gitlab.icestom.icestom.instance.TrackInstance;
+import io.gitlab.icestom.icestom.timetrial.event.*;
 import io.gitlab.icestom.icestom.timetrial.lap.TimeTrialResult;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResult;
 import io.gitlab.icestom.icestom.track.Track;
@@ -27,6 +26,7 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.player.PlayerGameModeRequestEvent;
 import net.minestom.server.event.player.PlayerStartSneakingEvent;
 import net.minestom.server.event.player.PlayerUseItemEvent;
@@ -34,6 +34,8 @@ import net.minestom.server.inventory.PlayerInventory;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -41,15 +43,26 @@ import static io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager.getHolder
 
 @SuppressWarnings("UnstableApiUsage")
 public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLocation {
-    private final InterfaceManager.InterfaceHolder interfaceHolder = getHolder(TimeTrialingInstance.class, this);
+
+    private static final Logger log = LoggerFactory.getLogger(TimeTrialingInstance.class);
+
+    private final InterfaceManager.InterfaceHolder interfaceHolder;
 
     private final Map<Player, TimedLap> timeTrials = new HashMap<>();
+
+    private final Map<UUID, Pos> practicePoints = new HashMap<>();
 
     private final ItemStack RESET_ITEM = ItemStack.of(Objects.requireNonNull(Material.fromKey(IceStomConfig.getConfig().icestom.reset_item)))
             .withCustomName(Component.text("Reset", NamedTextColor.RED).style(Style.style().decoration(TextDecoration.ITALIC, false)));
 
     private final ItemStack BOAT_ITEM = ItemStack.of(Material.OAK_BOAT)
             .withCustomName(Component.text("Boat", NamedTextColor.GREEN).style(Style.style().decoration(TextDecoration.ITALIC, false)));
+
+    private final ItemStack PRACTICE_ITEM = ItemStack.of(Material.APPLE)
+            .withCustomName(Component.text("Practice Point", NamedTextColor.YELLOW).style(Style.style().decoration(TextDecoration.ITALIC, false)));
+
+    private final ItemStack SPAWN_ITEM = ItemStack.of(Material.RED_BED)
+            .withCustomName(Component.text("Return to spawn", NamedTextColor.RED).style(Style.style().decoration(TextDecoration.ITALIC, false)));
 
     private final TimetrialLeaderboard leaderboard;
 
@@ -84,10 +97,55 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                 resetPlayer(player);
             } else if (itemStack == BOAT_ITEM) {
                 BoatCommand.spawnBoat(player);
+            } else if (itemStack == PRACTICE_ITEM) {
+                @Nullable Pos practicePoint = practicePoints.get(player.getUuid());
+
+                endTimeTrial(player);
+
+                if (practicePoint != null) {
+                    createBoat(player, practicePoint);
+                }
+            } else if (itemStack == SPAWN_ITEM) {
+                teleportToSpawn(player);
+            }
+        });
+
+        eventNode().addListener(ItemDropEvent.class, event -> {
+            final Player player = event.getPlayer();
+            final ItemStack itemStack = event.getItemStack();
+
+            event.setCancelled(true);
+
+            if (itemStack == RESET_ITEM) {
+                resetPlayer(player);
+            } else if (itemStack == BOAT_ITEM) {
+                BoatCommand.spawnBoat(player);
+            } else if (itemStack == PRACTICE_ITEM) {
+                if (practicePoints.containsKey(player.getUuid())) {
+                    practicePoints.remove(player.getUuid());
+
+                    MinecraftServer.getGlobalEventHandler()
+                            .call(new TimeTrialPracticePointDeleteEvent(player, this));
+                } else {
+                    if (player.isOnGround()) {
+                        practicePoints.put(player.getUuid(), player.getPosition());
+
+                        MinecraftServer.getGlobalEventHandler()
+                                .call(new TimeTrialPracticePointCreateEvent(player, this));
+                    } else if (player.getVehicle() instanceof Boat boat) {
+                        practicePoints.put(player.getUuid(), boat.getPosition());
+
+                        MinecraftServer.getGlobalEventHandler()
+                                .call(new TimeTrialPracticePointCreateEvent(player, this));
+                    }
+                }
+            } else if (itemStack == SPAWN_ITEM) {
+                teleportToSpawn(player);
             }
         });
 
         leaderboard = new TimetrialLeaderboard(track);
+        interfaceHolder = getHolder(TimeTrialingInstance.class, this);
     }
 
     @Override
@@ -106,9 +164,10 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                 track.getSpawnLocation().asVec().asPos() // remove pitch/yaw
         );
 
-        leaderboard.setInstance(this, leaderboard_pos);
-
         subscribeRegionId("icestom.reset");
+        subscribeTriggerId("icestom.reset");
+
+        leaderboard.setInstance(this, leaderboard_pos);
     }
 
     @Override
@@ -143,7 +202,8 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
             Player player = entry.getKey();
             TickMovement movement = entry.getValue();
 
-            Set<String> playerRegions = inside_regions.getOrDefault(player, Set.of());
+            Set<String> playerRegions = inside_regions.get(player);
+            Map<String, Long> playerTriggers = crossed_triggers.get(player);
 
             @Nullable TimedLap timedLap = getTimedLap(player);
 
@@ -155,7 +215,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                     @Nullable Long tick_delta = checkpoint.detectCross(movement);
 
                     if (tick_delta != null) {
-                        timedLap.advanceCheckpoint(new Split(
+                        boolean finished = timedLap.advanceCheckpoint(new Split(
                                 getWorldAge() * 50,
                                 tick_delta,
                                 next_no
@@ -164,7 +224,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                         MinecraftServer.getGlobalEventHandler()
                                 .call(new TimedLapCheckpointAdvancedEvent(timedLap, player));
 
-                        if (track.isLastCheckpoint(next_no)) {
+                        if (finished) {
                             endTimeTrial(player);
 
                             not_started_tt.put(player, movement);
@@ -172,12 +232,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                     }
                 }
 
-                if (playerRegions.contains("icestom.reset")) {
-                    Pos reset_point = track.getLocations().getOrDefault("icestom.reset_" + timedLap.getLastReachedCheckpoint(), track.getSpawnLocation());
-
-                    createBoat(player, reset_point);
-                }
-
+                TrackInstance.tickResetRegions(this, player, playerRegions, playerTriggers, timedLap);
             } else {
                 not_started_tt.put(player, movement);
             }
@@ -201,6 +256,9 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                         tick_delta,
                         0
                 ));
+
+                MinecraftServer.getGlobalEventHandler()
+                        .call(new TimedLapCheckpointAdvancedEvent(timedLap, player));
 
                 timeTrials.put(player, timedLap);
             }
@@ -227,6 +285,8 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         inventory.clear();
         inventory.setItemStack(0, RESET_ITEM);
         inventory.setItemStack(1, BOAT_ITEM);
+        inventory.setItemStack(2, PRACTICE_ITEM);
+        inventory.setItemStack(8, SPAWN_ITEM);
     }
 
     public @Nullable TimedLap getTimedLap(Player player) {
@@ -278,6 +338,13 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         player.setAllowFlying(false);
         player.setFlying(false);
 
+        player.getInventory().clear();
+
         interfaceHolder.stopWatching(player);
+    }
+
+    private void teleportToSpawn(Player player) {
+        drop(player);
+        IceStom.getInstance().getSpawnInstance().consume(player);
     }
 }

@@ -12,7 +12,6 @@ import io.gitlab.icestom.stomtrack.serde.*;
 import io.gitlab.icestom.stomtrack.type.Location;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
-import org.jspecify.annotations.NonNull;
 
 import java.util.*;
 
@@ -96,16 +95,16 @@ public class MutableTrackFile implements TrackFile {
 
     public void setVersion(int version) { this.version = version; }
 
-    @Override public @NonNull String getId() { return id; }
-    @Override public @NonNull Component getName() { return name; }
+    @Override public @NotNull String getId() { return id; }
+    @Override public @NotNull Component getName() { return name; }
     @Override public boolean isLooped() { return looped; }
-    @Override public @NonNull Location getSpawnLocation() { return spawnLocation; }
+    @Override public @NotNull Location getSpawnLocation() { return spawnLocation; }
     @Override public @NotNull Map<String, String> getTags() { return tags; }
-    @Override public @NonNull Map<TrackCheckpoint, Integer> getCheckpoints() { return checkpoints; }
-    @Override public @NonNull List<Location> getGrid() {
+    @Override public @NotNull Map<TrackCheckpoint, Integer> getCheckpoints() { return checkpoints; }
+    @Override public @NotNull List<Location> getGrid() {
         return grid;
     }
-    @Override public @NonNull List<OBUSettingsPacket> getOpenBoatUtils() {
+    @Override public @NotNull List<OBUSettingsPacket> getOpenBoatUtils() {
         return openBoatUtils;
     }
     @Override public @NotNull Map<TrackRegion, Set<String>> getRegions() { return regions; }

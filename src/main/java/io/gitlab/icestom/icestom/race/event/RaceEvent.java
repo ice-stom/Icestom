@@ -1,15 +1,9 @@
 package io.gitlab.icestom.icestom.race.event;
 
-import io.gitlab.icestom.icestom.race.RaceInstance;
-import net.minestom.server.entity.Player;
-import net.minestom.server.event.trait.PlayerEvent;
+import io.gitlab.icestom.icestom.race.RaceStage;
+import io.gitlab.icestom.icestom.track.event.TrackInstanceEvent;
 import org.jetbrains.annotations.NotNull;
 
-public interface RaceEvent extends RaceInstanceEvent, PlayerEvent {
-    @NotNull RaceInstance.RaceParticipant getParticipant();
-
-    @Override
-    default @NotNull Player getPlayer() {
-        return getParticipant().getCurrentPlayer();
-    }
+public interface RaceEvent extends TrackInstanceEvent {
+    @NotNull RaceStage getInstance();
 }

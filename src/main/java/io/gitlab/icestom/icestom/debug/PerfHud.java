@@ -21,14 +21,14 @@ public class PerfHud implements EventHandler<Event> {
     private final MovingAverage mspt_20t = new MovingAverage(20);
     private final MovingAverage mspt_100t = new MovingAverage(100);
 
+    private int viewers = 0;
+
     public PerfHud() {
-        eventNode.addListener(PlayerSpawnEvent.class, playerSpawnEvent -> {
-            addViewer(playerSpawnEvent.getPlayer());
-        });
         eventNode.addListener(ServerTickMonitorEvent.class, this::onTick);
     }
 
     private void updateBossBar() {
+        if (viewers == 0) return;
 
         float mem = 1 - ((float) Runtime.getRuntime().freeMemory() / Runtime.getRuntime().totalMemory());
 
@@ -42,7 +42,7 @@ public class PerfHud implements EventHandler<Event> {
         avgTps100t *= 8;
 
         double progress = avgTps / avgTps100t;
-        progress = Math.min(1, Math.max(0, progress));
+        progress = Math.clamp(progress, 0, 1);
         bossBar.progress((float) progress);
 
         if (mspt < 25) {
@@ -56,6 +56,7 @@ public class PerfHud implements EventHandler<Event> {
 
     public void addViewer(Audience audience) {
         bossBar.addViewer(audience);
+        viewers++;
     }
 
     public void onTick(ServerTickMonitorEvent tick) {

@@ -5,4 +5,5 @@ import net.minestom.server.event.EventNode;
 
 public interface IceStomPlugin {
     void onEnable(EventNode<Event> eventNode);
+    void onStart();
 }

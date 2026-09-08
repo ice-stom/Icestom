@@ -15,7 +15,7 @@ import java.util.Map;
 public class TimedLap implements TimedLapResultSource {
 
     private final Track track;
-    @Nullable private final TimedLapResultSource best_previous_result;
+    @Nullable private final TimedLapResultSource bestPreviousResult;
 
     private final List<Split> splits = new ArrayList<>();
     private final Map<Integer, Pos> ticks = new HashMap<>();
@@ -23,21 +23,19 @@ public class TimedLap implements TimedLapResultSource {
     private long msStart;
     private int lastReachedCheckpoint = -1;
 
-    private boolean runFurther = true;
-
     private long recentSplit = 0;
 
     public TimedLap(Track track, @Nullable TimedLapResultSource bestPreviousResult, Split split) {
 
         this.track = track;
-        this.best_previous_result = bestPreviousResult;
+        this.bestPreviousResult = bestPreviousResult;
 
         advanceCheckpoint(split);
     }
 
     public TimedLap(Track track, @Nullable TimedLapResultSource bestPreviousResult) {
         this.track = track;
-        this.best_previous_result = bestPreviousResult;
+        this.bestPreviousResult = bestPreviousResult;
     }
 
     public boolean advanceCheckpoint(Split split) {
@@ -54,18 +52,16 @@ public class TimedLap implements TimedLapResultSource {
         splits.add(local_split);
 
         if (track.isLastCheckpoint(this_checkpoint_index) && lastReachedCheckpoint != -1) {
-            lastReachedCheckpoint = -1;
             return true;
         }
 
         lastReachedCheckpoint++;
 
-        if (best_previous_result != null) {
-            if (best_previous_result.splits().size() <= split.checkpoint_no()) {
+        if (bestPreviousResult != null) {
+            if (bestPreviousResult.splits().size() <= split.checkpoint_no()) {
                 recentSplit = 0;
-                runFurther = false;
             } else {
-                Split best_previous = best_previous_result.splits().get(split.checkpoint_no());
+                Split best_previous = bestPreviousResult.splits().get(split.checkpoint_no());
 
                 recentSplit = local_split.ms() - best_previous.ms();
             }
@@ -87,7 +83,7 @@ public class TimedLap implements TimedLapResultSource {
 
         Component text = Component.text(String.format("%.2f", t_seconds));
 
-        if (best_previous_result != null) {
+        if (bestPreviousResult != null) {
             if (lastReachedCheckpoint != 0) {
                 text = text
                         .append(Component.space())
@@ -111,4 +107,8 @@ public class TimedLap implements TimedLapResultSource {
 
     @Override
     public Map<Integer, Pos> ticks() { return ticks; }
+
+    public @Nullable TimedLapResultSource getBestPreviousResult() {
+        return bestPreviousResult;
+    }
 }

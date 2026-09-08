@@ -36,12 +36,14 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.5.32")
 
     implementation("com.electronwill.night-config:toml:3.8.4")
-}
 
-configurations.all {
-    resolutionStrategy {
-        force("net.kyori:adventure-api:4.25.0")
-    }
+    implementation("dev.hollowcube:luau:1.2.1")
+    implementation("dev.hollowcube:luau-natives-linux-x64:1.2.1")
+    implementation("dev.hollowcube:luau-natives-windows-x64:1.2.1")
+
+    implementation("org.jline:jline-terminal-jna:3.30.9")
+    implementation("org.jline:jline-terminal-jansi:3.30.9")
+    implementation("org.jline:jline-reader:3.30.9")
 }
 
 tasks {
@@ -60,6 +62,14 @@ tasks {
     shadowJar {
         mergeServiceFiles()
         archiveClassifier.set("")
+    }
+
+    processResources {
+        filesMatching("version.properties") {
+            expand(
+                "version" to project.version
+            )
+        }
     }
 }
 

@@ -1,6 +1,8 @@
 package io.gitlab.icestom.icestom.track;
 
 import io.gitlab.icestom.icestom.IceStom;
+import io.gitlab.icestom.icestom.instance.TrackInstance;
+import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
 import io.github.openboatutils.protocol.channels.OBUSettingsPacket;
 import io.gitlab.icestom.icestom.track.colliders.InsideCollider;
@@ -9,6 +11,7 @@ import io.gitlab.icestom.stomtrack.TrackFile;
 import net.hollowcube.polar.PolarWorld;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.entity.Player;
 import org.intellij.lang.annotations.Subst;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

@@ -2,6 +2,7 @@ package io.gitlab.icestom.icestom;
 
 import io.gitlab.icestom.icestom.command.*;
 import io.gitlab.icestom.icestom.config.IceStomConfig;
+import io.gitlab.icestom.icestom.console.Console;
 import io.gitlab.icestom.icestom.database.TimetrialDatabase;
 import io.gitlab.icestom.icestom.database.memory.MemoryTimetrialDatabase;
 import io.gitlab.icestom.icestom.database.sqlite.SQLiteTimetrialDatabase;
@@ -9,13 +10,15 @@ import io.gitlab.icestom.icestom.debug.PerfHud;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
 import io.gitlab.icestom.icestom.event.EventManager;
+import io.gitlab.icestom.icestom.event.StageRegistry;
 import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import io.gitlab.icestom.icestom.instance.DefaultSpawnInstance;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
-import io.gitlab.icestom.icestom.instance.SpawnLocation;
 import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager;
 import io.gitlab.icestom.icestom.plugins.PluginManager;
-import io.gitlab.icestom.icestom.race.RaceInstance;
+import io.gitlab.icestom.icestom.race.RaceStage;
+import io.gitlab.icestom.icestom.stages.PodiumStage;
+import io.gitlab.icestom.icestom.stages.PracticeStage;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
@@ -23,6 +26,7 @@ import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
 import io.gitlab.icestom.icestom.ui.interfaces.impl.VanillaInterface;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
 import me.lucko.spark.minestom.SparkMinestom;
+import net.kyori.adventure.key.Key;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
@@ -41,17 +45,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Supplier;
 
+import static io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager.getHolder;
+
 public class IceStom {
 
     public static final String NAMESPACE = "icestom";
+    public static final String VERSION;
 
     private static final Logger log = LoggerFactory.getLogger(IceStom.class);
 
     private static IceStom instance;
+
+    private final InterfaceManager.InterfaceHolder interfaceHolder;
 
     private final MinecraftServer minecraftServer;
 
@@ -59,9 +69,10 @@ public class IceStom {
 
     private final TranslationManager translationManager;
     private final TrackLibrary trackLibrary;
+    private final StageRegistry stageRegistry;
     private final TimeTrialManager timeTrialManager;
-    private final EventManager eventManager;
     private final OpenBoatUtilsManager openBoatUtilsManager;
+    private final EventManager eventManager;
 
     private final Instance spawnInstance;
     private Supplier<SpawnInstance> spawnProvider = DefaultSpawnInstance::new;
@@ -71,6 +82,25 @@ public class IceStom {
     private final PerfHud perfHud = new PerfHud();
 
     private SparkMinestom spark;
+
+    static {
+        Properties properties = new Properties();
+
+        try (InputStream input = IceStom.class
+                .getClassLoader()
+                .getResourceAsStream("version.properties")) {
+
+            if (input == null) {
+                throw new IllegalStateException("version.properties not found");
+            }
+
+            properties.load(input);
+        } catch (IOException e) {
+            log.warn("Failed to fetch version.properties");
+        }
+
+        VERSION = properties.getProperty("version");
+    }
 
     IceStom() throws PluginManager.PluginLoadException, IOException {
         instance = this;
@@ -91,15 +121,28 @@ public class IceStom {
 
         minecraftServer = MinecraftServer.init(auth);
 
+        spark = SparkMinestom.builder(Path.of("spark"))
+                .commands(true)
+                .permissionHandler((_, _) -> true)
+                .enable();
+
         MinecraftServer.setCompressionThreshold(config.minestom.compression_threshold);
         MinecraftServer.setBrandName(String.format("IceStom (%s)", MinecraftServer.getBrandName()));
+        MinecraftServer.getConnectionManager().setPlayerProvider(IceStomPlayer::new);
 
         trackLibrary = new TrackLibrary();
+        trackLibrary.init();
+
+        stageRegistry = new StageRegistry();
+        stageRegistry.register(Key.key(NAMESPACE, "practice"), PracticeStage.class, PracticeStage::create);
+        stageRegistry.register(Key.key(NAMESPACE, "race"), RaceStage.class, RaceStage::create);
+        stageRegistry.register(Key.key(NAMESPACE, "podium"), PodiumStage.class, PodiumStage::create);
 
         translationManager = new TranslationManager(getClass());
         timeTrialManager = new TimeTrialManager();
-        eventManager = new EventManager();
         openBoatUtilsManager = new OpenBoatUtilsManager();
+
+        eventManager = new EventManager(Path.of("events"));
 
         timetrialDatabase = switch (config.database.type) {
             case "memory" -> new MemoryTimetrialDatabase();
@@ -113,50 +156,24 @@ public class IceStom {
             default -> throw new RuntimeException("Unknown database type: " + config.database.type);
         };
 
-        pluginManager = new PluginManager(Path.of("plugins"));
-        pluginManager.loadPlugins();
-        trackLibrary.init();
-
         spawnInstance = (Instance) spawnProvider.get();
-    }
 
-    @SuppressWarnings("UnstableApiUsage")
-    public void start() {
-        spark = SparkMinestom.builder(Path.of("spark"))
-                .commands(true)
-                .permissionHandler((_, _) -> true)
-                .enable();
+        InterfaceManager.register(TimeTrialingInstance.class, new VanillaInterface());
+        InterfaceManager.register(RaceStage.class, new VanillaInterface());
+        InterfaceManager.register(IceStom.class, new VanillaInterface());
 
-        MinecraftServer.getConnectionManager().setPlayerProvider(IceStomPlayer::new);
-
-        CommandManager commandManager = MinecraftServer.getCommandManager();
-        commandManager.register(new BoatCommand());
-        commandManager.register(new TimeTrialCommand());
-        commandManager.register(new DebugCommand());
-        commandManager.register(new TrackCommand());
-        commandManager.register(new SpawnCommand());
-        commandManager.register(new EventCommand());
-        commandManager.register(new ResetCommand());
-        commandManager.register(new GamemodeCommand());
-
-        InstanceManager instanceManager = MinecraftServer.getInstanceManager();
-        instanceManager.registerInstance(spawnInstance);
-
-        ((SpawnInstance) spawnInstance).init();
+        interfaceHolder = getHolder(IceStom.class, this);
 
         GlobalEventHandler globalEventHandler = MinecraftServer.getGlobalEventHandler();
+
+        pluginManager = new PluginManager(Path.of("plugins"));
+        pluginManager.loadPlugins();
+
+        globalEventHandler.addChild(pluginManager.eventNode());
 
         globalEventHandler.addChild(openBoatUtilsManager.eventNode());
         globalEventHandler.addChild(perfHud.eventNode());
         globalEventHandler.addChild(InterfaceManager.EVENT_NODE);
-        globalEventHandler.addChild(pluginManager.eventNode());
-
-        globalEventHandler.addListener(AsyncPlayerConfigurationEvent.class, event -> {
-            final Player player = event.getPlayer();
-
-            event.setSpawningInstance(spawnInstance);
-            player.setRespawnPoint(((SpawnInstance) spawnInstance).spawnLocation(player));
-        });
 
         globalEventHandler.addListener(PlayerSpawnEvent.class, event -> {
             final IceStomPlayer player = (IceStomPlayer) event.getPlayer();
@@ -167,13 +184,18 @@ public class IceStom {
                     (byte) (EntityStatuses.Player.PERMISSION_LEVEL_0 + 2))
             );
 
-            if (!player.hasPermission("icestom.perfhud")) return;
+            interfaceHolder.startWatching(player);
+
+            if (!player.hasPermission("icestom.perfhud") && System.getProperty("icestom.dev") == null) return;
 
             perfHud.addViewer(player);
         });
 
         globalEventHandler.addListener(PlayerDisconnectEvent.class,playerDisconnectEvent -> {
             final Player player = playerDisconnectEvent.getPlayer();
+
+            interfaceHolder.stopWatching(player);
+
             if (player.getInstance() instanceof PlayerHolder playerHolder) {
                 playerHolder.drop(player);
             }
@@ -199,14 +221,53 @@ public class IceStom {
             }
         });
 
-        InterfaceManager.register(TimeTrialingInstance.class, new VanillaInterface());
-        InterfaceManager.register(RaceInstance.class, new VanillaInterface());
+        pluginManager.startPlugins();
+
+
+        CommandManager commandManager = MinecraftServer.getCommandManager();
+        commandManager.register(new DebugCommand());
+        commandManager.register(new StopCommand());
+    }
+
+    @SuppressWarnings("UnstableApiUsage")
+    public void startStandard() {
+        CommandManager commandManager = MinecraftServer.getCommandManager();
+        commandManager.register(new BoatCommand());
+        commandManager.register(new TimeTrialCommand());
+        commandManager.register(new TrackCommand());
+        commandManager.register(new SpawnCommand());
+        commandManager.register(new EventCommand());
+        commandManager.register(new ResetCommand());
+        commandManager.register(new GamemodeCommand());
+
+        InstanceManager instanceManager = MinecraftServer.getInstanceManager();
+        instanceManager.registerInstance(spawnInstance);
+
+        ((SpawnInstance) spawnInstance).init();
+
+        GlobalEventHandler globalEventHandler = MinecraftServer.getGlobalEventHandler();
+
+        globalEventHandler.addListener(AsyncPlayerConfigurationEvent.class, event -> {
+            final Player player = event.getPlayer();
+
+            event.setSpawningInstance(spawnInstance);
+            player.setRespawnPoint(((SpawnInstance) spawnInstance).spawnLocation(player));
+        });
 
         IceStomConfig config = IceStomConfig.getConfig();
 
         log.info("Starting IceStom server on {}:{}", config.network.bind, config.network.port);
 
         minecraftServer.start(config.network.bind, config.network.port);
+
+        Console console = new Console();
+        Thread consoleThread = new Thread(console::start, "console");
+        consoleThread.setDaemon(true);
+        consoleThread.start();
+
+
+        MinecraftServer.getSchedulerManager().buildShutdownTask(console::stop);
+        MinecraftServer.getSchedulerManager().buildShutdownTask(spark::shutdown);
     }
 
     public void setSpawnProvider(Supplier<SpawnInstance> spawnProvider) {
@@ -217,7 +278,7 @@ public class IceStom {
 
     public TimeTrialManager getTimeTrialManager() { return timeTrialManager; }
 
-    public EventManager getEventManager() { return eventManager; }
+    public StageRegistry getStageRegistry() { return stageRegistry; }
 
     public TranslationManager getTranslationManager() { return translationManager; }
 
@@ -225,10 +286,14 @@ public class IceStom {
 
     public TimetrialDatabase getTimetrialDatabase() { return timetrialDatabase; }
 
+    public EventManager getEventManager() {
+        return eventManager;
+    }
+
     static void main(String[] args) throws IOException, PluginManager.PluginLoadException {
         instance = new IceStom();
 
-        instance.start();
+        instance.startStandard();
     }
 
     public static IceStom getInstance() {

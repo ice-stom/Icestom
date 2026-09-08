@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.gitlab.icestom"
-version = "0.0.24"
+version = "0.0.25"
 
 repositories {
     mavenCentral()
@@ -15,8 +15,8 @@ repositories {
 dependencies {
     implementation("org.jetbrains:annotations:24.0.1")
 
-    implementation("net.kyori:adventure-api:5.2.0")
-    implementation("net.kyori:adventure-text-serializer-gson")
+    compileOnly("net.kyori:adventure-api:4.21.0")
+    implementation("net.kyori:adventure-text-serializer-gson:4.21.0")
 
     implementation("io.github.openboatutils:Protocol:0.0.7")
 

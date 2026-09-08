@@ -4,6 +4,7 @@ import io.gitlab.icestom.icestom.config.IceStomConfig;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.library.source.FileSystemSource;
 import io.gitlab.icestom.icestom.track.library.source.TrackSource;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +60,7 @@ public class TrackLibrary {
         });
     }
 
-    public CompletableFuture<Optional<Track>> loadTrack(String track_id) {
+    public @NotNull CompletableFuture<Optional<Track>> loadTrack(String track_id) {
 
         Track preloaded = loadedTracks.get(track_id);
 

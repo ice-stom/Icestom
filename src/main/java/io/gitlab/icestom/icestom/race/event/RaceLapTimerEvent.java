@@ -1,31 +1,34 @@
 package io.gitlab.icestom.icestom.race.event;
 
-import io.gitlab.icestom.icestom.race.RaceInstance;
+import io.gitlab.icestom.icestom.event.EventParticipant;
+import io.gitlab.icestom.icestom.event.event.EventParticipantEvent;
+import io.gitlab.icestom.icestom.race.RaceStage;
 import io.gitlab.icestom.icestom.timetrial.event.TimedLapEvent;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import org.jetbrains.annotations.NotNull;
 
-public class RaceLapTimerEvent implements RaceEvent, TimedLapEvent {
-    @NotNull private final RaceInstance instance;
-    @NotNull private final RaceInstance.RaceParticipant participant;
-    @NotNull private final TimedLap lap;
-    public RaceLapTimerEvent(@NotNull RaceInstance instance, @NotNull RaceInstance.RaceParticipant participant) {
+public class RaceLapTimerEvent implements RaceEvent, TimedLapEvent, RaceParticipantEvent {
+
+    private final EventParticipant eventParticipant;
+    private final TimedLap lap;
+    private final RaceStage instance;
+
+    public RaceLapTimerEvent(EventParticipant eventParticipant, TimedLap timedLap, RaceStage instance) {
+        this.eventParticipant = eventParticipant;
+        this.lap = timedLap;
         this.instance = instance;
-        this.participant = participant;
-        this.lap = participant.getCurrentLap();
     }
 
     @Override
-    public @NotNull TimedLap getLap() {
-        return lap;
+    public EventParticipant getParticipant() {
+        return eventParticipant;
     }
 
     @Override
-    public @NotNull RaceInstance.RaceParticipant getParticipant() {
-        return participant;
-    }
+    public TimedLap getLap() { return lap; }
 
     @Override
-    public @NotNull RaceInstance getInstance() { return instance; }
+    public @NotNull RaceStage getInstance() {
+        return instance;
+    }
 }
-

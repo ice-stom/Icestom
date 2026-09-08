@@ -5,25 +5,24 @@ import io.gitlab.icestom.icestom.timetrial.TimeTrialSerializer;
 import io.gitlab.icestom.icestom.timetrial.lap.TimeTrialResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.*;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class SQLiteTimetrialDatabase implements TimetrialDatabase, AutoCloseable {
 
-    private static final Logger LOGGER = Logger.getLogger(SQLiteTimetrialDatabase.class.getName());
-
+    private static final Logger log = LoggerFactory.getLogger(SQLiteTimetrialDatabase.class);
     private final Connection connection;
 
     public SQLiteTimetrialDatabase(@NotNull Path databasePath) throws SQLException, IOException {
         Files.createDirectories(databasePath);
 
-        this.connection = DriverManager.getConnection("jdbc:sqlite:" + databasePath.resolve("db.sqlite").toString());
+        this.connection = DriverManager.getConnection("jdbc:sqlite:" + databasePath.resolve("db.sqlite"));
 
         try (Statement stmt = connection.createStatement()) {
             stmt.execute("PRAGMA journal_mode=WAL;");
@@ -61,7 +60,7 @@ public class SQLiteTimetrialDatabase implements TimetrialDatabase, AutoCloseable
             ps.setString(7, TimeTrialSerializer.encodeTicks(result.ticks()));
             ps.executeUpdate();
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Failed to insert attempt for player " + result.player(), e);
+            log.error("Failed to insert attempt for player {}", result.player(), e);
             throw new RuntimeException("Database error while saving attempt", e);
         }
 
@@ -80,28 +79,41 @@ public class SQLiteTimetrialDatabase implements TimetrialDatabase, AutoCloseable
                 if (rs.next()) return mapRow(rs);
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Failed to fetch attempt " + attempt, e);
+            log.error("Failed to fetch attempt for player {}", attempt, e);
         }
         return null;
     }
 
     @Override
-    public @Nullable TimeTrialResult getBestAttempt(@NotNull UUID player, @NotNull String track_id) {
+    public @Nullable TimeTrialResult getBestAttempt(
+            @NotNull UUID player,
+            @NotNull String track_id
+    ) {
         try (PreparedStatement ps = connection.prepareStatement("""
-                SELECT id, player, track, time, splits, ticks
-                FROM attempts
-                WHERE player = ? AND track = ?
-                ORDER BY time ASC
-                LIMIT 1;
-                """)) {
+            SELECT id, player, track, time, checkpoints, splits, ticks
+            FROM attempts
+            WHERE player = ? AND track = ?
+            ORDER BY checkpoints DESC, time ASC, id ASC
+            LIMIT 1;
+            """)) {
+
             ps.setString(1, player.toString());
             ps.setString(2, track_id);
+
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return mapRow(rs);
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Failed to fetch best attempt for player " + player + " on track " + track_id, e);
+            log.error(
+                    "Failed to fetch best attempt for player {} on track {}",
+                    player,
+                    track_id,
+                    e
+            );
         }
+
         return null;
     }
 
@@ -133,7 +145,7 @@ public class SQLiteTimetrialDatabase implements TimetrialDatabase, AutoCloseable
                 }
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Failed to fetch best attempts for track " + track_id, e);
+            log.error("Failed to fetch best attempts for track {}", track_id, e);
         }
 
         return Collections.unmodifiableList(results);
@@ -146,7 +158,7 @@ public class SQLiteTimetrialDatabase implements TimetrialDatabase, AutoCloseable
                 connection.close();
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.WARNING, "Failed to close SQLite connection", e);
+            log.error("Failed to closed SQLite connection", e);
         }
     }
 

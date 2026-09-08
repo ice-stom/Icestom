@@ -1,84 +1,51 @@
 package io.gitlab.icestom.icestom.event;
 
-import io.gitlab.icestom.icestom.event.stage.Stage;
-import net.minestom.server.entity.Player;
-import net.minestom.server.event.Event;
-import net.minestom.server.event.EventHandler;
-import net.minestom.server.event.EventListener;
-import net.minestom.server.event.EventNode;
-import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
-import net.minestom.server.event.player.PlayerSpawnEvent;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import io.gitlab.icestom.icestom.event.lua.LuaEvent;
+import net.hollowcube.luau.compiler.LuauCompileException;
+import net.hollowcube.luau.compiler.LuauCompiler;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
 
-public class EventManager implements EventHandler<Event> {
+public class EventManager {
 
-    private final EventNode<Event> eventNode = EventNode.all("events");
+    private final Path folder;
+    private final LuauCompiler compiler = LuauCompiler.builder().build();
 
-    private final Map<String, ActiveEvent> events = new HashMap<>();
+    private final Set<IceStomEvent<EventParticipant>> events = new HashSet<>();
 
-    public EventManager() {
-        eventNode.addListener(AsyncPlayerConfigurationEvent.class, event -> {
-            final Player player = event.getPlayer();
+    public EventManager(Path folder) {
+        this.folder = folder;
 
-            @Nullable ActiveEvent active_event = getEvent(player);
-
-            if (active_event != null) {
-                @Nullable Stage<?> current_stage = active_event.getCurrentStage();
-
-                if (current_stage != null) {
-                    event.setSpawningInstance(current_stage.getInstance(player));
-
-                    EventListener<@NotNull PlayerSpawnEvent> listener = EventListener.builder(PlayerSpawnEvent.class)
-                            .filter(e -> e.getPlayer() == player)
-                            .handler(_ -> {
-                                current_stage.getInstance(player).consume(player);
-                            })
-                            .expireCount(1)
-                            .build();
-
-                    eventNode.addListener(listener);
-
-                    return;
-                }
-            }
-        });
+        boolean _ = folder.toFile().mkdirs();
     }
 
-    public @Nullable ActiveEvent getEvent(Player player) {
-        for (ActiveEvent event : events.values()) {
-            if (event.hasParticipant(player.getUuid())) {
-                return event;
-            }
-        }
-
-        return null;
+    public Set<IceStomEvent<EventParticipant>> getActiveEvents() {
+        return events;
     }
 
-    public void addEvent(ActiveEvent event) {
-        events.put(event.getId(), event);
+    public LuaEvent<EventParticipant> loadLuauEvent(String name) throws IOException, LuauCompileException {
+        byte[] source = Files.readAllBytes(folder.resolve(name));
+        byte[] bytecode = compiler.compile(source);
+
+        LuaEvent<EventParticipant> luaEvent = new LuaEvent<>(name, bytecode);
+
+        events.add(luaEvent);
+
+        luaEvent.futureResultsFuture.thenAccept(resultsFuture -> resultsFuture.thenRun(() -> {
+            luaEvent.cleanup();
+            events.remove(luaEvent);
+        }));
+
+        return luaEvent;
     }
 
-    public void startEvent(ActiveEvent event) {
-        if (event.getCurrentStage() != null) return;
-
-        event.nextStage();
-    }
-
-    public @Nullable ActiveEvent getEvent(String id) {
-        return events.get(id);
-    }
-
-    public Collection<ActiveEvent> getEvents() {
-        return events.values();
-    }
-
-    @Override
-    public @NotNull EventNode<Event> eventNode() {
-        return eventNode;
+    public List<String> getEventDefinitions() {
+        return Arrays.stream(Objects.requireNonNull(folder.toFile().listFiles((file, name) ->
+                name.endsWith(".lua") || name.endsWith(".luau")
+        ))).map(File::getName).toList();
     }
 }

@@ -1,8 +1,9 @@
 package io.gitlab.icestom.icestom.command;
 
 import io.gitlab.icestom.icestom.instance.TrackInstance;
-import io.gitlab.icestom.icestom.race.RaceInstance;
+import io.gitlab.icestom.icestom.race.RaceStage;
 import io.gitlab.icestom.icestom.track.Track;
+import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.Command;
@@ -21,9 +22,9 @@ public class DebugCommand extends Command {
         addSubcommand(new ToGrid());
         addSubcommand(new EscapeGrid());
         addSubcommand(new InstanceList());
-        addSubcommand(new StartRace());
         addSubcommand(new Block());
         addSubcommand(new Relight());
+        addSubcommand(new Logo());
     }
 
     public static class LetMeOutCommand extends Command {
@@ -102,18 +103,6 @@ public class DebugCommand extends Command {
         }
     }
 
-    public static class StartRace extends Command {
-        public StartRace() {
-            super("startrace");
-
-            setDefaultExecutor((commandSender, _) -> {
-                if (!(commandSender instanceof Player player)) return;
-
-                if (player.getInstance() instanceof RaceInstance raceInstance) raceInstance.startCountdown();
-            });
-        }
-    }
-
     public static class Block extends Command {
         public Block() {
             super("block");
@@ -135,6 +124,20 @@ public class DebugCommand extends Command {
 
                 player.getInstance().setChunkSupplier(LightingChunk::new);
                 LightingChunk.relight(player.getInstance(), player.getInstance().getChunks());
+            });
+        }
+    }
+
+    public static class Logo extends Command {
+        public Logo() {
+            super("logo");
+
+            setDefaultExecutor((commandSender, _) -> {
+                if (!(commandSender instanceof Player player)) return;
+
+                for (int y = 0; y < 9; y++) {
+                    player.sendMessage(TextFormatter.getIcestomLogoRow(y));
+                }
             });
         }
     }

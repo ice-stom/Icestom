@@ -78,6 +78,17 @@ public class DefaultSpawnInstance extends IceStomInstance implements SpawnInstan
     }
 
     @Override
+    public void tick(long time) {
+        super.tick(time);
+
+        for (Player player : getPlayers()) {
+            if (player.getPosition().y() < -64) {
+                resetPlayer(player);
+            }
+        }
+    }
+
+    @Override
     public Pos spawnLocation(Player player) {
         return Pos.ZERO;
     }

@@ -363,6 +363,15 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 
     @Override
     public Pos spawnLocation(Player player) {
+        if (raceState == RaceState.GRID) {
+            EventParticipant participant = participants.getParticipantFromActivePlayer(player);
+            Pos grid_location = getGridLocation(participant);
+
+            if (grid_location != null) {
+                return grid_location;
+            }
+        }
+
         return track.getSpawnLocation();
     }
 

@@ -283,7 +283,7 @@ public class VanillaInterface implements InterfaceProvider {
 
                         Component translatable = Component.translatable(
                                 translations.get(tickCountdown),
-                                Argument.component("time", TextFormatter.getTime((long) (Math.floor((double) tickCountdown.getRemainingTicks() / 20) * 1000)))
+                                Argument.component("time", Component.text(Math.floor((double) tickCountdown.getRemainingTicks() / 20)))
                         );
 
                         for (Player player : getWatching()) {

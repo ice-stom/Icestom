@@ -63,6 +63,14 @@ tasks {
         mergeServiceFiles()
         archiveClassifier.set("")
     }
+
+    processResources {
+        filesMatching("version.properties") {
+            expand(
+                "version" to project.version
+            )
+        }
+    }
 }
 
 publishing {

@@ -45,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Supplier;
@@ -54,6 +55,7 @@ import static io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager.getHolder
 public class IceStom {
 
     public static final String NAMESPACE = "icestom";
+    public static final String VERSION;
 
     private static final Logger log = LoggerFactory.getLogger(IceStom.class);
 
@@ -80,6 +82,25 @@ public class IceStom {
     private final PerfHud perfHud = new PerfHud();
 
     private SparkMinestom spark;
+
+    static {
+        Properties properties = new Properties();
+
+        try (InputStream input = IceStom.class
+                .getClassLoader()
+                .getResourceAsStream("version.properties")) {
+
+            if (input == null) {
+                throw new IllegalStateException("version.properties not found");
+            }
+
+            properties.load(input);
+        } catch (IOException e) {
+            log.warn("Failed to fetch version.properties");
+        }
+
+        VERSION = properties.getProperty("version");
+    }
 
     IceStom() throws PluginManager.PluginLoadException, IOException {
         instance = this;

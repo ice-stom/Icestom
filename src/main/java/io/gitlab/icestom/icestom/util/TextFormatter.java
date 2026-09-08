@@ -12,7 +12,7 @@ public class TextFormatter {
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.000");
 
     private static final char[] ICESTOM_LOGO_CHAR = { '★', '◆', '●', '⬩', '·' };
-    private static final int[] ICESTOM_LOGO_COLOR = { 0x9CC9FC, 0x84BBFB, 0x6BAEFA, 0x53A0F9, 0x3A93F8 };
+    public static final int[] ICESTOM_LOGO_COLOR = { 0x9CC9FC, 0x84BBFB, 0x6BAEFA, 0x53A0F9, 0x3A93F8 };
 
     public static Component getTime(long ms) {
         long minutes = ms / (1000 * 60) % 60;

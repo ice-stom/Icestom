@@ -1,6 +1,7 @@
 package io.gitlab.icestom.icestom.ui.interfaces.impl;
 
 import io.gitlab.icestom.icestom.IceStom;
+import io.gitlab.icestom.icestom.entity.IceStomPlayer;
 import io.gitlab.icestom.icestom.event.EventParticipant;
 import io.gitlab.icestom.icestom.race.RaceLeaderboard;
 import io.gitlab.icestom.icestom.race.RaceLeaderboardRow;
@@ -30,9 +31,12 @@ import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.translation.Argument;
 import net.kyori.adventure.text.object.ObjectContents;
+import net.minestom.server.adventure.AdventurePacketConvertor;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.instance.InstanceTickEvent;
+import net.minestom.server.network.packet.server.play.BossBarPacket;
 import net.minestom.server.scoreboard.Sidebar;
+import net.minestom.server.utils.PacketSendingUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -51,6 +55,8 @@ public class VanillaInterface implements InterfaceProvider {
             1f
     );
     private static final Logger log = LoggerFactory.getLogger(VanillaInterface.class);
+
+    private static final BossBarPacket.Action addEmptyBossbar = new BossBarPacket.AddAction(Component.empty(), 0f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS, AdventurePacketConvertor.getBossBarFlagValue(List.of()));
 
     @Override
     public <H, I extends Interface<H, I>> I getInterface(H holder) {
@@ -245,7 +251,7 @@ public class VanillaInterface implements InterfaceProvider {
 
     public static class VanillaRaceInterface extends AbstractRaceInterface {
 
-        private final Map<TickCountdown, BossBar> countdowns = new HashMap<>();
+        private final Map<TickCountdown, UUID> countdowns = new HashMap<>();
         private final Map<TickCountdown, Set<Player>> countdownViewers = new HashMap<>();
 
         public VanillaRaceInterface(RaceStage holder) {
@@ -259,35 +265,50 @@ public class VanillaInterface implements InterfaceProvider {
             translations.keySet().forEach((tickCountdown) -> {
                 countdowns.put(
                         tickCountdown,
-                        BossBar.bossBar(
-                                Component.empty(),
-                                0f,
-                                BossBar.Color.WHITE,
-                                BossBar.Overlay.PROGRESS
-                        )
+                        UUID.randomUUID()
                 );
 
                 countdownViewers.put(tickCountdown, new HashSet<>());
             });
 
             eventNode().addListener(InstanceTickEvent.class, event -> {
-                countdowns.forEach((tickCountdown, bossBar) -> {
+                if (event.getInstance().getWorldAge() % 20 != 0) return;
+
+                countdowns.forEach((tickCountdown, uuid) -> {
                     Set<Player> viewers = countdownViewers.get(tickCountdown);
                     boolean running = tickCountdown.isRunning();
 
                     if (running) {
-                        Component translatable = Component.translatable(translations.get(tickCountdown));
+                        float progress = (float) tickCountdown.getRemainingTicks() / tickCountdown.getDurationTicks();
 
-                        // adventure's global translator is crazy
-                        bossBar.name(translatable);
+                        Component translatable = Component.translatable(
+                                translations.get(tickCountdown),
+                                Argument.component("time", TextFormatter.getTime((long) (Math.floor((double) tickCountdown.getRemainingTicks() / 20) * 1000)))
+                        );
 
                         for (Player player : getWatching()) {
-                            if (viewers.add(player)) bossBar.addViewer(player);
+                            if (viewers.add(player)) {
+                                player.sendPacket(new BossBarPacket(
+                                        uuid,
+                                        addEmptyBossbar
+                                ));
+                            }
+
+                            player.sendPacket(new BossBarPacket(
+                                    uuid,
+                                    new BossBarPacket.UpdateTitleAction(((IceStomPlayer) player).translate(translatable))
+                            ));
                         }
+
+                        PacketSendingUtils.sendGroupedPacket(viewers, new BossBarPacket(
+                                uuid,
+                                new BossBarPacket.UpdateHealthAction(progress)
+                        ));
                     } else if (!viewers.isEmpty()) {
-                        for (Player player : viewers) {
-                            bossBar.removeViewer(player);
-                        }
+                        PacketSendingUtils.sendGroupedPacket(viewers, new BossBarPacket(
+                                uuid,
+                                new BossBarPacket.RemoveAction()
+                        ));
 
                         viewers.clear();
                     }
@@ -409,9 +430,12 @@ public class VanillaInterface implements InterfaceProvider {
             super.stopWatching(player);
             destroySidebar(player);
 
-            countdownViewers.forEach((viewers, players) -> {
+            countdownViewers.forEach((countdown, players) -> {
                 if (players.remove(player)) {
-                    countdowns.get(viewers).removeViewer(player);
+                    player.sendPacket(new BossBarPacket(
+                            countdowns.get(countdown),
+                            new BossBarPacket.RemoveAction()
+                    ));
                 }
             });
         }

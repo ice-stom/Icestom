@@ -10,6 +10,7 @@ import net.minestom.server.network.player.GameProfile;
 import net.minestom.server.network.player.PlayerConnection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 
@@ -23,14 +24,18 @@ public class IceStomPlayer extends Player implements EventParticipant {
         super(playerConnection, profile);
     }
 
-    @Override
-    public void sendMessage(@NotNull Component message) {
-        super.sendMessage(translationManager.render(message, getLocale(), Themes.DEFAULT_THEME));
+    public @NotNull Component translate(@NotNull Component component) {
+        return translationManager.render(component, getLocale(), Themes.DEFAULT_THEME);
     }
 
     @Override
-    public void kick(Component message) {
-        super.kick(translationManager.render(message, getLocale(), Themes.DEFAULT_THEME));
+    public void sendMessage(@NotNull Component message) {
+        super.sendMessage(translate(message));
+    }
+
+    @Override
+    public void kick(@NonNull Component message) {
+        super.kick(translate(message));
     }
 
     public boolean hasPermission(String permission) {

@@ -165,7 +165,7 @@ public class IceStom {
 
             interfaceHolder.startWatching(player);
 
-            if (!player.hasPermission("icestom.perfhud")) return;
+            if (!player.hasPermission("icestom.perfhud") && System.getProperty("icestom.dev") == null) return;
 
             perfHud.addViewer(player);
         });

@@ -103,13 +103,25 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 
         return IceStom.getInstance().getTrackLibrary()
                 .loadTrack(track_id)
-                .thenCompose(trackOpt -> trackOpt.map(value -> CompletableFuture.completedFuture(
-                        new RaceStage(name, value, laps, pits)
-                )).orElseGet(() -> CompletableFuture.failedFuture(
-                        new InvalidStageArgumentsException(
-                                "Track '" + track_id + "' doesn't exist"
-                        )
-                )));
+                .thenCompose(trackOpt -> {
+                    if (trackOpt.isEmpty()) {
+                        return CompletableFuture.failedFuture(
+                                new InvalidStageArgumentsException(
+                                        "Track '" + track_id + "' doesn't exist"
+                                )
+                        );
+                    }
+
+                    try {
+                        return CompletableFuture.completedFuture(
+                                new RaceStage(name, trackOpt.get(), laps, pits)
+                        );
+                    } catch (Throwable e) {
+                        return CompletableFuture.failedFuture(
+                                e
+                        );
+                    }
+                });
     }
 
     @Override

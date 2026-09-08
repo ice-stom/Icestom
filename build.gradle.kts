@@ -6,6 +6,12 @@ plugins {
 
 group = "io.gitlab.icestom"
 
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(25))
+    }
+}
+
 repositories {
     mavenCentral()
     mavenLocal()
@@ -15,7 +21,6 @@ repositories {
     maven("https://repo.lucko.me/")
     maven("https://oss.sonatype.org/content/repositories/snapshots/")
 }
-
 
 dependencies {
     implementation("io.github.openboatutils:Protocol:0.0.7")
@@ -46,6 +51,30 @@ dependencies {
     implementation("org.jline:jline-reader:3.30.9")
 }
 
+val panelSiteDir = providers.gradleProperty("icestom.panelSite").orNull
+    ?.let { file(it) }
+    ?: file("../IcestomSite/site")
+
+val bundlePanelSite = tasks.register<Sync>("bundlePanelSite") {
+    description = "Copies the event panel site into the jar under web/."
+
+    into(layout.buildDirectory.dir("generated/panel-site/web"))
+
+    if (panelSiteDir.isDirectory) {
+        from(panelSiteDir)
+    } else {
+        doFirst {
+            logger.warn(
+                "Panel site not found at {}. The jar will build without it and /panel will 404. " +
+                    "Clone IcestomSite next to this repository, or set -Picestom.panelSite=<path>.",
+                panelSiteDir,
+            )
+        }
+    }
+}
+
+sourceSets["main"].resources.srcDir(layout.buildDirectory.dir("generated/panel-site"))
+
 tasks {
     jar {
         manifest {
@@ -65,6 +94,8 @@ tasks {
     }
 
     processResources {
+        dependsOn(bundlePanelSite)
+
         filesMatching("version.properties") {
             expand(
                 "version" to project.version

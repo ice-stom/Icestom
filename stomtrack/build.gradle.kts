@@ -25,12 +25,6 @@ dependencies {
     implementation("com.fasterxml.woodstox:woodstox-core:6.5.0")
 }
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
-    }
-}
-
 tasks.withType<JavaCompile> {
     options.release.set(21)
 }

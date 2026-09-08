@@ -22,9 +22,6 @@ public class PerfHud implements EventHandler<Event> {
     private final MovingAverage mspt_100t = new MovingAverage(100);
 
     public PerfHud() {
-        eventNode.addListener(PlayerSpawnEvent.class, playerSpawnEvent -> {
-            addViewer(playerSpawnEvent.getPlayer());
-        });
         eventNode.addListener(ServerTickMonitorEvent.class, this::onTick);
     }
 
@@ -42,7 +39,7 @@ public class PerfHud implements EventHandler<Event> {
         avgTps100t *= 8;
 
         double progress = avgTps / avgTps100t;
-        progress = Math.min(1, Math.max(0, progress));
+        progress = Math.clamp(progress, 0, 1);
         bossBar.progress((float) progress);
 
         if (mspt < 25) {

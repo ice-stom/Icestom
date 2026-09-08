@@ -41,33 +41,30 @@ public class TimedLap implements TimedLapResultSource {
     public boolean advanceCheckpoint(Split split) {
         int this_checkpoint_index = track.wrapCheckpointIndex(lastReachedCheckpoint + 1);
 
-        if (split.checkpoint_no() != this_checkpoint_index) throw new RuntimeException("Wrong checkpoint number sent to timed lap");
+        if (split.checkpoint_no() != this_checkpoint_index)
+            throw new RuntimeException("Wrong checkpoint number sent to timed lap");
 
         if (lastReachedCheckpoint == -1) {
             msStart = split.ms();
         }
 
         Split local_split = split.offset(msStart);
-
         splits.add(local_split);
 
-        if (track.isLastCheckpoint(this_checkpoint_index) && lastReachedCheckpoint != -1) {
-            return true;
-        }
+        boolean is_last = track.isLastCheckpoint(this_checkpoint_index) && lastReachedCheckpoint != -1;
 
-        lastReachedCheckpoint++;
+        int globalIndex = ++lastReachedCheckpoint;
 
         if (bestPreviousResult != null) {
-            if (bestPreviousResult.splits().size() <= split.checkpoint_no()) {
+            if (bestPreviousResult.splits().size() <= globalIndex) {
                 recentSplit = 0;
             } else {
-                Split best_previous = bestPreviousResult.splits().get(split.checkpoint_no());
-
+                Split best_previous = bestPreviousResult.splits().get(globalIndex);
                 recentSplit = local_split.ms() - best_previous.ms();
             }
         }
 
-        return false;
+        return is_last;
     }
 
     public long getCurrentTime(long worldAge) {

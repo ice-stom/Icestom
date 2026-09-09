@@ -326,6 +326,13 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
             boolean is_best_time = !is_first && result.splits().size() == best.splits().size() && result.getTime() < best.getTime();
 
             if (is_first || is_best_checkpoints || is_best_time) {
+                List<TimeTrialResult> bestRuns = IceStom.getInstance().getTimetrialDatabase().getBestAttempts(track.getId(), 1);
+                if (!bestRuns.isEmpty()) {
+                    if (timedLap.getTime() < bestRuns.getFirst().getTime()) {
+                        MinecraftServer.getGlobalEventHandler()
+                                .call(new TimeTrialNewRecordEvent(timedLap, player, this, result, bestRuns.getFirst()));
+                    }
+                }
                 IceStom.getInstance().getTimetrialDatabase().newAttempt(TimeTrialResult.fromResult(player.getUuid(), track.getId(), result));
             }
 

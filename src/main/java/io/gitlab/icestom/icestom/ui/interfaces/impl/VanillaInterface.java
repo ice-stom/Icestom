@@ -34,6 +34,7 @@ import net.kyori.adventure.text.object.ObjectContents;
 import net.minestom.server.adventure.AdventurePacketConvertor;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.instance.InstanceTickEvent;
+import net.minestom.server.instance.Instance;
 import net.minestom.server.network.packet.server.play.BossBarPacket;
 import net.minestom.server.scoreboard.Sidebar;
 import net.minestom.server.utils.PacketSendingUtils;
@@ -48,15 +49,30 @@ public class VanillaInterface implements InterfaceProvider {
 
     private static final Map<Player, Sidebar> sidebars = new HashMap<>();
 
+    private static final Logger log = LoggerFactory.getLogger(VanillaInterface.class);
+
+    private static final BossBarPacket.Action addEmptyBossbar = new BossBarPacket.AddAction(Component.empty(), 0f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS, AdventurePacketConvertor.getBossBarFlagValue(List.of()));
+
     private static final Sound PING = Sound.sound(
             Key.key("entity.experience_orb.pickup"),
             Sound.Source.MASTER,
             1f,
             1f
     );
-    private static final Logger log = LoggerFactory.getLogger(VanillaInterface.class);
 
-    private static final BossBarPacket.Action addEmptyBossbar = new BossBarPacket.AddAction(Component.empty(), 0f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS, AdventurePacketConvertor.getBossBarFlagValue(List.of()));
+    private static final Sound CHALLENGE_COMPLETE = Sound.sound(
+            Key.key("ui.toast.challenge_complete"),
+            Sound.Source.MASTER,
+            0.7f,
+            1f
+    );
+
+    private static final Sound COUNTDOWN = Sound.sound(
+            Key.key("block.note_block.bit"),
+            Sound.Source.MASTER,
+            1f,
+            0.75f
+    );
 
     @Override
     public <H, I extends Interface<H, I>> I getInterface(H holder) {
@@ -214,8 +230,6 @@ public class VanillaInterface implements InterfaceProvider {
                 final TimedLapResultSource result = event.getResult();
                 final @Nullable TimedLapResultSource best = event.getLap().getBestPreviousResult();
 
-                player.playSound(PING);
-
                 player.sendMessage(lapCompletedMessage(
                         track,
                         result,
@@ -233,6 +247,23 @@ public class VanillaInterface implements InterfaceProvider {
                 final Player player = event.getPlayer();
 
                 player.sendMessage(Component.translatable("message.timetrial.practicepoint_remove"));
+            });
+
+            eventNode().addListener(TimeTrialNewRecordEvent.class, event -> {
+                final Player player = event.getPlayer();
+                final Track track = event.getInstance().getTrack();
+                final Instance instance = event.getInstance();
+                final TimedLapResultSource result = event.getResult();
+                final TimedLapResultSource oldResult = event.getOldResult();
+
+                player.sendMessage(Component.translatable(
+                        "message.timetrial.get_record",
+                        Argument.component("player", player.getName()),
+                        Argument.component("track", track.getName()),
+                        Argument.component("time", Component.text(result.getTime())),
+                        Argument.component("delta", Component.text(result.getTime() - oldResult.getTime())),
+                        Argument.component("oldtime", Component.text(oldResult.getTime()))
+                ));
             });
         }
 
@@ -344,7 +375,7 @@ public class VanillaInterface implements InterfaceProvider {
                                 row.getParticipant()
                         ));
 
-                        sidebar.updateLineContent(String.valueOf(i), sidebarLeaderboardEntry(row, participant));
+                        sidebar.updateLineContent(String.valueOf(i), sidebarLeaderboardEntry(row, participant, i));
                     }
                 }
             });
@@ -405,17 +436,25 @@ public class VanillaInterface implements InterfaceProvider {
                         Argument.component("track", track.getName()),
                         Argument.component("time", TextFormatter.getTime(time))
                 ));
+
+                player.playSound(CHALLENGE_COMPLETE, Sound.Emitter.self());
             });
         }
 
-        private Component sidebarLeaderboardEntry(RaceLeaderboardRow row, EventParticipant eventParticipant) {
+        private Component sidebarLeaderboardEntry(RaceLeaderboardRow row, EventParticipant eventParticipant, int position) {
             UUID id = eventParticipant.getCurrentPlayer().getUuid();
 
             String username = UsernameCache.getUsernameCached(id);
 
+            Component delta = TextFormatter.getDelta(row.getDelta());
+
+            if (position == 0) {
+                delta = Component.text("");
+            }
+
             return Component.object(ObjectContents.playerHead(id))
                     .append(Component.text(" "))
-                    .append(TextFormatter.getDelta(row.getDelta()))
+                    .append(delta)
                     .append(Component.text(" " + username));
         }
 

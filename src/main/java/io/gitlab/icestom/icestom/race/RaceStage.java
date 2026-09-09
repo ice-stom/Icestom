@@ -29,6 +29,7 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.player.PlayerStartSneakingEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -74,6 +75,22 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 
         subscribeRegionId("icestom.reset");
         subscribeTriggerId("icestom.reset");
+
+        eventNode().addListener(PlayerStartSneakingEvent.class, event -> {
+            Player player = event.getPlayer();
+
+            if (!(player.getVehicle() instanceof Boat)) return;
+
+            @Nullable EventParticipant participation = participants.getParticipantFromActivePlayer(player);
+
+            if (participation != null) {
+                RaceParticipant raceParticipant = racers.get(participation.getUuid());
+
+                if (raceParticipant.isFinished()) {
+                    removeBoat(player);
+                }
+            }
+        });
 
         interfaceHolder = getHolder(RaceStage.class, this);
     }

@@ -81,7 +81,7 @@ public class IceStom {
 
     private final PerfHud perfHud = new PerfHud();
 
-    private SparkMinestom spark;
+    private final SparkMinestom spark;
 
     static {
         Properties properties = new Properties();

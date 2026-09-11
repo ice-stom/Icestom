@@ -333,7 +333,7 @@ public class VanillaInterface implements InterfaceProvider {
                             sidebar.createLine(new Sidebar.ScoreboardLine(
                                     String.valueOf(i),
                                     Component.empty(),
-                                    i,
+                                    -i,
                                     Sidebar.NumberFormat.blank()
                             ));
                         }

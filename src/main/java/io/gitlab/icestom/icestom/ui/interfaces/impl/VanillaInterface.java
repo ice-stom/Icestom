@@ -31,6 +31,7 @@ import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.translation.Argument;
 import net.kyori.adventure.text.object.ObjectContents;
+import net.kyori.adventure.title.Title;
 import net.minestom.server.adventure.AdventurePacketConvertor;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.instance.InstanceTickEvent;
@@ -67,11 +68,18 @@ public class VanillaInterface implements InterfaceProvider {
             1f
     );
 
-    private static final Sound COUNTDOWN = Sound.sound(
+    private static final Sound COUNTDOWN_END = Sound.sound(
             Key.key("block.note_block.bit"),
             Sound.Source.MASTER,
             1f,
-            0.75f
+            2f
+    );
+
+    private static final Sound COUNTDOWN = Sound.sound(
+            Key.key("block.note_block.bass"),
+            Sound.Source.MASTER,
+            0.5f,
+            1f
     );
 
     @Override
@@ -289,7 +297,6 @@ public class VanillaInterface implements InterfaceProvider {
             super(holder);
 
             Map<TickCountdown, String> translations = Map.of(
-                    holder.getStartingCountdown(), "race.bossbar.starting_countdown",
                     holder.getChequeredFlagCountdown(), "race.bossbar.chequered_flag_countdown"
             );
 
@@ -303,6 +310,21 @@ public class VanillaInterface implements InterfaceProvider {
             });
 
             eventNode().addListener(InstanceTickEvent.class, event -> {
+                int remainingTicks = holder.getStartingCountdown().getRemainingTicks();
+
+                if (remainingTicks % 20 == 0) {
+                    for (Player player : getWatching()) {
+                        if (remainingTicks != 0) {
+                            player.showTitle(Title.title(
+                                    Component.text(remainingTicks / 20),
+                                    Component.empty(),
+                                    0, 20, 0
+                            ));
+
+                            player.playSound(COUNTDOWN, Sound.Emitter.self());
+                        }
+                    }
+                }
                 if (event.getInstance().getWorldAge() % 20 != 0) return;
 
                 countdowns.forEach((tickCountdown, uuid) -> {

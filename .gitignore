@@ -4,7 +4,6 @@ build/
 /run/*
 /run/**
 !/run/.gitkeep
-!/run/start.bat
 
 ### IntelliJ IDEA ###
 .idea

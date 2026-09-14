@@ -34,3 +34,12 @@ compression_threshold = 256
 chunk_view_distance = 8
 entity_view_distance = 8
 dispatcher_threads = 2
+
+[web]
+enabled = false
+bind = "0.0.0.0"
+port = 8080
+public_url = ""
+session_minutes = 60
+operators = []
+dev_root = ""

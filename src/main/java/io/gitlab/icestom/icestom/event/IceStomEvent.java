@@ -41,6 +41,10 @@ public abstract class IceStomEvent<Participant extends EventParticipant> impleme
         return id;
     }
 
+    public boolean isRunning() {
+        return futureResultsFuture.isDone();
+    }
+
     @Override
     public void cleanup() {
         futureResultsFuture.join().completeExceptionally(new EventCancelledException());
@@ -67,4 +71,3 @@ public abstract class IceStomEvent<Participant extends EventParticipant> impleme
         }
     }
 }
-

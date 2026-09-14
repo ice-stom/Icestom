@@ -85,7 +85,7 @@ public class IceStom {
 
     private final PerfHud perfHud = new PerfHud();
 
-    private SparkMinestom spark;
+    private final SparkMinestom spark;
 
     private PanelServer panelServer;
 
@@ -179,8 +179,6 @@ public class IceStom {
             default -> throw new RuntimeException("Unknown database type: " + config.database.type);
         };
 
-        spawnInstance = (Instance) spawnProvider.get();
-
         InterfaceManager.register(TimeTrialingInstance.class, new VanillaInterface());
         InterfaceManager.register(RaceStage.class, new VanillaInterface());
         InterfaceManager.register(IceStom.class, new VanillaInterface());
@@ -244,8 +242,7 @@ public class IceStom {
             }
         });
 
-        pluginManager.startPlugins();
-
+        spawnInstance = (Instance) spawnProvider.get();
 
         CommandManager commandManager = MinecraftServer.getCommandManager();
         commandManager.register(new DebugCommand());
@@ -281,6 +278,8 @@ public class IceStom {
         IceStomConfig config = IceStomConfig.getConfig();
 
         log.info("Starting IceStom server on {}:{}", config.network.bind, config.network.port);
+
+        pluginManager.startPlugins();
 
         minecraftServer.start(config.network.bind, config.network.port);
 

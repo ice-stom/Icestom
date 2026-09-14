@@ -1,6 +1,7 @@
 package io.gitlab.icestom.icestom.command;
 
 import io.gitlab.icestom.icestom.IceStom;
+import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
 import io.gitlab.icestom.icestom.instance.DefaultSpawnInstance;
@@ -31,6 +32,9 @@ public class SpawnCommand extends Command {
                 spawnInstance.resetPlayer(player);
             } else if (instance instanceof TimeTrialingInstance) {
                 timeTrialManager.stopTimeTrialing(player);
+                IceStom.getInstance().getSpawnInstance().consume(player);
+            } else if (instance instanceof PlayerHolder playerHolder) {
+                playerHolder.drop(player);
                 IceStom.getInstance().getSpawnInstance().consume(player);
             }
         });

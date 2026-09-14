@@ -1,70 +1,25 @@
 package io.gitlab.icestom.icestom.console;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.UnsynchronizedAppenderBase;
-import ch.qos.logback.core.encoder.Encoder;
-import ch.qos.logback.core.spi.ContextAware;
-import ch.qos.logback.core.spi.LifeCycle;
+import ch.qos.logback.core.ConsoleAppender;
 import org.jline.reader.LineReader;
 
 import java.nio.charset.StandardCharsets;
 
-public class JLineLogbackAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
-
-    private static volatile LineReader reader;
-
-    private Encoder<ILoggingEvent> encoder;
-
-    static void attach(LineReader lineReader) {
-        reader = lineReader;
-    }
-
-    static void detach() {
-        reader = null;
-    }
-
-    public void setEncoder(Encoder<ILoggingEvent> encoder) {
-        this.encoder = encoder;
-    }
-
-    public Encoder<ILoggingEvent> getEncoder() {
-        return encoder;
-    }
-
-    @Override
-    public void start() {
-        if (encoder == null) {
-            addError("No encoder set for appender " + getName());
-            return;
-        }
-
-        if (encoder instanceof ContextAware contextAware) contextAware.setContext(getContext());
-        if (encoder instanceof LifeCycle lifeCycle && !lifeCycle.isStarted()) lifeCycle.start();
-
-        super.start();
-    }
-
-    @Override
-    public void stop() {
-        if (encoder instanceof LifeCycle lifeCycle && lifeCycle.isStarted()) lifeCycle.stop();
-
-        super.stop();
-    }
-
+public class JLineLogbackAppender extends ConsoleAppender<ILoggingEvent> {
     @Override
     protected void append(ILoggingEvent event) {
-        if (!isStarted()) return;
+        LineReader reader = TerminalConsole.getLineReader();
 
-        String line = new String(encoder.encode(event), StandardCharsets.UTF_8);
-
-        LineReader current = reader;
-
-        if (current == null) {
-            System.out.print(line);
-            System.out.flush();
+        if (reader == null) {
+            super.append(event);
             return;
         }
 
-        current.printAbove(line.stripTrailing());
+        String formatted = new String(encoder.encode(event), StandardCharsets.UTF_8);
+
+        formatted = formatted.replace("\r\n", "\n").replace("\n", "\r\n");
+
+        reader.printAbove(formatted);
     }
 }

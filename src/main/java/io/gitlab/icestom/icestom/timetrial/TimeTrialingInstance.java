@@ -1,5 +1,6 @@
 package io.gitlab.icestom.icestom.timetrial;
 
+import io.github.openboatutils.protocol.channels.OBUSettingsPacket;
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.command.BoatCommand;
 import io.gitlab.icestom.icestom.config.IceStomConfig;
@@ -33,18 +34,31 @@ import net.minestom.server.event.player.PlayerUseItemEvent;
 import net.minestom.server.inventory.PlayerInventory;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
+import net.minestom.server.network.packet.server.common.PluginMessagePacket;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.*;
 
+import static io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager.writePacket;
 import static io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager.getHolder;
 
 @SuppressWarnings("UnstableApiUsage")
 public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLocation {
 
     private static final Logger log = LoggerFactory.getLogger(TimeTrialingInstance.class);
+
+    private static final PluginMessagePacket nocol_packet;
+
+    static {
+        try {
+            nocol_packet = writePacket(new OBUSettingsPacket.CollisionMode(OBUSettingsPacket.CollisionModes.NO_BOATS_AND_PLAYERS));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private final InterfaceManager.InterfaceHolder interfaceHolder;
 
@@ -280,6 +294,8 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         endTimeTrial(player);
         super.resetPlayer(player);
 
+        player.sendPacket(nocol_packet);
+
         PlayerInventory inventory = player.getInventory();
 
         inventory.clear();
@@ -310,6 +326,13 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
             boolean is_best_time = !is_first && result.splits().size() == best.splits().size() && result.getTime() < best.getTime();
 
             if (is_first || is_best_checkpoints || is_best_time) {
+                List<TimeTrialResult> bestRuns = IceStom.getInstance().getTimetrialDatabase().getBestAttempts(track.getId(), 1);
+                if (!bestRuns.isEmpty()) {
+                    if (timedLap.getTime() < bestRuns.getFirst().getTime()) {
+                        MinecraftServer.getGlobalEventHandler()
+                                .call(new TimeTrialNewRecordEvent(timedLap, player, this, result, bestRuns.getFirst()));
+                    }
+                }
                 IceStom.getInstance().getTimetrialDatabase().newAttempt(TimeTrialResult.fromResult(player.getUuid(), track.getId(), result));
             }
 
@@ -339,6 +362,8 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         player.setFlying(false);
 
         player.getInventory().clear();
+
+        player.sendPacket(nocol_packet);
 
         interfaceHolder.stopWatching(player);
     }

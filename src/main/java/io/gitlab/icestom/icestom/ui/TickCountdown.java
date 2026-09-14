@@ -2,41 +2,39 @@ package io.gitlab.icestom.icestom.ui;
 
 public class TickCountdown {
 
-    private int durationTicks;
-    private int remainingTicks;
+    private int ticks = 0;
+    private int duration = 0;
 
-    public void start(int ticks) {
-        if (ticks <= 0) {
-            durationTicks = 0;
-            remainingTicks = 0;
-            return;
-        }
+    private boolean running = false;
 
-        durationTicks = ticks;
-        remainingTicks = ticks;
+    public void start(int duration) {
+        this.duration = duration;
+        this.ticks = duration;
+        running = true;
     }
 
     public boolean tick() {
-        if (remainingTicks <= 0) return false;
+        if (ticks <= 0) {
+            return false;
+        };
 
-        remainingTicks--;
+        if (--ticks == 0) {
+            running = false;
+            return true;
+        }
 
-        return remainingTicks == 0;
-    }
-
-    public void cancel() {
-        remainingTicks = 0;
+        return false;
     }
 
     public boolean isRunning() {
-        return remainingTicks > 0;
+        return running;
     }
 
     public int getRemainingTicks() {
-        return remainingTicks;
+        return ticks;
     }
 
     public int getDurationTicks() {
-        return durationTicks;
+        return duration;
     }
 }

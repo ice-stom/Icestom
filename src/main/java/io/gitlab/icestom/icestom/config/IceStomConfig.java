@@ -16,6 +16,7 @@ public class IceStomConfig {
     public NetworkConfigSection network;
     public AuthConfigSection auth;
     public MinestomConfigSection minestom;
+    public WebConfigSection web;
 
     public Map<String, String> library;
 
@@ -75,6 +76,25 @@ public class IceStomConfig {
         public ForwardingMode forwarding;
         public String velocity_secret;
         public List<String> bungeeguard_secrets;
+    }
+
+    public static @NotNull WebConfigSection getWebConfig() {
+        IceStomConfig config = getConfig();
+
+        if (config.web == null) config.web = new WebConfigSection();
+
+        return config.web;
+    }
+
+    public static class WebConfigSection {
+        public boolean enabled = false;
+        public String bind = "0.0.0.0";
+        public int port = 8080;
+
+        public String public_url = "";
+        public int session_minutes = 60;
+        public List<String> operators = List.of();
+        public String dev_root = "";
     }
 
     public static class MinestomConfigSection {

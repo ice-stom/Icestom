@@ -10,7 +10,9 @@ import io.gitlab.icestom.icestom.debug.PerfHud;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
 import io.gitlab.icestom.icestom.event.EventManager;
+import io.gitlab.icestom.icestom.event.StageOption;
 import io.gitlab.icestom.icestom.event.StageRegistry;
+import io.gitlab.icestom.icestom.event.StageSchema;
 import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import io.gitlab.icestom.icestom.instance.DefaultSpawnInstance;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
@@ -25,6 +27,7 @@ import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
 import io.gitlab.icestom.icestom.ui.interfaces.impl.VanillaInterface;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
+import io.gitlab.icestom.icestom.web.PanelServer;
 import me.lucko.spark.minestom.SparkMinestom;
 import net.kyori.adventure.key.Key;
 import net.minestom.server.Auth;
@@ -41,6 +44,7 @@ import net.minestom.server.instance.*;
 import net.minestom.server.network.packet.server.play.EntityStatusPacket;
 import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
 import net.minestom.server.network.packet.server.play.VehicleMovePacket;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +85,9 @@ public class IceStom {
 
     private final PerfHud perfHud = new PerfHud();
 
-    private SparkMinestom spark;
+    private final SparkMinestom spark;
+
+    private PanelServer panelServer;
 
     static {
         Properties properties = new Properties();
@@ -134,9 +140,26 @@ public class IceStom {
         trackLibrary.init();
 
         stageRegistry = new StageRegistry();
-        stageRegistry.register(Key.key(NAMESPACE, "practice"), PracticeStage.class, PracticeStage::create);
-        stageRegistry.register(Key.key(NAMESPACE, "race"), RaceStage.class, RaceStage::create);
-        stageRegistry.register(Key.key(NAMESPACE, "podium"), PodiumStage.class, PodiumStage::create);
+        stageRegistry.register(Key.key(NAMESPACE, "practice"), PracticeStage.class, PracticeStage::create,
+                StageSchema.of(
+                        "Practice",
+                        "Free running on a track. Ends when you tell it to.",
+                        StageOption.track("track", "Track", "Which track to practice on")
+                ));
+        stageRegistry.register(Key.key(NAMESPACE, "race"), RaceStage.class, RaceStage::create,
+                StageSchema.of(
+                        "Race",
+                        "A gridded race. You start the countdown and wave the chequered flag.",
+                        StageOption.track("track", "Track", "Which track to race on"),
+                        StageOption.number("laps", "Laps", "How many laps to complete", 3, 1d, null),
+                        StageOption.number("pits", "Pit stops", "How many pit stops are required", 0, 0d, null)
+                ));
+        stageRegistry.register(Key.key(NAMESPACE, "podium"), PodiumStage.class, PodiumStage::create,
+                StageSchema.of(
+                        "Podium",
+                        "Puts everyone on the podium in finishing order.",
+                        StageOption.track("track", "Track", "Which track holds the podium locations")
+                ));
 
         translationManager = new TranslationManager(getClass());
         timeTrialManager = new TimeTrialManager();
@@ -155,8 +178,6 @@ public class IceStom {
             }
             default -> throw new RuntimeException("Unknown database type: " + config.database.type);
         };
-
-        spawnInstance = (Instance) spawnProvider.get();
 
         InterfaceManager.register(TimeTrialingInstance.class, new VanillaInterface());
         InterfaceManager.register(RaceStage.class, new VanillaInterface());
@@ -221,8 +242,7 @@ public class IceStom {
             }
         });
 
-        pluginManager.startPlugins();
-
+        spawnInstance = (Instance) spawnProvider.get();
 
         CommandManager commandManager = MinecraftServer.getCommandManager();
         commandManager.register(new DebugCommand());
@@ -239,6 +259,7 @@ public class IceStom {
         commandManager.register(new EventCommand());
         commandManager.register(new ResetCommand());
         commandManager.register(new GamemodeCommand());
+        commandManager.register(new PanelCommand());
 
         InstanceManager instanceManager = MinecraftServer.getInstanceManager();
         instanceManager.registerInstance(spawnInstance);
@@ -258,7 +279,11 @@ public class IceStom {
 
         log.info("Starting IceStom server on {}:{}", config.network.bind, config.network.port);
 
+        pluginManager.startPlugins();
+
         minecraftServer.start(config.network.bind, config.network.port);
+
+        startPanel();
 
         Console console = new Console();
         Thread consoleThread = new Thread(console::start, "console");
@@ -288,6 +313,27 @@ public class IceStom {
 
     public EventManager getEventManager() {
         return eventManager;
+    }
+
+    public @Nullable PanelServer getPanelServer() {
+        return panelServer;
+    }
+
+    private void startPanel() {
+        IceStomConfig.WebConfigSection web = IceStomConfig.getWebConfig();
+
+        if (!web.enabled) return;
+
+        try {
+            panelServer = new PanelServer(web);
+            panelServer.start();
+        } catch (IOException e) {
+            panelServer = null;
+            log.error("Failed to start the event panel on {}:{}", web.bind, web.port, e);
+            return;
+        }
+
+        MinecraftServer.getSchedulerManager().buildShutdownTask(panelServer::stop);
     }
 
     static void main(String[] args) throws IOException, PluginManager.PluginLoadException {

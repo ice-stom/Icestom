@@ -8,12 +8,14 @@ import net.hollowcube.luau.compiler.LuauCompileException;
 import net.hollowcube.luau.compiler.LuauCompiler;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.translation.Argument;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.CommandContext;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.command.builder.suggestion.Suggestion;
 import net.minestom.server.command.builder.suggestion.SuggestionEntry;
+import net.minestom.server.entity.Player;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,8 +83,10 @@ public class EventCommand extends Command {
 
                     List<Result<EventParticipant>> results = new ArrayList<>();
 
-                    if (sender instanceof EventParticipant participant) {
-                        results.add(new Result<>(participant));
+                    for (Player player : IceStom.getInstance().getSpawnInstance().getPlayers()) {
+                        if (player instanceof EventParticipant participant) {
+                            results.add(new Result<>(participant));
+                        }
                     }
 
                     event.begin(results).whenComplete((results1, throwable) -> {
@@ -94,8 +98,6 @@ public class EventCommand extends Command {
                             if (cause instanceof CompletionException && cause.getCause() != null) {
                                 cause = cause.getCause();
                             }
-
-
 
                             log.error(
                                     "Event {} failed",

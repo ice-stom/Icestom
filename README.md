@@ -2,7 +2,7 @@
 A [Minestom](https://minestom.net/) based Ice Boat Racing server software.
 
 > [!warning]
-> IceStom is currently extremely alpha, it is probably not yet suitable for deployment.
+> IceStom is currently extremely alpha, it is probably not yet suitable for deployment. 
 
 # Table of contents
 - [Install](#Install)

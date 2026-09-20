@@ -105,7 +105,7 @@ public class PanelServer {
         log.info("Event panel listening on {}", baseUrl());
 
         if (config.public_url == null || config.public_url.isBlank()) {
-            log.info("Set web.public_url in config.toml to the address players should actually open.");
+            log.warn("Set web.public_url in config.toml to the public facing site.");
         }
     }
 

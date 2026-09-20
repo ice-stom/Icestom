@@ -1,7 +1,10 @@
 package io.gitlab.icestom.icestom.instance;
 
+import io.gitlab.icestom.icestom.IceStom;
+import io.gitlab.icestom.icestom.database.preference.PreferenceKey;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.GridBoatHolder;
+import io.gitlab.icestom.icestom.entity.IceStomPlayer;
 import net.kyori.adventure.key.Key;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
@@ -14,6 +17,8 @@ import net.minestom.server.registry.RegistryKey;
 import net.minestom.server.world.DimensionType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,7 +26,14 @@ import java.util.UUID;
 
 public abstract class BoatInstance extends IceStomInstance {
 
+    private static final Logger log = LoggerFactory.getLogger(BoatInstance.class);
     private final Map<Player, Boat> boats = new HashMap<>();
+
+    private static final PreferenceKey<Key> BOAT_TYPE = IceStom.getInstance().getPreferenceRegistry().register(new PreferenceKey<>(
+            Key.key(IceStom.NAMESPACE, "boat_type"),
+            Key.class,
+            Key.key("oak_boat")
+    ));
 
     public BoatInstance(Key key, RegistryKey<DimensionType> dimensionType) {
         super(UUID.randomUUID(), dimensionType, key);
@@ -67,7 +79,16 @@ public abstract class BoatInstance extends IceStomInstance {
     public Boat createBoat(Player player, Pos pos) {
         removeBoat(player);
 
-        Boat boat = new Boat();
+        Key key = ((IceStomPlayer) player).preference(BOAT_TYPE);
+
+        Boat boat;
+        try {
+            boat = IceStom.getInstance().getBoatProvider().apply(key);
+        } catch (Exception exception) {
+            log.error("Failed to create boat with {} (creating {})", IceStom.getInstance().getBoatProvider(), key);
+            throw exception;
+        }
+
         boats.put(player, boat);
 
         if (player.getInstance() == this) {
@@ -78,6 +99,7 @@ public abstract class BoatInstance extends IceStomInstance {
 
                         boat.setInstance(this, pos);
                         boat.addPassenger(player);
+                        boat.addViewer(player);
                     })
                     .expireCount(1)
                     .build();

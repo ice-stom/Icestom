@@ -1,7 +1,6 @@
 package io.gitlab.icestom.icestom.database;
 
 import io.gitlab.icestom.icestom.timetrial.lap.TimeTrialResult;
-import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

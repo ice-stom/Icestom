@@ -1,16 +1,26 @@
 package io.gitlab.icestom.icestom.entity;
 
+import net.kyori.adventure.key.Key;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityType;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerEntityInteractEvent;
 import net.minestom.server.event.player.PlayerPacketEvent;
+import net.minestom.server.item.Material;
 import net.minestom.server.network.packet.client.play.ClientVehicleMovePacket;
 import net.minestom.server.network.packet.server.play.EntityHeadLookPacket;
+import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.NotNull;
 
 public class Boat extends Entity {
-    public Boat() {
+
+    public Boat(Key type) {
+        if (!type.namespace().equals(Key.MINECRAFT_NAMESPACE)) {
+            /* Should probably check that it is actually a boat but oh well, this should catch anyone failing to rewrite the key in a custom handler */
+            throw new RuntimeException("Invalid boat type " + type);
+        }
+
         super(EntityType.OAK_BOAT);
 
         hasPhysics = false;

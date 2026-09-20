@@ -4,7 +4,7 @@ import io.gitlab.icestom.icestom.command.*;
 import io.gitlab.icestom.icestom.config.IceStomConfig;
 import io.gitlab.icestom.icestom.console.Console;
 import io.gitlab.icestom.icestom.database.TimetrialDatabase;
-import io.gitlab.icestom.icestom.database.memory.MemoryTimetrialDatabase;
+import io.gitlab.icestom.icestom.database.preference.PreferenceRegistry;
 import io.gitlab.icestom.icestom.database.sqlite.SQLiteTimetrialDatabase;
 import io.gitlab.icestom.icestom.debug.PerfHud;
 import io.gitlab.icestom.icestom.entity.Boat;
@@ -52,6 +52,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager.getHolder;
@@ -71,6 +72,7 @@ public class IceStom {
 
     private final PluginManager pluginManager;
 
+    private final PreferenceRegistry preferenceRegistry;
     private final TranslationManager translationManager;
     private final TrackLibrary trackLibrary;
     private final StageRegistry stageRegistry;
@@ -80,6 +82,8 @@ public class IceStom {
 
     private final Instance spawnInstance;
     private Supplier<SpawnInstance> spawnProvider = DefaultSpawnInstance::new;
+
+    private Function<Key, Boat> boatProvider = Boat::new;
 
     private final TimetrialDatabase timetrialDatabase;
 
@@ -136,6 +140,9 @@ public class IceStom {
         MinecraftServer.setBrandName(String.format("IceStom (%s)", MinecraftServer.getBrandName()));
         MinecraftServer.getConnectionManager().setPlayerProvider(IceStomPlayer::new);
 
+        preferenceRegistry = new PreferenceRegistry();
+        translationManager = new TranslationManager(getClass());
+
         trackLibrary = new TrackLibrary();
         trackLibrary.init();
 
@@ -161,14 +168,12 @@ public class IceStom {
                         StageOption.track("track", "Track", "Which track holds the podium locations")
                 ));
 
-        translationManager = new TranslationManager(getClass());
         timeTrialManager = new TimeTrialManager();
         openBoatUtilsManager = new OpenBoatUtilsManager();
 
         eventManager = new EventManager(Path.of("events"));
 
         timetrialDatabase = switch (config.database.type) {
-            case "memory" -> new MemoryTimetrialDatabase();
             case "sqlite" -> {
                 try {
                     yield new SQLiteTimetrialDatabase(Path.of("db"));
@@ -290,7 +295,6 @@ public class IceStom {
         consoleThread.setDaemon(true);
         consoleThread.start();
 
-
         MinecraftServer.getSchedulerManager().buildShutdownTask(console::stop);
         MinecraftServer.getSchedulerManager().buildShutdownTask(spark::shutdown);
     }
@@ -299,25 +303,21 @@ public class IceStom {
         this.spawnProvider = spawnProvider;
     }
 
+    public void setBoatProvider(Function<Key, Boat> boatProvider) {
+        this.boatProvider = boatProvider;
+    }
+
+    public Function<Key, Boat> getBoatProvider() { return boatProvider; }
+
     public TrackLibrary getTrackLibrary() { return trackLibrary; }
-
     public TimeTrialManager getTimeTrialManager() { return timeTrialManager; }
-
     public StageRegistry getStageRegistry() { return stageRegistry; }
-
     public TranslationManager getTranslationManager() { return translationManager; }
-
     public SpawnInstance getSpawnInstance() { return (SpawnInstance) spawnInstance; }
-
     public TimetrialDatabase getTimetrialDatabase() { return timetrialDatabase; }
-
-    public EventManager getEventManager() {
-        return eventManager;
-    }
-
-    public @Nullable PanelServer getPanelServer() {
-        return panelServer;
-    }
+    public EventManager getEventManager() { return eventManager; }
+    public PreferenceRegistry getPreferenceRegistry() { return preferenceRegistry; }
+    public @Nullable PanelServer getPanelServer() { return panelServer; }
 
     private void startPanel() {
         IceStomConfig.WebConfigSection web = IceStomConfig.getWebConfig();

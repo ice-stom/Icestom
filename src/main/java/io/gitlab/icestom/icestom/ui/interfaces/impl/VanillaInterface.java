@@ -82,6 +82,13 @@ public class VanillaInterface implements InterfaceProvider {
             1f
     );
 
+    private static final Sound TRACK_COMPLETE = Sound.sound(
+            Key.key("entity.ender_dragon.death"),
+            Sound.Source.MASTER,
+            1f,
+            1f
+    );
+
     @Override
     public <H, I extends Interface<H, I>> I getInterface(H holder) {
         try {
@@ -243,6 +250,10 @@ public class VanillaInterface implements InterfaceProvider {
                         result,
                         best
                 ));
+
+                boolean is_full_run = track.isLastCheckpoint(result.splits().size() - 1);
+
+                player.playSound(is_full_run ? TRACK_COMPLETE : PING, Sound.Emitter.self());
             });
 
             eventNode().addListener(TimeTrialPracticePointCreateEvent.class, event -> {

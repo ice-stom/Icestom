@@ -82,8 +82,8 @@ public class VanillaInterface implements InterfaceProvider {
             1f
     );
 
-    private static final Sound TRACK_COMPLETE = Sound.sound(
-            Key.key("entity.ender_dragon.death"),
+    private static final Sound TRACK_FIRST_COMPLETION = Sound.sound(
+            Key.key("ui.toast.challenge_complete"),
             Sound.Source.MASTER,
             1f,
             1f
@@ -251,9 +251,7 @@ public class VanillaInterface implements InterfaceProvider {
                         best
                 ));
 
-                boolean is_full_run = track.isLastCheckpoint(result.splits().size() - 1);
-
-                player.playSound(is_full_run ? TRACK_COMPLETE : PING, Sound.Emitter.self());
+                player.playSound(best == null ? TRACK_FIRST_COMPLETION : PING, Sound.Emitter.self());
             });
 
             eventNode().addListener(TimeTrialPracticePointCreateEvent.class, event -> {

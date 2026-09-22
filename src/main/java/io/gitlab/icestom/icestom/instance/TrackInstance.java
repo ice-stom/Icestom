@@ -12,19 +12,27 @@ import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
 import io.gitlab.icestom.icestom.track.colliders.InsideCollider;
 import io.gitlab.icestom.stomtrack.EnvironmentFile;
 import net.hollowcube.polar.PolarLoader;
+import net.hollowcube.polar.PolarWorldAccess;
 import net.kyori.adventure.key.Key;
+import net.kyori.adventure.nbt.BinaryTag;
+import net.kyori.adventure.nbt.CompoundBinaryTag;
+import net.kyori.adventure.nbt.ListBinaryTag;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
+import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
+import net.minestom.server.instance.Chunk;
 import net.minestom.server.instance.LightingChunk;
+import net.minestom.server.network.NetworkBuffer;
 import net.minestom.server.registry.DynamicRegistry;
 import net.minestom.server.registry.RegistryKey;
 import net.minestom.server.world.DimensionType;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,9 +41,10 @@ import java.io.IOException;
 import java.util.*;
 
 import static io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager.writePacket;
+import static io.gitlab.icestom.icestom.util.DisplayEntityConverter.*;
 
 @SuppressWarnings("UnstableApiUsage")
-public abstract class TrackInstance extends BoatInstance implements SpawnLocation {
+public abstract class TrackInstance extends BoatInstance implements SpawnLocation, PolarWorldAccess {
 
     private static final Logger log = LoggerFactory.getLogger(TrackInstance.class);
     protected final Track track;
@@ -47,18 +56,51 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
     private Set<InsideCollider> watchingRegions = Set.of();
     private Set<CrossCollider> watchingTriggers = Set.of();
 
-    private boolean defaultRegions = false;
-
     public TrackInstance(Track track) {
         super(Key.key(IceStom.NAMESPACE, "track/" + track.getEnvironmentId()), getDimensionKey(track.getEnvironmentData()));
 
         this.track = track;
 
         setChunkSupplier(LightingChunk::new);
-        setChunkLoader(new PolarLoader(track.getWorld()));
+        setChunkLoader(new PolarLoader(track.getWorld()).setWorldAccess(this));
 
         eventNode().addListener(PlayerBlockBreakEvent.class, event -> event.setCancelled(true));
         eventNode().addListener(PlayerBlockPlaceEvent.class, event -> event.setCancelled(true));
+    }
+
+    @Override
+    public void loadChunkData(@NotNull Chunk chunk, @Nullable NetworkBuffer userData) {
+        if (userData == null) {
+            return;
+        }
+
+        CompoundBinaryTag root = userData.read(NetworkBuffer.NBT_COMPOUND);
+        ListBinaryTag list = root.getList("entities");
+
+        for (BinaryTag binaryTag : list) {
+            CompoundBinaryTag nbt = (CompoundBinaryTag) binaryTag;
+
+            String id = nbt.getString("id");
+
+            Entity entity = switch (id) {
+                case "minecraft:block_display" -> loadBlockDisplay(nbt);
+                case "minecraft:item_display" -> loadItemDisplay(nbt);
+                case "minecraft:text_display" -> loadTextDisplay(nbt);
+                default -> null;
+            };
+
+            if (entity == null) {
+                continue;
+            }
+
+            ListBinaryTag pos = nbt.getList("Pos");
+
+            double x = pos.getDouble(0);
+            double y = pos.getDouble(1);
+            double z = pos.getDouble(2);
+
+            entity.setInstance(this, new Pos(x, y, z));
+        }
     }
 
     @Override

@@ -277,9 +277,9 @@ public class VanillaInterface implements InterfaceProvider {
                         "message.timetrial.get_record",
                         Argument.component("player", player.getName()),
                         Argument.component("track", track.getName()),
-                        Argument.component("time", Component.text(result.getTime())),
-                        Argument.component("delta", Component.text(result.getTime() - oldResult.getTime())),
-                        Argument.component("oldtime", Component.text(oldResult.getTime()))
+                        Argument.component("time", TextFormatter.getTime(result.getTime())),
+                        Argument.component("delta", TextFormatter.getDelta(result.getTime() - oldResult.getTime())),
+                        Argument.component("oldtime", TextFormatter.getTime(oldResult.getTime()))
                 ));
             });
         }

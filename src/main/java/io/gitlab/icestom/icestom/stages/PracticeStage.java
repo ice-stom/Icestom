@@ -5,6 +5,7 @@ import io.gitlab.icestom.icestom.event.*;
 import io.gitlab.icestom.icestom.event.lua.ParticipantStore;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.track.Track;
+import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 
@@ -23,8 +24,8 @@ public class PracticeStage extends TimeTrialingInstance implements EventStage, S
 
     private PracticeState state = PracticeState.PRACTICE;
 
-    public PracticeStage(String stageName, Track track) {
-        super(track);
+    public PracticeStage(String stageName, TrackLibrary.Ticket ticket) {
+        super(ticket);
         this.stageName = stageName;
     }
 
@@ -37,10 +38,22 @@ public class PracticeStage extends TimeTrialingInstance implements EventStage, S
             return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'track' isn't a string"));
         }
 
-        return IceStom.getInstance().getTrackLibrary()
-                .loadTrack(track_id)
-                .thenApply(Optional::get)
-                .thenApply(track1 -> new PracticeStage(name, track1));
+        return CompletableFuture.supplyAsync(() -> {
+            Optional<TrackLibrary.Ticket> optionalTicket =
+                    IceStom.getInstance()
+                            .getTrackLibrary()
+                            .loadTrack(track_id);
+
+            if (optionalTicket.isEmpty()) {
+                throw new InvalidStageArgumentsException(
+                        "Track '" + track_id + "' doesn't exist"
+                );
+            }
+
+            TrackLibrary.Ticket ticket = optionalTicket.get();
+
+            return new PracticeStage(name, ticket);
+        });
     }
 
     private void endPractice() {

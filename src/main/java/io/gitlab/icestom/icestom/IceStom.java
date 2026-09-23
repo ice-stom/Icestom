@@ -44,6 +44,7 @@ import net.minestom.server.instance.*;
 import net.minestom.server.network.packet.server.play.EntityStatusPacket;
 import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
 import net.minestom.server.network.packet.server.play.VehicleMovePacket;
+import net.minestom.server.timer.TaskSchedule;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -297,6 +298,7 @@ public class IceStom {
 
         MinecraftServer.getSchedulerManager().buildShutdownTask(console::stop);
         MinecraftServer.getSchedulerManager().buildShutdownTask(spark::shutdown);
+        MinecraftServer.getSchedulerManager().scheduleTask(timeTrialManager::cullDeadTimetrialInstances, TaskSchedule.immediate(), TaskSchedule.tick(100));
     }
 
     public void setSpawnProvider(Supplier<SpawnInstance> spawnProvider) {

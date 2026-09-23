@@ -20,6 +20,7 @@ import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.track.TickMovement;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
+import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import io.gitlab.icestom.icestom.ui.TickCountdown;
 import io.gitlab.icestom.icestom.ui.event.GenericErrorMessageEvent;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
@@ -63,8 +64,8 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 
     private final String name;
 
-    public RaceStage(String stageName, Track track, int totalLaps, int totalPits) {
-        super(track);
+    public RaceStage(String stageName, TrackLibrary.Ticket ticket, int totalLaps, int totalPits) {
+        super(ticket);
 
         this.name = stageName;
 
@@ -118,27 +119,22 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
         if (laps <= 0) return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'laps' is <= 0"));
         if (pits < 0) return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'pits' is <= 0"));
 
-        return IceStom.getInstance().getTrackLibrary()
-                .loadTrack(track_id)
-                .thenCompose(trackOpt -> {
-                    if (trackOpt.isEmpty()) {
-                        return CompletableFuture.failedFuture(
-                                new InvalidStageArgumentsException(
-                                        "Track '" + track_id + "' doesn't exist"
-                                )
-                        );
-                    }
+        return CompletableFuture.supplyAsync(() -> {
+            Optional<TrackLibrary.Ticket> optionalTicket =
+                    IceStom.getInstance()
+                            .getTrackLibrary()
+                            .loadTrack(track_id);
 
-                    try {
-                        return CompletableFuture.completedFuture(
-                                new RaceStage(name, trackOpt.get(), laps, pits)
-                        );
-                    } catch (Throwable e) {
-                        return CompletableFuture.failedFuture(
-                                e
-                        );
-                    }
-                });
+            if (optionalTicket.isEmpty()) {
+                throw new InvalidStageArgumentsException(
+                        "Track '" + track_id + "' doesn't exist"
+                );
+            }
+
+            TrackLibrary.Ticket ticket = optionalTicket.get();
+
+            return new RaceStage(name, ticket, laps, pits);
+        });
     }
 
     @Override

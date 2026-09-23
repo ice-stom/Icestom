@@ -5,17 +5,12 @@ import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.library.source.FileSystemSource;
 import io.gitlab.icestom.icestom.track.library.source.TrackSource;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 
 public class TrackLibrary {
@@ -26,10 +21,14 @@ public class TrackLibrary {
     );
 
     private final Map<String, TrackSource> sources = new HashMap<>();
+    private final Map<String, String> loadPreferences = new HashMap<>();
 
-    private final Map<String, String> load_preferences = new HashMap<>();
+    private final Map<String, UUID> nativeTrackIds = new HashMap<>();
 
-    private final Map<String, Track> loadedTracks = new HashMap<>();
+    private final List<Ticket> tickets = new ArrayList<>();
+
+    private final Map<UUID, Track> loadedTracks = new HashMap<>();
+    private final Map<UUID, Integer> refCounts = new HashMap<>();
 
     public void init() {
         IceStomConfig.getConfig().library.forEach((id, uri_s) -> {
@@ -55,43 +54,137 @@ public class TrackLibrary {
             log.info("Preloading source '{}' [{}]", id, trackSource.getClass().getSimpleName());
 
             for (String track_id : trackSource.preloadTracks()) {
-                load_preferences.computeIfAbsent(track_id, _ -> id);
+                loadPreferences.computeIfAbsent(track_id, _ -> id);
             }
         });
     }
 
-    public @NotNull CompletableFuture<Optional<Track>> loadTrack(String track_id) {
+    public @NotNull Optional<Ticket> loadTrack(String track_id) {
+        UUID instance_id = nativeTrackIds.computeIfAbsent(track_id, _ -> UUID.randomUUID());
 
-        Track preloaded = loadedTracks.get(track_id);
+        Track track = loadedTracks.get(instance_id);
 
-        if (preloaded != null) {
-            return CompletableFuture.completedFuture(Optional.of(preloaded));
+        if (track != null) {
+            return Optional.of(new Ticket(instance_id, CompletableFuture.completedFuture(track)));
         }
 
-        String source_id = load_preferences.get(track_id);
+        return loadTrackExclusive(track_id, instance_id);
+    }
+
+    public @NotNull Optional<Ticket> loadTrackExclusive(String track_id, UUID instance_id) {
+        String source_id = loadPreferences.get(track_id);
 
         if (source_id == null) {
             log.warn("Attempt to load unknown track '{}'.", track_id);
-            return CompletableFuture.failedFuture(new TrackLoadException("Failed to load unknown track " + track_id + "."));
+            return Optional.empty();
         }
 
         TrackSource source = sources.get(source_id);
 
         if (source == null) {
             log.warn("Attempt to load '{}' from unknown source '{}'.", track_id, source_id);
-            return CompletableFuture.failedFuture(new TrackLoadException("Failed to load track " + track_id + " from unknown source " + source_id + "."));
+            return Optional.empty();
         }
 
-        return source.getTrack(track_id);
+        return Optional.of(new Ticket(instance_id, source.loadTrack(track_id)));
     }
 
     public Set<String> getAvailableTracks() {
-        return load_preferences.keySet();
+        return loadPreferences.keySet();
     }
 
-    public static class TrackLoadException extends Exception {
-        TrackLoadException(String message) {
-            super(message);
+    public @NotNull Map<String, TrackSource> getSources() {
+        return Collections.unmodifiableMap(sources);
+    }
+
+    public @NotNull Map<UUID, Track> getLoadedTracks() {
+        return Collections.unmodifiableMap(loadedTracks);
+    }
+
+    public @NotNull Map<UUID, Integer> getRefCounts() {
+        return Collections.unmodifiableMap(refCounts);
+    }
+
+    public class Ticket {
+        private final UUID trackInstanceId;
+        private final CompletableFuture<Track> track;
+
+        private State state = State.LOADING;
+
+        private final long loadStart;
+
+        private Ticket(UUID trackId, CompletableFuture<Track> track) {
+            this.trackInstanceId = trackId;
+            this.track = track;
+
+            loadStart = System.nanoTime();
+
+            tickets.add(this);
+            refCounts.merge(trackId, 1, Integer::sum);
+
+            if (track.isDone()) {
+                state = State.LOADED;
+                return;
+            }
+
+            track.whenComplete((fresh, throwable) -> {
+                if (throwable != null) {
+                    log.error("Track load failed", throwable);
+                    return;
+                }
+
+                loadedTracks.put(trackId, fresh);
+
+                synchronized (this) {
+                    if (state == State.BURNT) {
+                        return;
+                    }
+                    state = State.LOADED;
+                }
+
+                long loadEnd = System.nanoTime();
+                log.info("Ticket[{}] load time: {}ns", trackId, loadEnd - loadStart);
+            });
+        }
+
+        public void burn() {
+            this.state = State.BURNT;
+
+            if (!track.isDone()) track.completeExceptionally(new InterruptedException());
+
+            if (tickets.remove(this)) {
+                int refs = refCounts.getOrDefault(trackInstanceId, 0);
+
+                if (refs <= 0) {
+                    log.error("Ticket unaccounted for!");
+                    return;
+                }
+
+                if (refs == 1) {
+                    refCounts.remove(trackInstanceId);
+                    loadedTracks.remove(trackInstanceId);
+                } else {
+                    refCounts.put(trackInstanceId, refs - 1);
+                }
+            };
+        }
+
+        public UUID getTrackInstanceId() {
+            return trackInstanceId;
+        }
+
+        public State getState() {
+            return state;
+        }
+
+        public Track getTrack() {
+            return track.join();
+        }
+
+        public enum State {
+            LOADING,
+            LOADED,
+            BURNT
         }
     }
 }

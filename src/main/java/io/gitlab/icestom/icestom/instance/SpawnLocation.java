@@ -2,6 +2,7 @@ package io.gitlab.icestom.icestom.instance;
 
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
+import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.InstanceContainer;
 
 public interface SpawnLocation extends PlayerHolder {
@@ -20,8 +21,8 @@ public interface SpawnLocation extends PlayerHolder {
         if (player.getInstance() == this) {
             resetPlayer(player);
         } else {
-            if (this instanceof InstanceContainer instanceContainer) {
-                player.setInstance(instanceContainer, spawn)
+            if (this instanceof Instance instance) {
+                player.setInstance(instance, spawn)
                         .thenRun(() -> resetPlayer(player));
             }
         }

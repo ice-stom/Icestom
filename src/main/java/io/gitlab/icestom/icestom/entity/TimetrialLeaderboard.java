@@ -63,7 +63,9 @@ public class TimetrialLeaderboard extends Entity {
                 return;
             };
 
-            final String name = username.join();
+            String name = username.join();
+
+            if (name == null) name = "<unknown>";
 
             leaderboard.appendNewline();
             leaderboard.append(Component.object(ObjectContents.playerHead(attempt.player())));

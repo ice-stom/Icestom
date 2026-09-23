@@ -20,5 +20,5 @@ public abstract class TrackSource {
     }
 
     public abstract List<String> preloadTracks();
-    public abstract @NotNull CompletableFuture<Optional<Track>> getTrack(String track_id);
+    public abstract @NotNull CompletableFuture<Track> loadTrack(String track_id);
 }

@@ -68,8 +68,8 @@ public class TimeTrialCommand extends Command {
                 }
             }
 
-            CommandLoadTrack.loadTrack(commandSender, track_id, track -> {
-                timeTrialManager.startTimeTrialing(player, track);
+            CommandLoadTrack.loadTrack(commandSender, track_id, ticket -> {
+                timeTrialManager.startTimeTrialing(player, ticket);
             });
         }, trackArgument);
     }

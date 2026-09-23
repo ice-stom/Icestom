@@ -18,6 +18,7 @@ import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
 import io.gitlab.icestom.icestom.track.TickMovement;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
+import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -80,8 +81,8 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
     private final TimetrialLeaderboard leaderboard;
 
-    public TimeTrialingInstance(Track track) {
-        super(track);
+    public TimeTrialingInstance(TrackLibrary.Ticket ticket) {
+        super(ticket);
 
         eventNode().addListener(PlayerStartSneakingEvent.class, event -> {
             final Player player = event.getPlayer();
@@ -160,6 +161,9 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
         leaderboard = new TimetrialLeaderboard(track);
         interfaceHolder = getHolder(TimeTrialingInstance.class, this);
+
+        subscribeRegionId("icestom.reset");
+        subscribeTriggerId("icestom.reset");
     }
 
     @Override
@@ -171,15 +175,12 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         return boat;
     }
 
-    @Override
-    public void start() {
+
+    public void initialize() {
         Pos leaderboard_pos = track.getLocations().getOrDefault(
                 "icestom.leaderboard",
                 track.getSpawnLocation().asVec().asPos() // remove pitch/yaw
         );
-
-        subscribeRegionId("icestom.reset");
-        subscribeTriggerId("icestom.reset");
 
         leaderboard.setInstance(this, leaderboard_pos);
     }

@@ -5,6 +5,7 @@ import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.command.CommandSender;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,26 +18,34 @@ public class CommandLoadTrack {
     private static final Logger log = LoggerFactory.getLogger(CommandLoadTrack.class);
     private static final TrackLibrary trackLibrary = IceStom.getInstance().getTrackLibrary();
 
-    public static void loadTrack(CommandSender commandSender, String track_id, Consumer<Track> trackConsumer) {
-        CompletableFuture<Optional<Track>> future = trackLibrary.loadTrack(track_id);
+    public static void loadTrack(CommandSender commandSender, String track_id, Consumer<TrackLibrary.Ticket> consumer) {
+        @NotNull Optional<TrackLibrary.Ticket> optional = trackLibrary.loadTrack(track_id);
 
-        if (!future.isDone()) {
-            commandSender.sendMessage(Component.translatable("command.generic.loading_track", Component.text(track_id)));
+        if (optional.isEmpty()) {
+            commandSender.sendMessage(Component.translatable("command.generic.unknown_track", Component.text(track_id)));
+            return;
         }
 
-        future.whenComplete((track, exception) -> {
-            if (exception != null) {
+        TrackLibrary.Ticket ticket = optional.get();
+
+        if (ticket.getState() == TrackLibrary.Ticket.State.LOADING) {
+            commandSender.sendMessage(Component.translatable("command.generic.loading_track", Component.text(track_id)));
+        }
+        CompletableFuture.runAsync(() -> {
+            Track track;
+            try {
+                track = ticket.getTrack();
+            } catch (Exception e) {
                 commandSender.sendMessage(Component.translatable("command.generic.failed_to_load_track", Component.text(track_id)));
-                log.warn("Failed to load track {}", track_id, exception);
+                log.warn("Failed to load track {}", track_id, e);
                 return;
             }
 
-            if (track.isEmpty()) {
-                commandSender.sendMessage(Component.translatable("command.generic.unknown_track", Component.text(track_id)));
-                return;
+            try {
+                consumer.accept(ticket);
+            } catch (Exception e) {
+                log.error("Failed to start consumer for track {}", track_id, e);
             }
-
-            trackConsumer.accept(track.get());
         });
     }
 }

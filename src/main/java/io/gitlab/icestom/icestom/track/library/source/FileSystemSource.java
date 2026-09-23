@@ -1,25 +1,32 @@
 package io.gitlab.icestom.icestom.track.library.source;
 
-import io.gitlab.icestom.icestom.instance.TrackInstance;
+import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.track.Track;
+import io.gitlab.icestom.icestom.track.TrackLoad;
 import io.gitlab.icestom.stomtrack.EnvironmentFile;
 import io.gitlab.icestom.stomtrack.TrackFile;
 import io.gitlab.icestom.stomtrack.TrackLoader;
+import net.hollowcube.polar.PolarDataConverter;
 import net.hollowcube.polar.PolarLoader;
+import net.hollowcube.polar.PolarWorldAccess;
+import net.kyori.adventure.key.Key;
+import net.minestom.server.MinecraftServer;
+import net.minestom.server.instance.InstanceContainer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.URI;
+import java.nio.channels.Channels;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
+
+import static io.gitlab.icestom.icestom.track.Track.getDimensionKey;
 
 public class FileSystemSource extends TrackSource {
 
@@ -27,7 +34,6 @@ public class FileSystemSource extends TrackSource {
     private final Path folder;
 
     private final Map<String, Path> sourceFiles = new LinkedHashMap<>();
-    private final Map<String, Track> tracks = new HashMap<>();
 
     public FileSystemSource(URI uri) {
         super(uri);
@@ -69,7 +75,7 @@ public class FileSystemSource extends TrackSource {
                             EnvironmentFile environmentFile = TrackLoader.loadEnvironmentFile(new ByteArrayInputStream(bytes));
 
                             // preload all the environments
-                            TrackInstance.getDimensionKey(environmentFile);
+                            Track.getDimensionKey(environmentFile);
                         }
                     }
 
@@ -84,85 +90,135 @@ public class FileSystemSource extends TrackSource {
     }
 
     @Override
-    public @NotNull CompletableFuture<Optional<Track>> getTrack(String track_id) {
+    public @NotNull CompletableFuture<Track> loadTrack(String track_id) {
 
         Path file = sourceFiles.get(track_id);
 
         if (file == null) {
-            log.warn("Failed to fetch uncached track {}.", track_id);
-            return CompletableFuture.completedFuture(Optional.empty());
-        }
-
-        Track cached = tracks.get(track_id);
-
-        if (cached != null) {
-            return CompletableFuture.completedFuture(Optional.of(cached));
+            log.warn("Failed to fetch unindexed track {}.", track_id);
+            return CompletableFuture.failedFuture(new RuntimeException("Failed to fetch unindexed track"));
         }
 
         return CompletableFuture.supplyAsync(() -> {
-            PolarLoader world = null;
             EnvironmentFile environmentFile = null;
             List<TrackFile> trackFiles = new ArrayList<>();
 
             String env_name = null;
 
-            try (ZipInputStream zis = new ZipInputStream(new FileInputStream(file.toFile()))) {
-                ZipEntry entry;
+            ZipFile zipFile;
+            try {
+                zipFile = new ZipFile(file.toFile());
 
-                while ((entry = zis.getNextEntry()) != null) {
-                    if (!entry.isDirectory()) {
-                        byte[] bytes = zis.readAllBytes();
+                Enumeration<? extends ZipEntry> entries = zipFile.entries();
 
-                        if (entry.getName().endsWith(".polar")) {
-                            world = new PolarLoader(new ByteArrayInputStream(bytes));
-                            env_name = entry.getName().substring(0, entry.getName().length() - ".polar".length());
-                        } else if (entry.getName().endsWith(".environment.xml")) {
-                            environmentFile = TrackLoader.loadEnvironmentFile(new ByteArrayInputStream(bytes));
-                        } else if (entry.getName().endsWith(".track.xml")) {
-                            trackFiles.add(TrackLoader.loadTrack(new ByteArrayInputStream(bytes)));
-                        }
+                String polar_entry = null;
+
+                while (entries.hasMoreElements()) {
+                    ZipEntry entry = entries.nextElement();
+
+                    if (entry.getName().endsWith(".environment.xml")) {
+                        environmentFile = TrackLoader.loadEnvironmentFile(zipFile.getInputStream(entry));
+                    } else if (entry.getName().endsWith(".track.xml")) {
+                        trackFiles.add(TrackLoader.loadTrack(zipFile.getInputStream(entry)));
+                    } else if (entry.getName().endsWith(".polar")) {
+                        polar_entry = entry.getName();
+                        env_name = polar_entry.substring(polar_entry.length() - ".polar".length());
                     }
-
-                    zis.closeEntry();
                 }
-            } catch (IOException e) {
-                log.error("Failed to load stomtrack from file", e);
-                return Optional.empty();
-            }
 
-            if (trackFiles.isEmpty()) {
-                log.warn("Track file has no tracks! {}", file);
-                return Optional.empty();
-            }
+                if (trackFiles.isEmpty()) {
+                    throw new RuntimeException("Track file has no tracks!");
+                }
 
-            if (world == null) {
-                log.warn("Track file has no world! {}", file);
-                return Optional.empty();
-            }
+                if (environmentFile == null) {
+                    throw new RuntimeException("Track file has no environment data!");
+                }
 
-            if (environmentFile == null) {
-                log.warn("Track file has no environment data! {}", file);
-                return Optional.empty();
-            }
+                if (env_name == null) {
+                    throw new RuntimeException("Track file has no world!");
+                }
 
-            Track source = null;
+                ZipEntry zipEntry = zipFile.getEntry(polar_entry);
 
-            for (TrackFile trackFile : trackFiles) {
-                Track track = new Track(
-                        trackFile,
-                        world.world(),
+                TrackLoad trackLoad = new PolarTrackLoad(
                         environmentFile,
-                        env_name
+                        env_name,
+                        zipFile.getInputStream(zipEntry),
+                        zipEntry.getSize()
                 );
 
-                tracks.put(trackFile.getId(), track);
+                trackLoad.fullyLoaded().thenRun(() -> {
+                    try {
+                        zipFile.close();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
 
-                if (trackFile.getId().equals(track_id)) {
-                    source = track;
+                Track source = null;
+
+                for (TrackFile trackFile : trackFiles) {
+                    Track track = new Track(
+                            trackFile,
+                            trackLoad
+                    );
+
+                    if (trackFile.getId().equals(track_id)) {
+                        source = track;
+                    }
                 }
-            }
 
-            return Optional.ofNullable(source);
+                if (source == null) {
+                    log.error("Failed to locate {} in {}", track_id, file);
+                    throw new RuntimeException("Failed to locate track in file.");
+                }
+
+                trackLoad.spawnLoaded().join();
+
+                return source;
+            } catch (IOException e) {
+                log.error("Failed to load stomtrack from file", e);
+                throw new RuntimeException("Failed to load stomtrack from file");
+            }
         });
+    }
+
+    public static class PolarTrackLoad implements TrackLoad {
+
+        private final InstanceContainer instanceContainer;
+
+        private final CompletableFuture<Void> fullyLoaded;
+
+        public PolarTrackLoad(EnvironmentFile environmentFile, String env_name, InputStream inputStream, long bytes) {
+            instanceContainer = new InstanceContainer(
+                    UUID.randomUUID(),
+                    getDimensionKey(environmentFile),
+                    Key.key(IceStom.NAMESPACE, "track/" + env_name)
+            );
+
+            fullyLoaded = PolarLoader.streamLoad(
+                    instanceContainer,
+                    Channels.newChannel(inputStream),
+                    bytes,
+                    PolarDataConverter.NOOP,
+                    PolarWorldAccess.DEFAULT,
+                    true
+            );
+        }
+
+        @Override
+        public InstanceContainer instanceContainer() {
+            return instanceContainer;
+        }
+
+        @Override
+        public CompletableFuture<Void> spawnLoaded() {
+            return fullyLoaded; // make this actually check for spawn to be loaded :thumbs_up:
+        }
+
+        @Override
+        public CompletableFuture<Void> fullyLoaded() {
+            return fullyLoaded;
+        }
     }
 }

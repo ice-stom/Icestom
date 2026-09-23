@@ -40,7 +40,11 @@ public class TrackCommand extends Command {
             addSyntax((commandSender, commandContext) -> {
                 final String track_id = commandContext.get(trackArgument);
 
-                CommandLoadTrack.loadTrack(commandSender, track_id, track -> {
+                CommandLoadTrack.loadTrack(commandSender, track_id, ticket -> {
+                    Track track = ticket.getTrack();
+
+                    ticket.burn();
+
                     final Component[] text = {Component.text("Track " + track_id + "\n")
                             .append(Component.text(" - Checkpoints:\n"))};
 

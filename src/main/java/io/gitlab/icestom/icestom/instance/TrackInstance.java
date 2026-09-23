@@ -10,6 +10,7 @@ import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.TickMovement;
 import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
 import io.gitlab.icestom.icestom.track.colliders.InsideCollider;
+import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import io.gitlab.icestom.stomtrack.EnvironmentFile;
 import net.hollowcube.polar.PolarLoader;
 import net.hollowcube.polar.PolarWorldAccess;
@@ -23,7 +24,6 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
-import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.instance.Chunk;
@@ -47,7 +47,10 @@ import static io.gitlab.icestom.icestom.util.DisplayEntityConverter.*;
 public abstract class TrackInstance extends BoatInstance implements SpawnLocation, PolarWorldAccess {
 
     private static final Logger log = LoggerFactory.getLogger(TrackInstance.class);
+
     protected final Track track;
+    private final TrackLibrary.Ticket ticket;
+
     private final Map<Player, Vec> lastTickPositions = new HashMap<>();
 
     private final Set<String> subscribedRegions = new HashSet<>();
@@ -56,13 +59,15 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
     private Set<InsideCollider> watchingRegions = Set.of();
     private Set<CrossCollider> watchingTriggers = Set.of();
 
-    public TrackInstance(Track track) {
-        super(Key.key(IceStom.NAMESPACE, "track/" + track.getEnvironmentId()), getDimensionKey(track.getEnvironmentData()));
+    public TrackInstance(TrackLibrary.Ticket ticket) {
+        final Track loaded_track = ticket.getTrack(); // this will block
 
-        this.track = track;
+        super(UUID.randomUUID(), loaded_track.getMapContainer());
+
+        this.ticket = ticket;
+        this.track = loaded_track;
 
         setChunkSupplier(LightingChunk::new);
-        setChunkLoader(new PolarLoader(track.getWorld()).setWorldAccess(this));
 
         eventNode().addListener(PlayerBlockBreakEvent.class, event -> event.setCancelled(true));
         eventNode().addListener(PlayerBlockPlaceEvent.class, event -> event.setCancelled(true));
@@ -183,6 +188,10 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
     protected abstract void onPlayerMovements(Map<Player, TickMovement> movements, Map<Player, Set<String>> inside_tags, Map<Player, Map<String, Long>> crossed_triggers);
     protected abstract boolean shouldTrackPlayer(Player player);
 
+    public TrackLibrary.Ticket getTicket() {
+        return ticket;
+    }
+
     public Track getTrack() {
         return track;
     }
@@ -237,45 +246,7 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
         return removed;
     }
 
-    public static RegistryKey<DimensionType> getDimensionKey(EnvironmentFile environmentFile) {
 
-        DynamicRegistry<DimensionType> registry = MinecraftServer.getDimensionTypeRegistry();
-
-        String id = "d" + Objects.hash(
-                environmentFile.getAmbientLight(),
-                environmentFile.getHeight(),
-                environmentFile.getMinY(),
-                environmentFile.getHeight(),
-                environmentFile.getSkybox()
-        );
-
-        Key key = Key.key(IceStom.NAMESPACE, id);
-
-        @Nullable RegistryKey<DimensionType> pre_existing = registry.getKey(key);
-
-        if (pre_existing != null) return pre_existing;
-
-        DimensionType.Builder builder = DimensionType.builder();
-
-        builder.minY(environmentFile.getMinY());
-        builder.height(environmentFile.getHeight());
-        builder.logicalHeight(environmentFile.getHeight());
-        builder.skybox(switch (environmentFile.getSkybox()) {
-            case OVERWORLD -> DimensionType.Skybox.OVERWORLD;
-            case END -> DimensionType.Skybox.END;
-            case NONE -> DimensionType.Skybox.NONE;
-        });
-        builder.ambientLight(environmentFile.getAmbientLight());
-        builder.cardinalLight(environmentFile.getNetherLight() ? DimensionType.CardinalLight.NETHER : DimensionType.CardinalLight.DEFAULT);
-
-        try {
-            return MinecraftServer.getDimensionTypeRegistry()
-                    .register(key, builder.build());
-        } catch (UnsupportedOperationException e) {
-            log.warn("Couldn't find a suitable dimension type candidate for environment. (maybe preload failed?)");
-            return DimensionType.OVERWORLD;
-        }
-    }
 
     public static void tickResetRegions(
             TrackInstance instance,

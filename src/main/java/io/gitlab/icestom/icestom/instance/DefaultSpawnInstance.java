@@ -5,10 +5,8 @@ import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.hollowcube.polar.PolarLoader;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.ComponentBuilder;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
-import net.minestom.server.coordinate.Area;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
@@ -16,8 +14,8 @@ import net.minestom.server.entity.EntityType;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.metadata.display.AbstractDisplayMeta;
 import net.minestom.server.entity.metadata.display.TextDisplayMeta;
+import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.instance.LightingChunk;
-import net.minestom.server.instance.block.Block;
 import net.minestom.server.world.DimensionType;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -29,7 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 
-public class DefaultSpawnInstance extends IceStomInstance implements SpawnInstance {
+public class DefaultSpawnInstance extends InstanceContainer implements SpawnInstance {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultSpawnInstance.class);
 
@@ -85,7 +83,6 @@ public class DefaultSpawnInstance extends IceStomInstance implements SpawnInstan
         }
 
         {
-
             TextComponent.Builder builder = Component.text();
 
             for (int i = 0; i < 9; i++) {
@@ -106,7 +103,7 @@ public class DefaultSpawnInstance extends IceStomInstance implements SpawnInstan
 
                     builder.append(Component.text("v" + IceStom.VERSION));
                 } else if (i == 4) {
-                    builder.append(Component.text("\"probably on a test server\""));
+                    builder.append(Component.text("\"rewriting tracks again\""));
                 } else if (i == 5) {
                     builder.append(Component.text("- microwavedram"));
                 }
@@ -130,8 +127,6 @@ public class DefaultSpawnInstance extends IceStomInstance implements SpawnInstan
             meta.setTranslation(new Vec(0, 0, -1000));
 
             entity.setInstance(this, new Pos(0, 0, 0).withYaw(180));
-
-//            setBlockArea(Area.box(new Vec(0, 6, 12), new Vec(9, 3, 0)), Block.WHITE_CONCRETE);
         }
     }
 

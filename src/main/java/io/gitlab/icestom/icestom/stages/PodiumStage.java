@@ -7,8 +7,10 @@ import io.gitlab.icestom.icestom.event.InvalidStageArgumentsException;
 import io.gitlab.icestom.icestom.event.Result;
 import io.gitlab.icestom.icestom.event.lua.ParticipantStore;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
+import io.gitlab.icestom.icestom.race.RaceStage;
 import io.gitlab.icestom.icestom.track.TickMovement;
 import io.gitlab.icestom.icestom.track.Track;
+import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
@@ -27,8 +29,8 @@ public class PodiumStage extends TrackInstance implements EventStage {
 
     private final String stageName;
 
-    public PodiumStage(String stageName, Track track) {
-        super(track);
+    public PodiumStage(String stageName, TrackLibrary.Ticket ticket) {
+        super(ticket);
         this.stageName = stageName;
     }
 
@@ -90,9 +92,21 @@ public class PodiumStage extends TrackInstance implements EventStage {
             return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'track' isn't a string"));
         }
 
-        return IceStom.getInstance().getTrackLibrary()
-                .loadTrack(track_id)
-                .thenApply(Optional::get)
-                .thenApply(track1 -> new PodiumStage(name, track1));
+        return CompletableFuture.supplyAsync(() -> {
+            Optional<TrackLibrary.Ticket> optionalTicket =
+                    IceStom.getInstance()
+                            .getTrackLibrary()
+                            .loadTrack(track_id);
+
+            if (optionalTicket.isEmpty()) {
+                throw new InvalidStageArgumentsException(
+                        "Track '" + track_id + "' doesn't exist"
+                );
+            }
+
+            TrackLibrary.Ticket ticket = optionalTicket.get();
+
+            return new PodiumStage(name, ticket);
+        });
     }
 }

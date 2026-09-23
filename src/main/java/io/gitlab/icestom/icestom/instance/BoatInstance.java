@@ -12,6 +12,8 @@ import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.EventListener;
 import net.minestom.server.event.player.PlayerPacketEvent;
+import net.minestom.server.instance.InstanceContainer;
+import net.minestom.server.instance.SharedInstance;
 import net.minestom.server.network.packet.client.play.ClientTeleportConfirmPacket;
 import net.minestom.server.registry.RegistryKey;
 import net.minestom.server.world.DimensionType;
@@ -24,7 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public abstract class BoatInstance extends IceStomInstance {
+public abstract class BoatInstance extends SharedInstance {
 
     private static final Logger log = LoggerFactory.getLogger(BoatInstance.class);
     private final Map<Player, Boat> boats = new HashMap<>();
@@ -35,8 +37,8 @@ public abstract class BoatInstance extends IceStomInstance {
             Key.key("oak_boat")
     ));
 
-    public BoatInstance(Key key, RegistryKey<DimensionType> dimensionType) {
-        super(UUID.randomUUID(), dimensionType, key);
+    public BoatInstance(UUID uuid, InstanceContainer instanceContainer) {
+        super(uuid, instanceContainer);
     }
 
     public @Nullable Boat removeBoat(Player player) {

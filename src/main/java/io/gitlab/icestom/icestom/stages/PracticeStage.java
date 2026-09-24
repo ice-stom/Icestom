@@ -92,6 +92,8 @@ public class PracticeStage extends TimeTrialingInstance implements EventStage, S
     public void cleanup() {
         MinecraftServer.getInstanceManager()
                 .unregisterInstance(this);
+
+        getTicket().burn();
     }
 
     @Override

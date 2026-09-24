@@ -420,6 +420,8 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
     public void cleanup() {
         MinecraftServer.getInstanceManager()
                 .unregisterInstance(this);
+
+        getTicket().burn();
     }
 
     @Override

@@ -57,6 +57,8 @@ public class PodiumStage extends TrackInstance implements EventStage {
     public void cleanup() {
         MinecraftServer.getInstanceManager()
                 .unregisterInstance(this);
+
+        getTicket().burn();
     }
 
     @Override

@@ -1,4 +1,4 @@
-package io.gitlab.icestom.icestom.event;
+package io.gitlab.icestom.icestom.event.event;
 
 import net.minestom.server.entity.Player;
 
@@ -9,5 +9,5 @@ public interface EventParticipant {
     UUID getUuid();
 
     Player getCurrentPlayer();
-    List<Player> getParticipants();
+    List<UUID> getPlayers();
 }

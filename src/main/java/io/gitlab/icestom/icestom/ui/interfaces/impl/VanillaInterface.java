@@ -2,7 +2,7 @@ package io.gitlab.icestom.icestom.ui.interfaces.impl;
 
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
-import io.gitlab.icestom.icestom.event.EventParticipant;
+import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import io.gitlab.icestom.icestom.race.RaceLeaderboard;
 import io.gitlab.icestom.icestom.race.RaceLeaderboardRow;
 import io.gitlab.icestom.icestom.race.RaceStage;

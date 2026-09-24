@@ -3,8 +3,8 @@ package io.gitlab.icestom.icestom.web;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.gitlab.icestom.icestom.IceStom;
-import io.gitlab.icestom.icestom.event.StageOption;
-import io.gitlab.icestom.icestom.event.StageSchema;
+import io.gitlab.icestom.icestom.event.stage.StageOption;
+import io.gitlab.icestom.icestom.event.stage.StageSchema;
 import net.kyori.adventure.key.Key;
 
 import java.util.ArrayList;

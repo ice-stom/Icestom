@@ -1,8 +1,11 @@
-package io.gitlab.icestom.icestom.event;
+package io.gitlab.icestom.icestom.event.event;
 
+import io.gitlab.icestom.icestom.event.ParticipantStoreHolder;
 import io.gitlab.icestom.icestom.event.lua.LuaEvent;
+import io.gitlab.icestom.icestom.event.stage.EventStage;
 import net.hollowcube.luau.compiler.LuauCompileException;
 import net.hollowcube.luau.compiler.LuauCompiler;
+import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -64,6 +67,20 @@ public class EventManager {
         events.remove(event);
 
         return true;
+    }
+
+    public EventStage findParticipatingStage(Player player) {
+        for (IceStomEvent<EventParticipant> activeEvent : events) {
+            for (EventStage loadedStage : activeEvent.getLoadedStages()) {
+                if (loadedStage instanceof ParticipantStoreHolder holder) {
+                    if (holder.getParticipants().isPlayerParticipating(player)) {
+                        return loadedStage;
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     public List<String> getEventDefinitions() {

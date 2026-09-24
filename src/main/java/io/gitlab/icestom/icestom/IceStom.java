@@ -9,10 +9,11 @@ import io.gitlab.icestom.icestom.database.sqlite.SQLiteTimetrialDatabase;
 import io.gitlab.icestom.icestom.debug.PerfHud;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
-import io.gitlab.icestom.icestom.event.EventManager;
-import io.gitlab.icestom.icestom.event.StageOption;
-import io.gitlab.icestom.icestom.event.StageRegistry;
-import io.gitlab.icestom.icestom.event.StageSchema;
+import io.gitlab.icestom.icestom.event.event.EventManager;
+import io.gitlab.icestom.icestom.event.stage.EventStage;
+import io.gitlab.icestom.icestom.event.stage.StageOption;
+import io.gitlab.icestom.icestom.event.stage.StageRegistry;
+import io.gitlab.icestom.icestom.event.stage.StageSchema;
 import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import io.gitlab.icestom.icestom.instance.DefaultSpawnInstance;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
@@ -276,6 +277,13 @@ public class IceStom {
 
         globalEventHandler.addListener(AsyncPlayerConfigurationEvent.class, event -> {
             final Player player = event.getPlayer();
+
+            EventStage stage = eventManager.findParticipatingStage(player);
+
+            if (stage != null) {
+                stage.consume(player);
+                return;
+            }
 
             event.setSpawningInstance(spawnInstance);
             player.setRespawnPoint(((SpawnInstance) spawnInstance).spawnLocation(player));

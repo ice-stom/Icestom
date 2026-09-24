@@ -1,6 +1,6 @@
 package io.gitlab.icestom.icestom.race.event;
 
-import io.gitlab.icestom.icestom.event.EventParticipant;
+import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import io.gitlab.icestom.icestom.race.RaceStage;
 import io.gitlab.icestom.icestom.timetrial.event.TimedLapResultSourceEvent;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;

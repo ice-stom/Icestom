@@ -32,9 +32,8 @@ public class CommandLoadTrack {
             commandSender.sendMessage(Component.translatable("command.generic.loading_track", Component.text(track_id)));
         }
         CompletableFuture.runAsync(() -> {
-            Track track;
             try {
-                track = ticket.getTrack();
+                ticket.getTrack();
             } catch (Exception e) {
                 commandSender.sendMessage(Component.translatable("command.generic.failed_to_load_track", Component.text(track_id)));
                 log.warn("Failed to load track {}", track_id, e);

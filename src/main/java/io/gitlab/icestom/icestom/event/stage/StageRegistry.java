@@ -1,4 +1,4 @@
-package io.gitlab.icestom.icestom.event;
+package io.gitlab.icestom.icestom.event.stage;
 
 import net.kyori.adventure.key.Key;
 import org.jetbrains.annotations.Nullable;

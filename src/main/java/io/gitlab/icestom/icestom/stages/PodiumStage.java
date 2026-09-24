@@ -1,15 +1,13 @@
 package io.gitlab.icestom.icestom.stages;
 
 import io.gitlab.icestom.icestom.IceStom;
-import io.gitlab.icestom.icestom.event.EventParticipant;
-import io.gitlab.icestom.icestom.event.EventStage;
-import io.gitlab.icestom.icestom.event.InvalidStageArgumentsException;
-import io.gitlab.icestom.icestom.event.Result;
+import io.gitlab.icestom.icestom.event.event.EventParticipant;
+import io.gitlab.icestom.icestom.event.stage.EventStage;
+import io.gitlab.icestom.icestom.event.stage.InvalidStageArgumentsException;
+import io.gitlab.icestom.icestom.event.event.Result;
 import io.gitlab.icestom.icestom.event.lua.ParticipantStore;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
-import io.gitlab.icestom.icestom.race.RaceStage;
 import io.gitlab.icestom.icestom.track.TickMovement;
-import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
@@ -74,7 +72,7 @@ public class PodiumStage extends TrackInstance implements EventStage {
     @Override
     public Pos spawnLocation(Player player) {
         EventParticipant participant = participantStore.getParticipantFromPlayer(player);
-        int position = participantStore.getIndexofParticipant(participant);
+        int position = participantStore.getIndexOfParticipant(participant);
 
         Pos podiumLocation = track.getLocations().get("icestom.podium_" + position);
 

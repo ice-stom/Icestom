@@ -1,7 +1,7 @@
 package io.gitlab.icestom.icestom.event.lua;
 
-import io.gitlab.icestom.icestom.event.EventParticipant;
-import io.gitlab.icestom.icestom.event.Result;
+import io.gitlab.icestom.icestom.event.event.EventParticipant;
+import io.gitlab.icestom.icestom.event.event.Result;
 import io.gitlab.icestom.icestom.event.lua.adapter.LuaFunction;
 
 import java.util.List;

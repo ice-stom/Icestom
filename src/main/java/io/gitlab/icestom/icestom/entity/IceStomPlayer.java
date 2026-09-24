@@ -2,24 +2,18 @@ package io.gitlab.icestom.icestom.entity;
 
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.database.preference.PreferenceKey;
-import io.gitlab.icestom.icestom.database.preference.PreferenceRegistry;
-import io.gitlab.icestom.icestom.event.EventParticipant;
+import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import io.gitlab.icestom.icestom.ui.theme.Themes;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
-import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.entity.Player;
-import net.minestom.server.entity.metadata.other.BoatMeta;
 import net.minestom.server.network.player.GameProfile;
 import net.minestom.server.network.player.PlayerConnection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class IceStomPlayer extends Player implements EventParticipant {
 
@@ -70,7 +64,7 @@ public class IceStomPlayer extends Player implements EventParticipant {
     }
 
     @Override
-    public List<Player> getParticipants() {
-        return List.of(this);
+    public List<UUID> getPlayers() {
+        return List.of(this.getUuid());
     }
 }

@@ -1,6 +1,6 @@
 package io.gitlab.icestom.icestom.event.lua;
 
-import io.gitlab.icestom.icestom.event.EventParticipant;
+import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import net.minestom.server.entity.Player;
 
 import java.util.*;
@@ -8,12 +8,12 @@ import java.util.*;
 public class ParticipantStore {
     private final List<EventParticipant> participants;
 
-    private final Map<UUID, EventParticipant> weakParticipantMap = new WeakHashMap<>();
+    private final Map<UUID, EventParticipant> weakParticipantMap = new HashMap<>();
 
-    private final Map<Player, EventParticipant> weakActiveParticipants = new WeakHashMap<>();
-    private final Map<Player, EventParticipant> weakParticipants = new WeakHashMap<>();
+    private final Map<Player, EventParticipant> weakActiveParticipants = new HashMap<>();
+    private final Map<UUID, EventParticipant> weakParticipants = new HashMap<>();
 
-    private final Map<EventParticipant, Player> weakPreviousActiveParticipant = new WeakHashMap<>();
+    private final Map<EventParticipant, Player> weakPreviousActiveParticipant = new HashMap<>();
 
     public ParticipantStore() {
         this(List.of());
@@ -27,7 +27,7 @@ public class ParticipantStore {
     }
 
     public void addParticipant(EventParticipant participant) {
-        for (Player participantPlayer : participant.getParticipants()) {
+        for (UUID participantPlayer : participant.getPlayers()) {
             if (weakParticipants.containsKey(participantPlayer)) {
                 throw new UnsupportedOperationException("Participant has a player that is already participating!");
             }
@@ -36,7 +36,7 @@ public class ParticipantStore {
         participants.add(participant);
         weakParticipantMap.put(participant.getUuid(), participant);
 
-        participant.getParticipants().forEach(player -> weakParticipants.put(player, participant));
+        participant.getPlayers().forEach(player -> weakParticipants.put(player, participant));
 
         weakActiveParticipants.put(participant.getCurrentPlayer(), participant);
         weakPreviousActiveParticipant.put(participant, participant.getCurrentPlayer());
@@ -46,7 +46,7 @@ public class ParticipantStore {
         participants.remove(participant);
         weakParticipantMap.remove(participant.getUuid());
 
-        participant.getParticipants().forEach(weakParticipants::remove);
+        participant.getPlayers().forEach(weakParticipants::remove);
 
         weakActiveParticipants.remove(participant.getCurrentPlayer());
         weakPreviousActiveParticipant.remove(participant);
@@ -77,7 +77,7 @@ public class ParticipantStore {
     }
 
     public boolean isPlayerParticipating(Player player) {
-        return weakParticipants.containsKey(player);
+        return weakParticipants.containsKey(player.getUuid());
     }
 
     public boolean isPlayerActivelyParticipating(Player player) {
@@ -89,10 +89,10 @@ public class ParticipantStore {
     }
 
     public EventParticipant getParticipantFromPlayer(Player player) {
-        return weakParticipants.get(player);
+        return weakParticipants.get(player.getUuid());
     }
 
-    public int getIndexofParticipant(EventParticipant participant) {
+    public int getIndexOfParticipant(EventParticipant participant) {
         return participants.indexOf(participant);
     }
 }

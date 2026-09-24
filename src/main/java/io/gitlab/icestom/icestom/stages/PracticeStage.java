@@ -2,20 +2,20 @@ package io.gitlab.icestom.icestom.stages;
 
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.event.*;
+import io.gitlab.icestom.icestom.event.event.EventParticipant;
+import io.gitlab.icestom.icestom.event.event.Result;
 import io.gitlab.icestom.icestom.event.lua.ParticipantStore;
+import io.gitlab.icestom.icestom.event.stage.EventStage;
+import io.gitlab.icestom.icestom.event.stage.InvalidStageArgumentsException;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
-import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
-public class PracticeStage extends TimeTrialingInstance implements EventStage, Stateful<PracticeStage.PracticeState>, ParticipantStoreHolder {
+public class PracticeStage extends TimeTrialingInstance implements EventStage, Stateful<PracticeStage.PracticeState>, ParticipantStoreHolder, LateJoinable {
 
     private final CompletableFuture<List<Result<EventParticipant>>> future = new CompletableFuture<>();
     private final String stageName;
@@ -111,6 +111,17 @@ public class PracticeStage extends TimeTrialingInstance implements EventStage, S
     @Override
     public ParticipantStore getParticipants() {
         return participantStore;
+    }
+
+    @Override
+    public void joinLate(EventParticipant participant) {
+        participantStore.addParticipant(participant);
+
+        for (UUID uuid : participant.getPlayers()) {
+            Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid);
+
+            consume(player);
+        }
     }
 
     public enum PracticeState {

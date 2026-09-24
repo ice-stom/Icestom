@@ -1,9 +1,9 @@
 package io.gitlab.icestom.icestom.event.lua;
 
-import io.gitlab.icestom.icestom.event.EventParticipant;
-import io.gitlab.icestom.icestom.event.EventStage;
-import io.gitlab.icestom.icestom.event.IceStomEvent;
-import io.gitlab.icestom.icestom.event.Result;
+import io.gitlab.icestom.icestom.event.event.EventParticipant;
+import io.gitlab.icestom.icestom.event.stage.EventStage;
+import io.gitlab.icestom.icestom.event.event.IceStomEvent;
+import io.gitlab.icestom.icestom.event.event.Result;
 import io.gitlab.icestom.icestom.event.lua.adapter.LuaFunction;
 import io.gitlab.icestom.icestom.event.lua.adapter.UserdataWrapper;
 import net.hollowcube.luau.BuilinLibrary;

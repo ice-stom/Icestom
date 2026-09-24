@@ -109,6 +109,11 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
     }
 
     @Override
+    public String getDimensionName() {
+        return getInstanceContainer().getDimensionName();
+    }
+
+    @Override
     public void tick(long time) {
         super.tick(time);
 

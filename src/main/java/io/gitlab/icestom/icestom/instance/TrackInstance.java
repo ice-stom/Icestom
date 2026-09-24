@@ -4,6 +4,7 @@ import io.github.openboatutils.protocol.OBUPacket;
 import io.github.openboatutils.protocol.channels.OBUContextPacket;
 import io.github.openboatutils.protocol.channels.OBUSettingsPacket;
 import io.gitlab.icestom.icestom.IceStom;
+import io.gitlab.icestom.icestom.config.IceStomConfig;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.track.Track;
@@ -19,16 +20,23 @@ import net.kyori.adventure.nbt.BinaryTag;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.nbt.ListBinaryTag;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.instance.InstanceTickEvent;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
+import net.minestom.server.event.player.PlayerPacketEvent;
 import net.minestom.server.instance.Chunk;
 import net.minestom.server.instance.LightingChunk;
 import net.minestom.server.network.NetworkBuffer;
+import net.minestom.server.network.packet.client.common.ClientPongPacket;
+import net.minestom.server.network.packet.client.play.ClientVehicleMovePacket;
+import net.minestom.server.network.packet.server.common.PingPacket;
+import net.minestom.server.network.packet.server.common.PingResponsePacket;
 import net.minestom.server.registry.DynamicRegistry;
 import net.minestom.server.registry.RegistryKey;
 import net.minestom.server.world.DimensionType;
@@ -39,6 +47,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 import static io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager.writePacket;
 import static io.gitlab.icestom.icestom.util.DisplayEntityConverter.*;
@@ -59,18 +68,26 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
     private Set<InsideCollider> watchingRegions = Set.of();
     private Set<CrossCollider> watchingTriggers = Set.of();
 
-    public TrackInstance(TrackLibrary.Ticket ticket) {
-        final Track loaded_track = ticket.getTrack(); // this will block
-
-        super(UUID.randomUUID(), loaded_track.getMapContainer());
+    protected TrackInstance(TrackLibrary.Ticket ticket, Track track) {
+        super(UUID.randomUUID(), track.getMapContainer());
 
         this.ticket = ticket;
-        this.track = loaded_track;
+        this.track = track;
 
         setChunkSupplier(LightingChunk::new);
 
         eventNode().addListener(PlayerBlockBreakEvent.class, event -> event.setCancelled(true));
         eventNode().addListener(PlayerBlockPlaceEvent.class, event -> event.setCancelled(true));
+
+        eventNode().addListener(PlayerPacketEvent.class, event -> {
+            final Player player = event.getPlayer();
+
+            if (event.getPacket() instanceof ClientPongPacket(int number)) {
+                player.sendMessage(Component.text(number, NamedTextColor.GOLD));
+            } else if (event.getPacket() instanceof ClientVehicleMovePacket) {
+                player.sendMessage(Component.text("VehicleMove", NamedTextColor.BLUE));
+            }
+        });
     }
 
     @Override
@@ -157,6 +174,12 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
         }
 
         onPlayerMovements(movementMap, inside_tags, crossed_triggers);
+
+        for (Player player : getPlayers()) {
+            if (shouldTrackPlayer(player)) {
+                player.sendPacket(new PingPacket((int) getWorldAge()));
+            }
+        }
     }
 
     @Override

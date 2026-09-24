@@ -13,7 +13,7 @@ import io.gitlab.icestom.stomtrack.serde.SkyboxSerde;
 public class MutableEnvironmentFile implements EnvironmentFile {
 
     @JacksonXmlProperty(isAttribute = true)
-    private int version = EnvironmentFile.VERSION;
+    private final int version = EnvironmentFile.VERSION;
     private int ambientLight = 0;
     private int minY = -64;
     private int height = 384;

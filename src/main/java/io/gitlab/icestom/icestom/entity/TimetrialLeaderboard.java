@@ -61,7 +61,7 @@ public class TimetrialLeaderboard extends Entity {
             if (!username.isDone()) {
                 username.thenRun(this::updateLeaderboard);
                 return;
-            };
+            }
 
             String name = username.join();
 

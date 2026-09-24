@@ -28,7 +28,7 @@ public abstract class AbstractRaceInterface extends Interface<RaceStage, Abstrac
            }
 
             if (event instanceof PlayerEvent playerEvent) {
-                if (playerEvent.getPlayer().getInstance() != holder) return false;
+                return playerEvent.getPlayer().getInstance() == holder;
             }
 
             return true;

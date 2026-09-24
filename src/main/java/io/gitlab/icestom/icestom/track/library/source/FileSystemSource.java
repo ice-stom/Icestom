@@ -122,7 +122,7 @@ public class FileSystemSource extends TrackSource {
                         trackFiles.add(TrackLoader.loadTrack(zipFile.getInputStream(entry)));
                     } else if (entry.getName().endsWith(".polar")) {
                         polar_entry = entry.getName();
-                        env_name = polar_entry.substring(polar_entry.length() - ".polar".length());
+                        env_name = polar_entry.substring(0, polar_entry.length() - ".polar".length());
                     }
                 }
 

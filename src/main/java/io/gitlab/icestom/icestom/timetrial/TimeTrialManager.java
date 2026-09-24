@@ -14,13 +14,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public class TimeTrialManager {
     private final Map<UUID, TimeTrialingInstance> trials = new HashMap<>();
+    private final Map<UUID, CompletableFuture<TimeTrialingInstance>> loading_trials = new HashMap<>();
 
     private final Object lock = new Object();
 
-    public void startTimeTrialing(Player player, TrackLibrary.Ticket ticket) {
+    public CompletableFuture<TimeTrialingInstance> startTimeTrialing(Player player, TrackLibrary.Ticket ticket) {
 
         UUID instance_id = ticket.getTrackInstanceId();
 
@@ -37,19 +39,47 @@ public class TimeTrialManager {
             @Nullable TimeTrialingInstance instance = trials.get(instance_id);
 
             if (instance == null) {
-                instance = new TimeTrialingInstance(ticket);
+                CompletableFuture<TimeTrialingInstance> loading = loading_trials.get(instance_id);
 
-                MinecraftServer.getInstanceManager().registerSharedInstance(instance);
+                if (loading != null) {
+                    return loading.thenApply(loaded_instance -> {
+                        loaded_instance.consume(player);
 
-                instance.initialize();
+                        MinecraftServer.getGlobalEventHandler()
+                                .call(new TimeTrialStartEvent(loaded_instance, player));
 
-                trials.put(instance_id, instance);
+                        return loaded_instance;
+                    });
+                }
+            }
+
+            if (instance == null) {
+                CompletableFuture<TimeTrialingInstance> future = CompletableFuture.supplyAsync(() -> {
+                    TimeTrialingInstance newInstance = new TimeTrialingInstance(ticket, ticket.getTrack().join());
+
+                    MinecraftServer.getInstanceManager().registerSharedInstance(newInstance);
+
+                    newInstance.initialize();
+
+                    trials.put(instance_id, newInstance);
+                    loading_trials.remove(instance_id);
+
+                    newInstance.consume(player);
+
+                    return newInstance;
+                });
+
+                loading_trials.put(instance_id, future);
+
+                return future;
             }
 
             instance.consume(player);
 
             MinecraftServer.getGlobalEventHandler()
                     .call(new TimeTrialStartEvent(instance, player));
+
+            return CompletableFuture.completedFuture(null);
         }
     }
 
@@ -67,7 +97,7 @@ public class TimeTrialManager {
     // things like /spawn will hook this class directly
     public void cullDeadTimetrialInstances() {
         synchronized (lock) {
-            for (TimeTrialingInstance trial : trials.values()) {
+            for (TimeTrialingInstance trial : new ArrayList<>(trials.values())) {
                 if (trial.getPlayers().isEmpty()) {
                     destroyInstance(trial);
                 }

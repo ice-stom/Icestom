@@ -16,7 +16,7 @@ public class TickCountdown {
     public boolean tick() {
         if (ticks <= 0) {
             return false;
-        };
+        }
 
         if (--ticks == 0) {
             running = false;

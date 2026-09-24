@@ -6,8 +6,9 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 
 public abstract class BoatedTrackInstance extends TrackInstance {
-    public BoatedTrackInstance(TrackLibrary.Ticket ticket) {
-        super(ticket);
+
+    protected BoatedTrackInstance(TrackLibrary.Ticket ticket, Track track) {
+        super(ticket, track);
     }
 
     @Override

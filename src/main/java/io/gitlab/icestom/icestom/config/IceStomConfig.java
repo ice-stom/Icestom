@@ -17,6 +17,7 @@ public class IceStomConfig {
     public AuthConfigSection auth;
     public MinestomConfigSection minestom;
     public WebConfigSection web;
+    public EschatonConfigSection eschaton;
 
     public Map<String, String> library;
 
@@ -102,6 +103,10 @@ public class IceStomConfig {
         public int chunk_view_distance;
         public int entity_view_distance;
         public int dispatcher_threads;
+    }
+
+    public static class EschatonConfigSection {
+        public boolean enabled;
     }
 
     public enum ForwardingMode {

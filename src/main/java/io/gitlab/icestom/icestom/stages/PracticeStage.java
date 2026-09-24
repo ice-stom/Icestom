@@ -8,6 +8,7 @@ import io.gitlab.icestom.icestom.event.lua.ParticipantStore;
 import io.gitlab.icestom.icestom.event.stage.EventStage;
 import io.gitlab.icestom.icestom.event.stage.InvalidStageArgumentsException;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
+import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
@@ -24,8 +25,8 @@ public class PracticeStage extends TimeTrialingInstance implements EventStage, S
 
     private PracticeState state = PracticeState.PRACTICE;
 
-    public PracticeStage(String stageName, TrackLibrary.Ticket ticket) {
-        super(ticket);
+    public PracticeStage(String stageName, TrackLibrary.Ticket ticket, Track track) {
+        super(ticket, track);
         this.stageName = stageName;
     }
 
@@ -52,7 +53,9 @@ public class PracticeStage extends TimeTrialingInstance implements EventStage, S
 
             TrackLibrary.Ticket ticket = optionalTicket.get();
 
-            return new PracticeStage(name, ticket);
+            Track track = ticket.getTrack().join();
+
+            return new PracticeStage(name, ticket, track);
         });
     }
 
@@ -77,7 +80,7 @@ public class PracticeStage extends TimeTrialingInstance implements EventStage, S
     @Override
     public CompletableFuture<List<Result<EventParticipant>>> begin(List<Result<EventParticipant>> results) {
         MinecraftServer.getInstanceManager()
-                .registerInstance(this);
+                .registerSharedInstance(this);
 
         for (Result<EventParticipant> result : results) {
             participantStore.addParticipant(result.getParticipant());

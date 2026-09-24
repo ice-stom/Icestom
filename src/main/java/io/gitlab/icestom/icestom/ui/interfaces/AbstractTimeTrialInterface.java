@@ -28,7 +28,7 @@ public abstract class AbstractTimeTrialInterface extends Interface<TimeTrialingI
            }
 
             if (event instanceof PlayerEvent playerEvent) {
-                if (playerEvent.getPlayer().getInstance() != holder) return false;
+                return playerEvent.getPlayer().getInstance() == holder;
             }
 
             return true;

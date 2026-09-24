@@ -81,8 +81,8 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
     private final TimetrialLeaderboard leaderboard;
 
-    public TimeTrialingInstance(TrackLibrary.Ticket ticket) {
-        super(ticket);
+    public TimeTrialingInstance(TrackLibrary.Ticket ticket, Track track) {
+        super(ticket, track);
 
         eventNode().addListener(PlayerStartSneakingEvent.class, event -> {
             final Player player = event.getPlayer();

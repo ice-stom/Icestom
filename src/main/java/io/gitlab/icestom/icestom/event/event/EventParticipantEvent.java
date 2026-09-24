@@ -13,5 +13,5 @@ public interface EventParticipantEvent extends PlayerEvent {
     @Override
     default @NotNull Player getPlayer() {
         return getParticipant().getCurrentPlayer();
-    };
+    }
 }

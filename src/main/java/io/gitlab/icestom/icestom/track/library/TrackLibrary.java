@@ -166,7 +166,7 @@ public class TrackLibrary {
                 } else {
                     refCounts.put(trackInstanceId, refs - 1);
                 }
-            };
+            }
         }
 
         public UUID getTrackInstanceId() {
@@ -177,8 +177,8 @@ public class TrackLibrary {
             return state;
         }
 
-        public Track getTrack() {
-            return track.join();
+        public CompletableFuture<Track> getTrack() {
+            return track;
         }
 
         public enum State {

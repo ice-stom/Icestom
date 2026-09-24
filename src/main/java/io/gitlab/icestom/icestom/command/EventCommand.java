@@ -109,7 +109,6 @@ public class EventCommand extends Command {
                             sender.sendMessage(
                                     Component.translatable("command.event.run.exception")
                             );
-                            return;
                         }
                     }).thenRun(event::cleanup);
                 });

@@ -8,6 +8,7 @@ import io.gitlab.icestom.icestom.event.event.Result;
 import io.gitlab.icestom.icestom.event.lua.ParticipantStore;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
 import io.gitlab.icestom.icestom.track.TickMovement;
+import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
@@ -27,8 +28,8 @@ public class PodiumStage extends TrackInstance implements EventStage {
 
     private final String stageName;
 
-    public PodiumStage(String stageName, TrackLibrary.Ticket ticket) {
-        super(ticket);
+    public PodiumStage(String stageName, TrackLibrary.Ticket ticket, Track track) {
+        super(ticket, track);
         this.stageName = stageName;
     }
 
@@ -106,7 +107,9 @@ public class PodiumStage extends TrackInstance implements EventStage {
 
             TrackLibrary.Ticket ticket = optionalTicket.get();
 
-            return new PodiumStage(name, ticket);
+            Track loadedTrack = ticket.getTrack().join();
+
+            return new PodiumStage(name, ticket, loadedTrack);
         });
     }
 }

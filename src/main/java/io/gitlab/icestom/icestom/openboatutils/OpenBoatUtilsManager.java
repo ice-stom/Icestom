@@ -107,18 +107,18 @@ public class OpenBoatUtilsManager implements EventHandler<Event> {
                             try {
                                 if (in2.readShort() == 0) {
                                     return;
-                                };
+                                }
                             } catch (IOException ignored) {}
-                        };
+                        }
                         if (!(event2.getPacket() instanceof ClientPongPacket(int id))) {
                             log.error("Transaction failed with {} instead of a pong", event2.getPacket());
                             return;
-                        };
+                        }
 
                         if (id != random) {
                             player.kick(Component.translatable("message.openboatutils.failed_transaction"));
                             return;
-                        };
+                        }
                     })
                     .expireCount(1)
                     .build();

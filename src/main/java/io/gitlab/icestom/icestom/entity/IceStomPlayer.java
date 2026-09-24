@@ -38,7 +38,7 @@ public class IceStomPlayer extends Player implements EventParticipant {
     public <T> void preference(PreferenceKey<T> key, @NotNull T value) {
         Objects.requireNonNull(value);
         preferences.put(key, value);
-    };
+    }
 
     public boolean hasPermission(String permission) { return false; }
 

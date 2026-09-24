@@ -39,6 +39,7 @@ import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityStatuses;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.EventListener;
 import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.*;
 import net.minestom.server.instance.*;
@@ -281,7 +282,16 @@ public class IceStom {
             EventStage stage = eventManager.findParticipatingStage(player);
 
             if (stage != null) {
-                stage.consume(player);
+                if (stage instanceof Instance is) {
+                    event.setSpawningInstance(is);
+
+                    EventListener.builder(PlayerSpawnEvent.class)
+                            .expireCount(1)
+                            .handler(playerSpawnEvent -> {
+                                stage.consume(player);
+                            });
+                }
+
                 return;
             }
 

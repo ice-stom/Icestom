@@ -41,22 +41,22 @@ public class TrackCommand extends Command {
                 final String track_id = commandContext.get(trackArgument);
 
                 CommandLoadTrack.loadTrack(commandSender, track_id, ticket -> {
-                    Track track = ticket.getTrack();
+                    ticket.getTrack().thenAccept(track -> {
+                        ticket.burn();
 
-                    ticket.burn();
+                        final Component[] text = {Component.text("Track " + track_id + "\n")
+                                .append(Component.text(" - Checkpoints:\n"))};
 
-                    final Component[] text = {Component.text("Track " + track_id + "\n")
-                            .append(Component.text(" - Checkpoints:\n"))};
+                        track.getCheckpoints()
+                                .entrySet()
+                                .stream()
+                                .sorted(Comparator.comparingInt(Map.Entry::getValue))
+                                .forEach(entry -> {
+                                    text[0] = text[0].append(Component.text("  " + entry.getValue() + ": " + entry.getKey().getClass().getSimpleName() + "\n"));
+                                });
 
-                    track.getCheckpoints()
-                            .entrySet()
-                            .stream()
-                            .sorted(Comparator.comparingInt(Map.Entry::getValue))
-                            .forEach(entry -> {
-                                text[0] = text[0].append(Component.text("  " + entry.getValue() + ": " + entry.getKey().getClass().getSimpleName() + "\n"));
-                            });
-
-                    commandSender.sendMessage(text[0]);
+                        commandSender.sendMessage(text[0]);
+                    });
                 });
             }, trackArgument);
         }

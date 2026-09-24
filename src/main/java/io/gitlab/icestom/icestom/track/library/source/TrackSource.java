@@ -13,7 +13,7 @@ public abstract class TrackSource {
 
     public TrackSource(URI uri) {
         this.uri = uri;
-    };
+    }
 
     public URI getUri() {
         return uri;

@@ -22,6 +22,7 @@ import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResult;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.track.TickMovement;
+import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import io.gitlab.icestom.icestom.ui.TickCountdown;
@@ -67,8 +68,8 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 
     private final String name;
 
-    public RaceStage(String stageName, TrackLibrary.Ticket ticket, int totalLaps, int totalPits) {
-        super(ticket);
+    protected RaceStage(String stageName, TrackLibrary.Ticket ticket, Track track, int totalLaps, int totalPits) {
+        super(ticket, track);
 
         this.name = stageName;
 
@@ -136,7 +137,9 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 
             TrackLibrary.Ticket ticket = optionalTicket.get();
 
-            return new RaceStage(name, ticket, laps, pits);
+            Track track = ticket.getTrack().join();
+
+            return new RaceStage(name, ticket, track, laps, pits);
         });
     }
 
@@ -318,7 +321,7 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
         }
 
         MinecraftServer.getInstanceManager()
-                .registerInstance(this);
+                .registerSharedInstance(this);
 
         EventStage.super.teleportAllParticipants(results);
 

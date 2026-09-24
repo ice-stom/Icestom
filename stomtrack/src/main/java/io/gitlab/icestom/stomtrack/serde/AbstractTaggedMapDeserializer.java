@@ -45,7 +45,7 @@ public abstract class AbstractTaggedMapDeserializer<T> extends JsonDeserializer<
     }
 
     private void addEntry(String typeName, JsonNode item, Map<T, Set<String>> result) throws IOException {
-        ObjectNode itemCopy = ((ObjectNode) item).deepCopy();
+        ObjectNode itemCopy = item.deepCopy();
 
         Set<String> tags = parseTags(itemCopy.get("tags"));
         itemCopy.remove("tags");

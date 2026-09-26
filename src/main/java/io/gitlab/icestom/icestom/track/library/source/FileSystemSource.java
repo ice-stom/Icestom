@@ -209,20 +209,30 @@ public class FileSystemSource extends TrackSource {
                     bytes,
                     PolarDataConverter.NOOP,
                     new PolarWorldAccess() {
+                        boolean hasEntityData = true;
+
                         @Override
                         public void loadChunkData(@NotNull Chunk chunk, @Nullable NetworkBuffer userData) {
+                            if (!hasEntityData) return;
                             if (userData == null) return;
 
-                            CompoundBinaryTag root = userData.read(NetworkBuffer.NBT_COMPOUND);
-                            ListBinaryTag list = root.getList("entities");
+                            try {
+                                CompoundBinaryTag root = userData.read(NetworkBuffer.NBT_COMPOUND);
+                                ListBinaryTag list = root.getList("entities");
 
-                            for (BinaryTag binaryTag : list) {
-                                instanceContainer.addDisplayEntity((CompoundBinaryTag) binaryTag);
+                                for (BinaryTag binaryTag : list) {
+                                    instanceContainer.addDisplayEntity((CompoundBinaryTag) binaryTag);
+                                }
+                            } catch (IndexOutOfBoundsException e) {
+                                hasEntityData = false;
                             }
                         }
                     },
                     true
-            );
+            ).exceptionally(throwable -> {
+                log.error("Failed track load!", throwable);
+                return null;
+            });
         }
 
         @Override

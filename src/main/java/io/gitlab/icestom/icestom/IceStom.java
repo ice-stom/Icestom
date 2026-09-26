@@ -17,7 +17,6 @@ import io.gitlab.icestom.icestom.event.stage.StageSchema;
 import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import io.gitlab.icestom.icestom.instance.DefaultSpawnInstance;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
-import io.gitlab.icestom.icestom.instance.SpawnLocation;
 import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager;
 import io.gitlab.icestom.icestom.plugins.PluginManager;
 import io.gitlab.icestom.icestom.race.RaceStage;
@@ -96,6 +95,8 @@ public class IceStom {
     private final SparkMinestom spark;
 
     private PanelServer panelServer;
+
+    private boolean registerDefaultInterface = true;
 
     static {
         Properties properties = new Properties();
@@ -188,9 +189,11 @@ public class IceStom {
             default -> throw new RuntimeException("Unknown database type: " + config.database.type);
         };
 
-        InterfaceManager.register(TimeTrialingInstance.class, new VanillaInterface());
-        InterfaceManager.register(RaceStage.class, new VanillaInterface());
-        InterfaceManager.register(IceStom.class, new VanillaInterface());
+        if (registerDefaultInterface) {
+            InterfaceManager.register(TimeTrialingInstance.class, new VanillaInterface());
+            InterfaceManager.register(RaceStage.class, new VanillaInterface());
+            InterfaceManager.register(IceStom.class, new VanillaInterface());
+        }
 
         interfaceHolder = getHolder(IceStom.class, this);
 
@@ -256,6 +259,10 @@ public class IceStom {
         CommandManager commandManager = MinecraftServer.getCommandManager();
         commandManager.register(new DebugCommand());
         commandManager.register(new StopCommand());
+    }
+
+    public void setRegisterDefaultInterface(boolean registerDefaultInterface) {
+        this.registerDefaultInterface = registerDefaultInterface;
     }
 
     @SuppressWarnings("UnstableApiUsage")

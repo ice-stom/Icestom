@@ -156,12 +156,13 @@ public class VanillaInterface implements InterfaceProvider {
         }
     }
 
-    @Override
-    public boolean supportsPlayer(Player player) {
-        return true;
-    }
-
     public static class VanillaGeneralInterface extends AbstractGeneralInterface {
+
+        @Override
+        public boolean supportsPlayer(Player player) {
+            return true;
+        }
+
         public VanillaGeneralInterface(IceStom holder) {
             super(holder);
 
@@ -183,6 +184,11 @@ public class VanillaInterface implements InterfaceProvider {
     }
 
     public static class VanillaTimetrialInterface extends AbstractTimeTrialInterface {
+
+        @Override
+        public boolean supportsPlayer(Player player) {
+            return true;
+        }
 
         public VanillaTimetrialInterface(TimeTrialingInstance holder) {
             super(holder);
@@ -315,6 +321,11 @@ public class VanillaInterface implements InterfaceProvider {
         private final Map<TickCountdown, Set<Player>> countdownViewers = new HashMap<>();
 
         private final Map<TickCountdown, String> translations;
+
+        @Override
+        public boolean supportsPlayer(Player player) {
+            return true;
+        }
 
         public VanillaRaceInterface(RaceStage holder) {
             super(holder);

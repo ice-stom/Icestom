@@ -64,16 +64,6 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
         eventNode().addListener(PlayerBlockBreakEvent.class, event -> event.setCancelled(true));
         eventNode().addListener(PlayerBlockPlaceEvent.class, event -> event.setCancelled(true));
 
-        eventNode().addListener(PlayerPacketEvent.class, event -> {
-            final Player player = event.getPlayer();
-
-            if (event.getPacket() instanceof ClientPongPacket(int number)) {
-                player.sendMessage(Component.text(number, NamedTextColor.GOLD));
-            } else if (event.getPacket() instanceof ClientVehicleMovePacket) {
-                player.sendMessage(Component.text("VehicleMove", NamedTextColor.BLUE));
-            }
-        });
-
         eventNode().addListener(InstanceRegisterEvent.class, event -> {
             track.getMapContainer().onNewDisplayEntity(nbt -> {
                 String id = nbt.getString("id");

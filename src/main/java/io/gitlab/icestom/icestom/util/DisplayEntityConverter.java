@@ -253,4 +253,69 @@ public interface DisplayEntityConverter {
 
         return Component.empty();
     }
+
+    static @NotNull DisplayEntity copyDisplayEntity(@NotNull DisplayEntity source) {
+        EntityType type = source.getEntityType();
+
+        DisplayEntity copy = new DisplayEntity(type);
+
+        if (type == EntityType.BLOCK_DISPLAY) {
+            BlockDisplayMeta sourceMeta = (BlockDisplayMeta) source.getEntityMeta();
+            BlockDisplayMeta targetMeta = (BlockDisplayMeta) copy.getEntityMeta();
+
+            targetMeta.setBlockState(sourceMeta.getBlockStateId());
+
+            copyDisplayMeta(sourceMeta, targetMeta);
+        } else if (type == EntityType.ITEM_DISPLAY) {
+            ItemDisplayMeta sourceMeta = (ItemDisplayMeta) source.getEntityMeta();
+            ItemDisplayMeta targetMeta = (ItemDisplayMeta) copy.getEntityMeta();
+
+            targetMeta.setItemStack(sourceMeta.getItemStack());
+            targetMeta.setDisplayContext(sourceMeta.getDisplayContext());
+
+            copyDisplayMeta(sourceMeta, targetMeta);
+        } else if (type == EntityType.TEXT_DISPLAY) {
+            TextDisplayMeta sourceMeta = (TextDisplayMeta) source.getEntityMeta();
+            TextDisplayMeta targetMeta = (TextDisplayMeta) copy.getEntityMeta();
+
+            targetMeta.setText(sourceMeta.getText());
+            targetMeta.setLineWidth(sourceMeta.getLineWidth());
+            targetMeta.setShadow(sourceMeta.isShadow());
+            targetMeta.setSeeThrough(sourceMeta.isSeeThrough());
+            targetMeta.setUseDefaultBackground(sourceMeta.isUseDefaultBackground());
+            targetMeta.setBackgroundColor(sourceMeta.getBackgroundColor());
+            targetMeta.setTextOpacity(sourceMeta.getTextOpacity());
+            targetMeta.setAlignment(sourceMeta.getAlignment());
+
+            copyDisplayMeta(sourceMeta, targetMeta);
+        }
+
+        return copy;
+    }
+
+    private static void copyDisplayMeta(
+            @NotNull AbstractDisplayMeta source,
+            @NotNull AbstractDisplayMeta target
+    ) {
+        target.setTranslation(source.getTranslation());
+        target.setScale(source.getScale());
+
+        target.setLeftRotation(source.getLeftRotation());
+        target.setRightRotation(source.getRightRotation());
+
+        target.setBillboardRenderConstraints(
+                source.getBillboardRenderConstraints()
+        );
+
+        target.setViewRange(source.getViewRange());
+        target.setShadowRadius(source.getShadowRadius());
+        target.setShadowStrength(source.getShadowStrength());
+        target.setWidth(source.getWidth());
+        target.setHeight(source.getHeight());
+
+        target.setBrightness(
+                source.getBlockLight(),
+                source.getSkyLight()
+        );
+    }
 }

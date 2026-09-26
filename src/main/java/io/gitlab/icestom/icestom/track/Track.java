@@ -4,19 +4,17 @@ import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
 import io.github.openboatutils.protocol.channels.OBUSettingsPacket;
 import io.gitlab.icestom.icestom.track.colliders.InsideCollider;
+import io.gitlab.icestom.icestom.track.library.VirtualTrackInstance;
 import io.gitlab.icestom.stomtrack.EnvironmentFile;
 import io.gitlab.icestom.stomtrack.TrackFile;
-import net.hollowcube.polar.PolarLoader;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
-import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.registry.DynamicRegistry;
 import net.minestom.server.registry.RegistryKey;
 import net.minestom.server.world.DimensionType;
 import org.intellij.lang.annotations.Subst;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
@@ -42,7 +40,7 @@ public class Track {
 
     private final Map<Integer, List<CrossCollider>> checkpoint_lookup = new HashMap<>();
 
-    private final InstanceContainer mapContainer;
+    private final VirtualTrackInstance mapContainer;
 
     private final int wrapIndex;
 
@@ -115,20 +113,22 @@ public class Track {
 
     public Map<String, Pos> getLocations() { return locations; }
 
-    public InstanceContainer getMapContainer() { return mapContainer; }
+    public VirtualTrackInstance getMapContainer() { return mapContainer; }
 
     public static RegistryKey<DimensionType> getDimensionKey(EnvironmentFile environmentFile) {
 
         DynamicRegistry<DimensionType> registry = MinecraftServer.getDimensionTypeRegistry();
 
-        Key key = Key.key(IceStom.NAMESPACE, "d" + Objects.hash(
+        @Subst("d00000000") String value = "d" + Objects.hash(
                 environmentFile.getAmbientLight(),
                 environmentFile.getNetherLight(),
                 environmentFile.getMinY(),
                 environmentFile.getHeight(),
                 environmentFile.getSkybox(),
                 environmentFile.getVersion()
-        ));
+        );
+
+        Key key = Key.key(IceStom.NAMESPACE, value);
 
         @Nullable RegistryKey<DimensionType> pre_existing = registry.getKey(key);
 

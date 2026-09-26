@@ -17,6 +17,7 @@ import io.gitlab.icestom.icestom.event.stage.StageSchema;
 import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import io.gitlab.icestom.icestom.instance.DefaultSpawnInstance;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
+import io.gitlab.icestom.icestom.instance.SpawnLocation;
 import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager;
 import io.gitlab.icestom.icestom.plugins.PluginManager;
 import io.gitlab.icestom.icestom.race.RaceStage;
@@ -285,11 +286,12 @@ public class IceStom {
                 if (stage instanceof Instance is) {
                     event.setSpawningInstance(is);
 
-                    EventListener.builder(PlayerSpawnEvent.class)
+                    player.eventNode().addListener(EventListener.builder(PlayerSpawnEvent.class)
                             .expireCount(1)
-                            .handler(playerSpawnEvent -> {
+                            .handler(_ -> {
                                 stage.consume(player);
-                            });
+                            })
+                            .build());
                 }
 
                 return;

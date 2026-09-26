@@ -3,6 +3,7 @@ package io.gitlab.icestom.icestom.track.library.source;
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.TrackLoad;
+import io.gitlab.icestom.icestom.track.library.VirtualTrackInstance;
 import io.gitlab.icestom.stomtrack.EnvironmentFile;
 import io.gitlab.icestom.stomtrack.TrackFile;
 import io.gitlab.icestom.stomtrack.TrackLoader;
@@ -10,9 +11,17 @@ import net.hollowcube.polar.PolarDataConverter;
 import net.hollowcube.polar.PolarLoader;
 import net.hollowcube.polar.PolarWorldAccess;
 import net.kyori.adventure.key.Key;
+import net.kyori.adventure.nbt.BinaryTag;
+import net.kyori.adventure.nbt.CompoundBinaryTag;
+import net.kyori.adventure.nbt.ListBinaryTag;
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.coordinate.Pos;
+import net.minestom.server.entity.Entity;
+import net.minestom.server.instance.Chunk;
 import net.minestom.server.instance.InstanceContainer;
+import net.minestom.server.network.NetworkBuffer;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +36,7 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
 import static io.gitlab.icestom.icestom.track.Track.getDimensionKey;
+import static io.gitlab.icestom.icestom.util.DisplayEntityConverter.*;
 
 public class FileSystemSource extends TrackSource {
 
@@ -185,29 +195,38 @@ public class FileSystemSource extends TrackSource {
 
     public static class PolarTrackLoad implements TrackLoad {
 
-        private final InstanceContainer instanceContainer;
+        private final VirtualTrackInstance instanceContainer;
 
         private final CompletableFuture<Void> fullyLoaded;
 
+        @SuppressWarnings("UnstableApiUsage")
         public PolarTrackLoad(EnvironmentFile environmentFile, String env_name, InputStream inputStream, long bytes) {
-            instanceContainer = new InstanceContainer(
-                    UUID.randomUUID(),
-                    getDimensionKey(environmentFile),
-                    Key.key(IceStom.NAMESPACE, "track/" + env_name)
-            );
+            instanceContainer = new VirtualTrackInstance(env_name, environmentFile);
 
             fullyLoaded = PolarLoader.streamLoad(
                     instanceContainer,
                     Channels.newChannel(inputStream),
                     bytes,
                     PolarDataConverter.NOOP,
-                    PolarWorldAccess.DEFAULT,
+                    new PolarWorldAccess() {
+                        @Override
+                        public void loadChunkData(@NotNull Chunk chunk, @Nullable NetworkBuffer userData) {
+                            if (userData == null) return;
+
+                            CompoundBinaryTag root = userData.read(NetworkBuffer.NBT_COMPOUND);
+                            ListBinaryTag list = root.getList("entities");
+
+                            for (BinaryTag binaryTag : list) {
+                                instanceContainer.addDisplayEntity((CompoundBinaryTag) binaryTag);
+                            }
+                        }
+                    },
                     true
             );
         }
 
         @Override
-        public InstanceContainer instanceContainer() {
+        public VirtualTrackInstance instanceContainer() {
             return instanceContainer;
         }
 

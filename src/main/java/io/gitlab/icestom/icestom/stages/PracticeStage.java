@@ -82,6 +82,8 @@ public class PracticeStage extends TimeTrialingInstance implements EventStage, S
         MinecraftServer.getInstanceManager()
                 .registerSharedInstance(this);
 
+        initialize();
+
         for (Result<EventParticipant> result : results) {
             participantStore.addParticipant(result.getParticipant());
         }

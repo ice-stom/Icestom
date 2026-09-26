@@ -43,3 +43,6 @@ public_url = ""
 session_minutes = 60
 operators = []
 dev_root = ""
+
+[eschaton]
+enabled = false

@@ -35,7 +35,6 @@ import net.kyori.adventure.title.Title;
 import net.minestom.server.adventure.AdventurePacketConvertor;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.instance.InstanceTickEvent;
-import net.minestom.server.instance.Instance;
 import net.minestom.server.network.packet.server.play.BossBarPacket;
 import net.minestom.server.scoreboard.Sidebar;
 import net.minestom.server.utils.PacketSendingUtils;
@@ -121,7 +120,7 @@ public class VanillaInterface implements InterfaceProvider {
         if (sidebar != null) sidebar.removeViewer(player);
     }
 
-    private static @NotNull Component lapCompletedMessage(Track track, TimedLapResultSource result, @Nullable TimedLapResultSource best) {
+    protected static @NotNull Component lapCompletedMessage(Track track, TimedLapResultSource result, @Nullable TimedLapResultSource best) {
         boolean is_first = best == null;
         boolean is_full_run = track.isLastCheckpoint(result.splits().size() - 1);
         if (is_first) {
@@ -166,17 +165,20 @@ public class VanillaInterface implements InterfaceProvider {
         public VanillaGeneralInterface(IceStom holder) {
             super(holder);
 
-            eventNode().addListener(GenericMessageEvent.class, event -> {
-                final Player player = event.getPlayer();
+            eventNode().addListener(GenericMessageEvent.class, this::genericMessageEvent);
+            eventNode().addListener(GenericErrorMessageEvent.class, this::genericErrorMessageEvent);
+        }
 
-                player.sendMessage(event.getComponent());
-            });
+        protected void genericErrorMessageEvent(GenericErrorMessageEvent event) {
+            final Player player = event.getPlayer();
 
-            eventNode().addListener(GenericErrorMessageEvent.class, event -> {
-                final Player player = event.getPlayer();
+            player.sendMessage(event.getComponent());
+        }
 
-                player.sendMessage(event.getComponent());
-            });
+        protected void genericMessageEvent(GenericMessageEvent event) {
+            final Player player = event.getPlayer();
+
+            player.sendMessage(event.getComponent());
         }
     }
 
@@ -185,103 +187,113 @@ public class VanillaInterface implements InterfaceProvider {
         public VanillaTimetrialInterface(TimeTrialingInstance holder) {
             super(holder);
 
-            eventNode().addListener(TimedLapCheckpointAdvancedEvent.class, event -> {
-                final Player player = event.getPlayer();
-                final TimedLap lap = event.getLap();
-                final TimedLapResultSource result = lap.getBestPreviousResult();
+            eventNode().addListener(TimedLapCheckpointAdvancedEvent.class, this::timedLapCheckpointAdvancedEvent);
 
-                final int checkpoint = lap.getLastReachedCheckpoint();
+            eventNode().addListener(TimeTrialStartEvent.class, this::timeTrialStartEvent);
+            eventNode().addListener(TimeTrialLapTimerEvent.class, this::TimeTrialLapTimerEvent);
+            eventNode().addListener(TimeTrialTimedLapEndedEvent.class, this::timeTrialTimedLapEndedEvent);
 
-                if (result != null && result.splits().size() > checkpoint && checkpoint != 0) {
-                    player.sendMessage(Component.translatable(
-                            "message.timetrial.checkpoint_pass",
-                            Argument.component("checkpoint", Component.text(checkpoint)),
-                            Argument.component("time", TextFormatter.getTime(lap.getSplitTime(checkpoint))),
-                            Argument.component("delta", TextFormatter.getDelta(lap.getRecentSplit()))
-                    ));
-                } else {
-                    if (checkpoint != 0) {
-                        player.sendMessage(Component.translatable(
-                                "message.timetrial.checkpoint_pass_no_delta",
-                                Argument.component("checkpoint", Component.text(checkpoint)),
-                                Argument.component("time", TextFormatter.getTime(lap.getSplitTime(checkpoint)))
+            eventNode().addListener(TimeTrialPracticePointCreateEvent.class, this::timeTrialPracticePointCreateEvent);
+            eventNode().addListener(TimeTrialPracticePointDeleteEvent.class, this::timeTrialPracticePointCreateEvent);
 
-                        ));
-                    }
-                }
-            });
+            eventNode().addListener(TimeTrialNewRecordEvent.class, this::timeTrialNewRecordEvent);
+        }
 
-            eventNode().addListener(TimeTrialStartEvent.class, event -> {
-                final Player player = event.getPlayer();
-                final Track track = event.getInstance().getTrack();
+        protected void timeTrialTimedLapEndedEvent(TimeTrialTimedLapEndedEvent event) {
+            final Player player = event.getPlayer();
+            final Track track = event.getInstance().getTrack();
+            final TimedLapResultSource result = event.getResult();
+            final @Nullable TimedLapResultSource best = event.getLap().getBestPreviousResult();
 
-                player.sendMessage(Component.translatable("message.timetrial.start", Argument.component("track", track.getName())));
+            player.sendMessage(lapCompletedMessage(
+                    track,
+                    result,
+                    best
+            ));
 
-                Sidebar sidebar = sidebars.get(player);
+            player.playSound(best == null ? TRACK_FIRST_COMPLETION : PING, Sound.Emitter.self());
+        }
 
-                if (sidebar != null) {
-                    sidebar.updateLineContent("0", Component.empty()
-                            .append(Component.text("Track: "))
-                            .append(Component.text(track.getId(), NamedTextColor.GOLD)));
+        protected void TimeTrialLapTimerEvent(TimeTrialLapTimerEvent event) {
+            final Player player = event.getPlayer();
+            final TimeTrialingInstance instance = event.getInstance();
 
-                    sidebar.updateLineContent("1", Component.empty()
-                            .append(Component.text("Checkpoints: "))
-                            .append(Component.text(track.getCheckpoints().size(), NamedTextColor.GOLD)));
-                }
-            });
+            Component actionBar = event.getLap().getActionBar(instance.getWorldAge());
 
-            eventNode().addListener(TimeTrialLapTimerEvent.class, event -> {
-                final Player player = event.getPlayer();
-                final TimeTrialingInstance instance = event.getInstance();
+            player.sendActionBar(actionBar);
+        }
 
-                Component actionBar = event.getLap().getActionBar(instance.getWorldAge());
+        protected void timeTrialStartEvent(TimeTrialStartEvent event) {
+            final Player player = event.getPlayer();
+            final Track track = event.getInstance().getTrack();
 
-                player.sendActionBar(actionBar);
-            });
+            player.sendMessage(Component.translatable("message.timetrial.start", Argument.component("track", track.getName())));
 
-            eventNode().addListener(TimeTrialTimedLapEndedEvent.class, event -> {
-                final Player player = event.getPlayer();
-                final Track track = event.getInstance().getTrack();
-                final TimedLapResultSource result = event.getResult();
-                final @Nullable TimedLapResultSource best = event.getLap().getBestPreviousResult();
+            Sidebar sidebar = sidebars.get(player);
 
-                player.sendMessage(lapCompletedMessage(
-                        track,
-                        result,
-                        best
-                ));
+            if (sidebar != null) {
+                sidebar.updateLineContent("0", Component.empty()
+                        .append(Component.text("Track: "))
+                        .append(Component.text(track.getId(), NamedTextColor.GOLD)));
 
-                player.playSound(best == null ? TRACK_FIRST_COMPLETION : PING, Sound.Emitter.self());
-            });
+                sidebar.updateLineContent("1", Component.empty()
+                        .append(Component.text("Checkpoints: "))
+                        .append(Component.text(track.getCheckpoints().size(), NamedTextColor.GOLD)));
+            }
+        }
 
-            eventNode().addListener(TimeTrialPracticePointCreateEvent.class, event -> {
-                final Player player = event.getPlayer();
+        protected void timeTrialNewRecordEvent(TimeTrialNewRecordEvent event) {
+            final Player player = event.getPlayer();
+            final Track track = event.getInstance().getTrack();
+            final TimedLapResultSource result = event.getResult();
+            final TimedLapResultSource oldResult = event.getOldResult();
 
-                player.sendMessage(Component.translatable("message.timetrial.practicepoint_place"));
-            });
+            player.sendMessage(Component.translatable(
+                    "message.timetrial.get_record",
+                    Argument.component("player", player.getName()),
+                    Argument.component("track", track.getName()),
+                    Argument.component("time", TextFormatter.getTime(result.getTime())),
+                    Argument.component("delta", TextFormatter.getDelta(result.getTime() - oldResult.getTime())),
+                    Argument.component("oldtime", TextFormatter.getTime(oldResult.getTime()))
+            ));
+        }
 
-            eventNode().addListener(TimeTrialPracticePointDeleteEvent.class, event -> {
-                final Player player = event.getPlayer();
+        protected void timedLapCheckpointAdvancedEvent(TimedLapCheckpointAdvancedEvent event) {
+            final Player player = event.getPlayer();
+            final TimedLap lap = event.getLap();
+            final TimedLapResultSource result = lap.getBestPreviousResult();
 
-                player.sendMessage(Component.translatable("message.timetrial.practicepoint_remove"));
-            });
+            final int checkpoint = lap.getLastReachedCheckpoint();
 
-            eventNode().addListener(TimeTrialNewRecordEvent.class, event -> {
-                final Player player = event.getPlayer();
-                final Track track = event.getInstance().getTrack();
-                final Instance instance = event.getInstance();
-                final TimedLapResultSource result = event.getResult();
-                final TimedLapResultSource oldResult = event.getOldResult();
-
+            if (result != null && result.splits().size() > checkpoint && checkpoint != 0) {
                 player.sendMessage(Component.translatable(
-                        "message.timetrial.get_record",
-                        Argument.component("player", player.getName()),
-                        Argument.component("track", track.getName()),
-                        Argument.component("time", TextFormatter.getTime(result.getTime())),
-                        Argument.component("delta", TextFormatter.getDelta(result.getTime() - oldResult.getTime())),
-                        Argument.component("oldtime", TextFormatter.getTime(oldResult.getTime()))
+                        "message.timetrial.checkpoint_pass",
+                        Argument.component("checkpoint", Component.text(checkpoint)),
+                        Argument.component("time", TextFormatter.getTime(lap.getSplitTime(checkpoint))),
+                        Argument.component("delta", TextFormatter.getDelta(lap.getRecentSplit()))
                 ));
-            });
+            } else {
+                if (checkpoint != 0) {
+                    player.sendMessage(Component.translatable(
+                            "message.timetrial.checkpoint_pass_no_delta",
+                            Argument.component("checkpoint", Component.text(checkpoint)),
+                            Argument.component("time", TextFormatter.getTime(lap.getSplitTime(checkpoint)))
+
+                    ));
+                }
+            }
+        }
+
+        protected void timeTrialPracticePointCreateEvent(TimeTrialPracticePointCreateEvent event) {
+            final Player player = event.getPlayer();
+
+            player.sendMessage(Component.translatable("message.timetrial.practicepoint_place"));
+        }
+
+        protected void timeTrialPracticePointCreateEvent(TimeTrialPracticePointDeleteEvent event) {
+            final Player player = event.getPlayer();
+
+            player.sendMessage(Component.translatable("message.timetrial.practicepoint_remove"));
         }
 
         @Override
@@ -302,10 +314,12 @@ public class VanillaInterface implements InterfaceProvider {
         private final Map<TickCountdown, UUID> countdowns = new HashMap<>();
         private final Map<TickCountdown, Set<Player>> countdownViewers = new HashMap<>();
 
+        private final Map<TickCountdown, String> translations;
+
         public VanillaRaceInterface(RaceStage holder) {
             super(holder);
 
-            Map<TickCountdown, String> translations = Map.of(
+            translations = Map.of(
                     holder.getChequeredFlagCountdown(), "race.bossbar.chequered_flag_countdown"
             );
 
@@ -318,161 +332,168 @@ public class VanillaInterface implements InterfaceProvider {
                 countdownViewers.put(tickCountdown, new HashSet<>());
             });
 
-            eventNode().addListener(InstanceTickEvent.class, event -> {
-                int remainingTicks = holder.getStartingCountdown().getRemainingTicks();
+            eventNode().addListener(InstanceTickEvent.class, this::instanceTickEvent);
+            eventNode().addListener(RaceLeaderboardUpdateEvent.class, this::raceLeaderboardUpdateEvent);
+            eventNode().addListener(RaceLapTimerEvent.class, this::raceLapTimerEvent);
+            eventNode().addListener(RaceTimedLapCompletedEvent.class, this::raceTimedLapCompletedEvent);
+            eventNode().addListener(RaceCompletedEvent.class, this::raceCompletedEvent);
+        }
 
-                if (remainingTicks % 20 == 0) {
-                    for (Player player : getWatching()) {
-                        if (remainingTicks != 0) {
-                            player.showTitle(Title.title(
-                                    Component.text(remainingTicks / 20),
-                                    Component.empty(),
-                                    0, 20, 0
-                            ));
+        protected void raceCompletedEvent(RaceCompletedEvent event) {
+            final Player player = event.getPlayer();
+            final Track track = event.getInstance().getTrack();
+            final RaceStage.RaceParticipant racer = event.getRacer();
 
-                            player.playSound(COUNTDOWN, Sound.Emitter.self());
-                        }
+            long time = racer.getCompletedLaps().stream().map(TimedLapResultSource::getTime).reduce(0L, Long::sum);
+
+            player.sendMessage(Component.translatable(
+                    "message.race.completed",
+                    Argument.component("laps", Component.text(racer.getCompletedLapCount())),
+                    Argument.component("track", track.getName()),
+                    Argument.component("time", TextFormatter.getTime(time))
+            ));
+
+            player.playSound(CHALLENGE_COMPLETE, Sound.Emitter.self());
+        }
+
+        protected void raceTimedLapCompletedEvent(RaceTimedLapCompletedEvent event) {
+            final Player player = event.getPlayer();
+            final Track track = event.getInstance().getTrack();
+            final TimedLapResultSource result = event.getResult();
+            @Nullable final TimedLapResultSource best = event.getLap().getBestPreviousResult();
+
+            player.sendMessage(lapCompletedMessage(
+                    track,
+                    result,
+                    best
+            ));
+        }
+
+        protected void raceLapTimerEvent(RaceLapTimerEvent event) {
+            final EventParticipant participant = event.getParticipant();
+            final RaceStage.RaceParticipant racer = event.getRacer();
+            final @NotNull RaceStage instance = event.getInstance();
+            final RaceLeaderboard<RaceLeaderboardRow> leaderboard = instance.getRaceLeaderboard();
+            long worldAge = instance.getWorldAge();
+
+            TimedLap lap = racer.getCurrentLap();
+
+            int pos = leaderboard.getSnapshot().getPosition(racer) + 1;
+
+            TextComponent.Builder text = Component.text();
+
+            text.append(Component.text("P")
+                    .decorate(TextDecoration.BOLD)
+                    .append(Component.text(pos, TextColor.color(0x4fd3ff))));
+
+            text.append(Component.text(" "));
+            text.append(Component.text(Math.max(0, racer.getCompletedLapCount()) + "/" + instance.getTotalLaps()));
+            text.append(Component.text(" "));
+            text.append(TextFormatter.getTimeRounded(lap.getCurrentTime(worldAge)).color(NamedTextColor.YELLOW));
+
+            if (racer.getCompletedLapCount() > 0) {
+                text.append(Component.text(" - "));
+                text.append(TextFormatter.getDelta(lap.getRecentSplit()));
+            }
+
+            participant.getCurrentPlayer().sendActionBar(text);
+        }
+
+        protected void raceLeaderboardUpdateEvent(RaceLeaderboardUpdateEvent event) {
+            final @NotNull RaceStage raceStage = event.getInstance();
+            final Track track = raceStage.getTrack();
+
+            final List<RaceLeaderboardRow> rows = raceStage.getRaceLeaderboard().getSnapshot().getRows();
+
+            for (Player player : raceStage.getPlayers()) {
+                @Nullable Sidebar sidebar = sidebars.get(player);
+
+                if (sidebar == null) continue;
+
+                sidebar.setTitle(Component.text("Race at ").append(track.getName()));
+
+                for (int i = 0; i < rows.size(); i++) {
+                    if (sidebar.getLine(String.valueOf(i)) == null) {
+                        sidebar.createLine(new Sidebar.ScoreboardLine(
+                                String.valueOf(i),
+                                Component.empty(),
+                                -i,
+                                Sidebar.NumberFormat.blank()
+                        ));
+                    }
+
+                    RaceLeaderboardRow row = rows.get(i);
+
+                    EventParticipant participant = raceStage.getParticipants().getParticipantFromId(raceStage.getParticipantId(
+                            row.getParticipant()
+                    ));
+
+                    sidebar.updateLineContent(String.valueOf(i), sidebarLeaderboardEntry(row, participant, i));
+                }
+            }
+        }
+
+        protected void instanceTickEvent(InstanceTickEvent event) {
+            int remainingTicks = ((RaceStage) (event.getInstance())).getStartingCountdown().getRemainingTicks();
+
+            if (remainingTicks % 20 == 0) {
+                for (Player player : getWatching()) {
+                    if (remainingTicks != 0) {
+                        player.showTitle(Title.title(
+                                Component.text(remainingTicks / 20),
+                                Component.empty(),
+                                0, 20, 0
+                        ));
+
+                        player.playSound(COUNTDOWN, Sound.Emitter.self());
                     }
                 }
-                if (event.getInstance().getWorldAge() % 20 != 0) return;
+            }
 
-                countdowns.forEach((tickCountdown, uuid) -> {
-                    Set<Player> viewers = countdownViewers.get(tickCountdown);
-                    boolean running = tickCountdown.isRunning();
+            if (event.getInstance().getWorldAge() % 20 != 0) return;
 
-                    if (running) {
-                        float progress = (float) tickCountdown.getRemainingTicks() / tickCountdown.getDurationTicks();
+            countdowns.forEach((tickCountdown, uuid) -> {
+                Set<Player> viewers = countdownViewers.get(tickCountdown);
+                boolean running = tickCountdown.isRunning();
 
-                        Component translatable = Component.translatable(
-                                translations.get(tickCountdown),
-                                Argument.component("time", Component.text(Math.floor((double) tickCountdown.getRemainingTicks() / 20)))
-                        );
+                if (running) {
+                    float progress = (float) tickCountdown.getRemainingTicks() / tickCountdown.getDurationTicks();
 
-                        for (Player player : getWatching()) {
-                            if (viewers.add(player)) {
-                                player.sendPacket(new BossBarPacket(
-                                        uuid,
-                                        addEmptyBossbar
-                                ));
-                            }
+                    Component translatable = Component.translatable(
+                            translations.get(tickCountdown),
+                            Argument.component("time", Component.text(Math.floor((double) tickCountdown.getRemainingTicks() / 20)))
+                    );
 
+                    for (Player player : getWatching()) {
+                        if (viewers.add(player)) {
                             player.sendPacket(new BossBarPacket(
                                     uuid,
-                                    new BossBarPacket.UpdateTitleAction(((IceStomPlayer) player).translate(translatable))
+                                    addEmptyBossbar
                             ));
                         }
 
-                        PacketSendingUtils.sendGroupedPacket(viewers, new BossBarPacket(
+                        player.sendPacket(new BossBarPacket(
                                 uuid,
-                                new BossBarPacket.UpdateHealthAction(progress)
+                                new BossBarPacket.UpdateTitleAction(((IceStomPlayer) player).translate(translatable))
                         ));
-                    } else if (!viewers.isEmpty()) {
-                        PacketSendingUtils.sendGroupedPacket(viewers, new BossBarPacket(
-                                uuid,
-                                new BossBarPacket.RemoveAction()
-                        ));
-
-                        viewers.clear();
                     }
-                });
-            });
 
-            eventNode().addListener(RaceLeaderboardUpdateEvent.class, event -> {
-                final @NotNull RaceStage raceStage = event.getInstance();
-                final Track track = raceStage.getTrack();
+                    PacketSendingUtils.sendGroupedPacket(viewers, new BossBarPacket(
+                            uuid,
+                            new BossBarPacket.UpdateHealthAction(progress)
+                    ));
+                } else if (!viewers.isEmpty()) {
+                    PacketSendingUtils.sendGroupedPacket(viewers, new BossBarPacket(
+                            uuid,
+                            new BossBarPacket.RemoveAction()
+                    ));
 
-                final List<RaceLeaderboardRow> rows = raceStage.getRaceLeaderboard().getSnapshot().getRows();
-
-                for (Player player : raceStage.getPlayers()) {
-                    @Nullable Sidebar sidebar = sidebars.get(player);
-
-                    if (sidebar == null) continue;
-
-                    sidebar.setTitle(Component.text("Race at ").append(track.getName()));
-
-                    for (int i = 0; i < rows.size(); i++) {
-                        if (sidebar.getLine(String.valueOf(i)) == null) {
-                            sidebar.createLine(new Sidebar.ScoreboardLine(
-                                    String.valueOf(i),
-                                    Component.empty(),
-                                    -i,
-                                    Sidebar.NumberFormat.blank()
-                            ));
-                        }
-
-                        RaceLeaderboardRow row = rows.get(i);
-
-                        EventParticipant participant = raceStage.getParticipants().getParticipantFromId(raceStage.getParticipantId(
-                                row.getParticipant()
-                        ));
-
-                        sidebar.updateLineContent(String.valueOf(i), sidebarLeaderboardEntry(row, participant, i));
-                    }
+                    viewers.clear();
                 }
-            });
-
-            eventNode().addListener(RaceLapTimerEvent.class, event -> {
-                final EventParticipant participant = event.getParticipant();
-                final RaceStage.RaceParticipant racer = event.getRacer();
-                final @NotNull RaceStage instance = event.getInstance();
-                final RaceLeaderboard<RaceLeaderboardRow> leaderboard = instance.getRaceLeaderboard();
-                long worldAge = instance.getWorldAge();
-
-                TimedLap lap = racer.getCurrentLap();
-
-                int pos = leaderboard.getSnapshot().getPosition(racer) + 1;
-
-                TextComponent.Builder text = Component.text();
-
-                text.append(Component.text("P")
-                        .decorate(TextDecoration.BOLD)
-                        .append(Component.text(pos, TextColor.color(0x4fd3ff))));
-
-                text.append(Component.text(" "));
-                text.append(Component.text(Math.max(0, racer.getCompletedLapCount()) + "/" + instance.getTotalLaps()));
-                text.append(Component.text(" "));
-                text.append(TextFormatter.getTimeRounded(lap.getCurrentTime(worldAge)).color(NamedTextColor.YELLOW));
-
-                if (racer.getCompletedLapCount() > 0) {
-                    text.append(Component.text(" - "));
-                    text.append(TextFormatter.getDelta(lap.getRecentSplit()));
-                }
-
-                participant.getCurrentPlayer().sendActionBar(text);
-            });
-
-            eventNode().addListener(RaceTimedLapCompletedEvent.class, event -> {
-                final Player player = event.getPlayer();
-                final Track track = event.getInstance().getTrack();
-                final TimedLapResultSource result = event.getResult();
-                @Nullable final TimedLapResultSource best = event.getLap().getBestPreviousResult();
-
-                player.sendMessage(lapCompletedMessage(
-                        track,
-                        result,
-                        best
-                ));
-            });
-
-            eventNode().addListener(RaceCompletedEvent.class, event -> {
-                final Player player = event.getPlayer();
-                final Track track = event.getInstance().getTrack();
-                final RaceStage.RaceParticipant racer = event.getRacer();
-
-                long time = racer.getCompletedLaps().stream().map(TimedLapResultSource::getTime).reduce(0L, Long::sum);
-
-                player.sendMessage(Component.translatable(
-                        "message.race.completed",
-                        Argument.component("laps", Component.text(racer.getCompletedLapCount())),
-                        Argument.component("track", track.getName()),
-                        Argument.component("time", TextFormatter.getTime(time))
-                ));
-
-                player.playSound(CHALLENGE_COMPLETE, Sound.Emitter.self());
             });
         }
 
-        private Component sidebarLeaderboardEntry(RaceLeaderboardRow row, EventParticipant eventParticipant, int position) {
+        protected Component sidebarLeaderboardEntry(RaceLeaderboardRow row, EventParticipant eventParticipant, int position) {
             UUID id = eventParticipant.getCurrentPlayer().getUuid();
 
             String username = UsernameCache.getUsernameCached(id);

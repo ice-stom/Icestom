@@ -216,8 +216,9 @@ public class VanillaInterface implements InterfaceProvider {
                     result,
                     best
             ));
-
-            player.playSound(best == null ? TRACK_FIRST_COMPLETION : PING, Sound.Emitter.self());
+            if (result.isBetterThan(best)) {
+                player.playSound(PING, Sound.Emitter.self());
+            }
         }
 
         protected void TimeTrialLapTimerEvent(TimeTrialLapTimerEvent event) {

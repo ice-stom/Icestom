@@ -31,7 +31,7 @@ public abstract class BoatInstance extends SharedInstance {
     private static final Logger log = LoggerFactory.getLogger(BoatInstance.class);
     private final Map<Player, Boat> boats = new HashMap<>();
 
-    private static final PreferenceKey<Key> BOAT_TYPE = IceStom.getInstance().getPreferenceRegistry().register(new PreferenceKey<>(
+    public static final PreferenceKey<Key> BOAT_TYPE = IceStom.getInstance().getPreferenceRegistry().register(new PreferenceKey<>(
             Key.key(IceStom.NAMESPACE, "boat_type"),
             Key.class,
             Key.key("oak_boat")

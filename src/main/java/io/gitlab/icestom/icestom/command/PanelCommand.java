@@ -39,7 +39,6 @@ public class PanelCommand extends Command {
         String name = sender instanceof Player player ? player.getUsername() : "console";
 
         boolean allowed = fromConsole
-                || panel.isOperator(uuid, name)
                 || (sender instanceof IceStomPlayer player && player.hasPermission("icestom.panel"));
 
         if (!allowed) {

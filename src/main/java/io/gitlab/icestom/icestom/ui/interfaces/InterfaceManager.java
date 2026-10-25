@@ -2,8 +2,11 @@ package io.gitlab.icestom.icestom.ui.interfaces;
 
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.Event;
+import net.minestom.server.event.EventFilter;
 import net.minestom.server.event.EventHandler;
 import net.minestom.server.event.EventNode;
+import net.minestom.server.event.trait.InstanceEvent;
+import net.minestom.server.instance.Instance;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +23,12 @@ public class InterfaceManager {
         registry.computeIfAbsent(type, _ -> new HashSet<>()).add(provider);
     }
 
+    // me when java:
+    @SuppressWarnings("unchecked")
+    private static void link(EventNode<?> parent, EventNode<?> child) {
+        ((EventNode<Event>) parent).addChild(child);
+    }
+
     public static <T> InterfaceHolder getHolder(Class<?> type, T holder) {
         @Nullable Set<InterfaceProvider> providers = registry.get(type);
 
@@ -34,9 +43,9 @@ public class InterfaceManager {
         for (InterfaceProvider provider : providers) {
             Interface<?, ?> anInterface = provider.getInterface(holder);
 
-            if (anInterface instanceof EventHandler<?> handler) {
-                EVENT_NODE
-                        .addChild(handler.eventNode());
+            if (holder instanceof EventHandler<?> eventHandler
+                    && anInterface instanceof EventHandler<?> eventInterface) {
+                link(eventHandler.eventNode(), eventInterface.eventNode());
             }
 
             interfaces.add(anInterface);

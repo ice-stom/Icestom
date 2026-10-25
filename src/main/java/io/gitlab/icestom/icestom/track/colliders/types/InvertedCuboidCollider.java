@@ -1,5 +1,6 @@
 package io.gitlab.icestom.icestom.track.colliders.types;
 
+import io.gitlab.icestom.icestom.instance.TrackInstance;
 import io.gitlab.icestom.icestom.track.PlayerMovement;
 import net.minestom.server.coordinate.Vec;
 import org.jetbrains.annotations.Nullable;
@@ -15,8 +16,12 @@ public class InvertedCuboidCollider extends CuboidCollider {
     }
 
     public @Nullable Long detectCross(PlayerMovement movement) {
-        Vec before = movement.before();
-        Vec current = movement.current();
+        TrackInstance.TickLocation old = movement.before();
+
+        if (old == null) return null;
+
+        Vec before = old.pos();
+        Vec current = movement.current().pos();
 
         if (before == null) return null;
         if (!isInside(before)) return null;

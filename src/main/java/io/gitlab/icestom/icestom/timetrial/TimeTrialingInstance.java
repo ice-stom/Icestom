@@ -9,7 +9,6 @@ import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.TimetrialLeaderboard;
 import io.gitlab.icestom.icestom.instance.BoatedTrackInstance;
 import io.gitlab.icestom.icestom.instance.SpawnLocation;
-import io.gitlab.icestom.icestom.instance.TrackInstance;
 import io.gitlab.icestom.icestom.timetrial.event.*;
 import io.gitlab.icestom.icestom.timetrial.lap.TimeTrialResult;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResult;
@@ -18,6 +17,10 @@ import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
+import io.gitlab.icestom.icestom.track.event.HasTag;
+import io.gitlab.icestom.icestom.track.event.TrackColliderEvent;
+import io.gitlab.icestom.icestom.track.event.TrackRegionEnterEvent;
+import io.gitlab.icestom.icestom.track.event.TrackTriggerPassEvent;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
 import net.kyori.adventure.text.Component;
@@ -26,7 +29,6 @@ import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
-import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.item.ItemDropEvent;
@@ -43,6 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Consumer;
 
 import static io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager.writePacket;
 import static io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager.getHolder;
@@ -81,7 +84,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
     private final TimetrialLeaderboard leaderboard;
 
-    private final Map<UUID, Vec> lastPosition = new HashMap<>();
+    private final Map<UUID, TickLocation> lastPosition = new HashMap<>();
 
     public TimeTrialingInstance(TrackLibrary.Ticket ticket, Track track) {
         super(ticket, track);
@@ -162,6 +165,23 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
         subscribeRegionId("icestom.reset");
         subscribeTriggerId("icestom.reset");
+
+        Consumer<TrackColliderEvent> handle_reset = event -> {
+            final Player player = event.getPlayer();
+
+            if (event.getTag().equals("icestom.reset")) {
+                TimedLap lap = getTimedLap(player.getUuid());
+
+                if (lap == null) return;
+
+                Pos reset_point = track.getLocations().getOrDefault("icestom.reset_" + lap.getLastReachedCheckpoint(), track.getSpawnLocation());
+
+                createBoat(player, reset_point);
+            }
+        };
+
+        eventNode().addListener(TrackRegionEnterEvent.class, handle_reset::accept);
+        eventNode().addListener(TrackTriggerPassEvent.class, handle_reset::accept);
     }
 
     @Override
@@ -239,15 +259,23 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                 continue;
             }
 
-            List<TickLocation> moves = new ArrayList<>(candidates.values());
-            List<Vec> old_locations = new ArrayList<>(moves.size());
-            for (TickLocation move : moves) {
-                old_locations.add(lastPosition.getOrDefault(move.player(), null));
+            List<PlayerMovement> moves = new ArrayList<>();
+
+            List<TickLocation> nows = new ArrayList<>(candidates.values());
+            List<TickLocation> old_locations = new ArrayList<>(nows.size());
+            for (TickLocation now : nows) {
+                @Nullable TickLocation old = lastPosition.getOrDefault(now.player(), null);
+
+                old_locations.add(old);
+
+                moves.add(new PlayerMovement(now.tick(), old, now));
             }
+
+            dispatchTrackEvents(moves);
 
             Map<TickLocation, Long> hits = new HashMap<>();
             for (CrossCollider trackCheckpoint : track.getCheckpoints(checkpoint)) {
-                for (Map.Entry<TickLocation, Long> hit : trackCheckpoint.detectCrosses(old_locations, moves).entrySet()) {
+                for (Map.Entry<TickLocation, Long> hit : trackCheckpoint.detectCrosses(old_locations, nows).entrySet()) {
                     hits.putIfAbsent(hit.getKey(), hit.getValue());
                 }
             }
@@ -259,7 +287,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                 ArrayDeque<TickLocation> playerQueue = bucket.get(player);
                 playerQueue.poll();
 
-                lastPosition.put(player, location.pos());
+                lastPosition.put(player, location);
 
                 Long tick_delta = hits.get(location);
 

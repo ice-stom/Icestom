@@ -7,14 +7,14 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 public interface CrossCollider {
-    default Map<TrackInstance.TickLocation, Long> detectCrosses(List<Vec> before, SequencedCollection<TrackInstance.TickLocation> now) {
+    default Map<TrackInstance.TickLocation, Long> detectCrosses(List<TrackInstance.TickLocation> before, SequencedCollection<TrackInstance.TickLocation> now) {
         Map<TrackInstance.TickLocation, Long> deltas = new HashMap<>();
 
         int index = 0;
         for (TrackInstance.TickLocation b : now) {
             deltas.put(b, null);
 
-            @Nullable Vec a = before.get(index++);
+            @Nullable TrackInstance.TickLocation a = before.get(index++);
             @Nullable Long tick_delta = detectCross(a, b);
 
             if (tick_delta != null) {
@@ -25,6 +25,10 @@ public interface CrossCollider {
         return deltas;
     }
 
-    @Nullable Long detectCross(Vec before, TrackInstance.TickLocation now);
+    @Nullable Long detectCross(@Nullable TrackInstance.TickLocation before, TrackInstance.TickLocation now);
+
+    interface HasVec {
+        Vec getVec();
+    }
 }
 

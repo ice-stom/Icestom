@@ -94,7 +94,6 @@ public class IceStomConfig {
 
         public String public_url = "";
         public int session_minutes = 60;
-        public List<String> operators = List.of();
         public String dev_root = "";
     }
 

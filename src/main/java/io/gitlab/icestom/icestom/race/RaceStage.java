@@ -7,23 +7,17 @@ import io.gitlab.icestom.icestom.event.*;
 import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import io.gitlab.icestom.icestom.event.event.Result;
 import io.gitlab.icestom.icestom.event.lua.ParticipantStore;
-import io.gitlab.icestom.icestom.event.stage.EventStage;
 import io.gitlab.icestom.icestom.event.stage.InvalidStageArgumentsException;
 import io.gitlab.icestom.icestom.instance.BoatedTrackInstance;
-import io.gitlab.icestom.icestom.instance.TrackInstance;
-import io.gitlab.icestom.icestom.leaderboard.LeaderboardParticipant;
-import io.gitlab.icestom.icestom.race.event.RaceCompletedEvent;
+import io.gitlab.icestom.icestom.ordering.ForwardOrdering;
+import io.gitlab.icestom.icestom.ordering.TowerHolder;
 import io.gitlab.icestom.icestom.race.event.RaceLapTimerEvent;
-import io.gitlab.icestom.icestom.race.event.RaceLeaderboardUpdateEvent;
-import io.gitlab.icestom.icestom.race.event.RaceTimedLapCompletedEvent;
 import io.gitlab.icestom.icestom.timetrial.Split;
-import io.gitlab.icestom.icestom.timetrial.event.TimedLapCheckpointAdvancedEvent;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResult;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
-import io.gitlab.icestom.icestom.track.PlayerMovement;
 import io.gitlab.icestom.icestom.track.Track;
-import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
+import io.gitlab.icestom.icestom.track.TrackEventStage;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import io.gitlab.icestom.icestom.ui.TickCountdown;
 import io.gitlab.icestom.icestom.ui.event.GenericErrorMessageEvent;
@@ -40,11 +34,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager.getHolder;
 
-public class RaceStage extends BoatedTrackInstance implements EventStage, ParticipantStoreHolder, Stateful<RaceStage.RaceState> {
+public class RaceStage extends BoatedTrackInstance implements TrackEventStage, TowerHolder<RaceStage.RaceParticipant>, ParticipantStoreHolder, Stateful<RaceStage.RaceState> {
 
     private final InterfaceManager.InterfaceHolder interfaceHolder;
 
@@ -54,7 +47,8 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
     private final Map<UUID, RaceParticipant> racers = new HashMap<>();
     private final Map<RaceParticipant, UUID> racersLookup = new HashMap<>();
 
-    private final RaceLeaderboard<RaceLeaderboardRow> raceLeaderboard;
+    private final RaceTimingTower tower = new RaceTimingTower();
+    private final Map<RaceParticipant, ForwardOrdering<RaceParticipant>.Entry> towerEntryCache = new HashMap<>();
 
     private final int totalLaps;
     private final int totalPits;
@@ -75,8 +69,6 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 
         this.totalLaps = totalLaps;
         this.totalPits = totalPits;
-
-        this.raceLeaderboard = new RaceLeaderboard<>(participant -> new RaceLeaderboardRow(participant, 0), this);
 
         subscribeRegionId("icestom.reset");
         subscribeTriggerId("icestom.reset");
@@ -123,24 +115,7 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
         if (laps <= 0) return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'laps' is <= 0"));
         if (pits < 0) return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'pits' is <= 0"));
 
-        return CompletableFuture.supplyAsync(() -> {
-            Optional<TrackLibrary.Ticket> optionalTicket =
-                    IceStom.getInstance()
-                            .getTrackLibrary()
-                            .loadTrack(track_id);
-
-            if (optionalTicket.isEmpty()) {
-                throw new InvalidStageArgumentsException(
-                        "Track '" + track_id + "' doesn't exist"
-                );
-            }
-
-            TrackLibrary.Ticket ticket = optionalTicket.get();
-
-            Track track = ticket.getTrack().join();
-
-            return new RaceStage(name, ticket, track, laps, pits);
-        });
+        return TrackEventStage.withTrackTicket(track_id, (ticket, track) -> new RaceStage(name, ticket, track, laps, pits));
     }
 
     @Override
@@ -154,7 +129,7 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 //
 //        for (Map.Entry<Player, PlayerMovement> entry : movements.entrySet()) {
 //            Player player = entry.getKey();
-//            PlayerMovement movement = entry.getValue();
+//            PlayerMovement movement = entry.update();
 //
 //            Set<String> playerRegions = inside_regions.get(player);
 //            Map<String, Long> playerTriggers = crossed_triggers.get(player);
@@ -181,7 +156,7 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 //            int checkpoint_index = integerMapEntry.getKey();
 //
 //            for (CrossCollider checkpoint : track.getCheckpoints(checkpoint_index)) {
-//                Map<Player, Long> crosses = checkpoint.detectCrosses(integerMapEntry.getValue());
+//                Map<Player, Long> crosses = checkpoint.detectCrosses(integerMapEntry.update());
 //
 //                crosses.forEach((player, tick_delta) -> {
 //                    @Nullable EventParticipant participation = participants.getParticipantFromActivePlayer(player);
@@ -278,8 +253,9 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 
         List<Result<EventParticipant>> results = new ArrayList<>();
 
-        for (RaceLeaderboardRow row : raceLeaderboard.getSnapshot().getRows()) {
-            RaceParticipant racer = row.getParticipant();
+        for (ForwardOrdering<RaceParticipant>.Entry entry : tower) {
+            RaceParticipant racer = entry.getItem();
+
             EventParticipant participant = participants.getParticipantFromId(getParticipantId(
                     racer
             ));
@@ -318,17 +294,19 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
             EventParticipant participant = result.getParticipant();
 
             participants.addParticipant(participant);
-            RaceParticipant racer = racers.computeIfAbsent(participant.getUuid(), _ -> new RaceParticipant());
+
+            // TODO: UNFUCK, shouldn't really hardcode the name
+            RaceParticipant racer = racers.computeIfAbsent(participant.getUuid(), _ -> new RaceParticipant(participant.getCurrentPlayer().getName()));
             racersLookup.put(racer, participant.getUuid());
 
             startOrder.add(participant);
-            raceLeaderboard.addParticipant(racer);
+            towerEntryCache.put(racer, tower.add(racer));
         }
 
         MinecraftServer.getInstanceManager()
                 .registerSharedInstance(this);
 
-        EventStage.super.teleportAllParticipants(results);
+        TrackEventStage.super.teleportAllParticipants(results);
 
         return future;
     }
@@ -369,8 +347,8 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
         return true;
     }
 
-    public RaceLeaderboard<RaceLeaderboardRow> getRaceLeaderboard() {
-        return raceLeaderboard;
+    public RaceTimingTower getTower() {
+        return tower;
     }
 
     public int getTotalLaps() {
@@ -417,14 +395,14 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 
     @Override
     public void consume(Player player) {
-        interfaceHolder.startWatching(player);
         super.consume(player);
+        interfaceHolder.startWatching(player);
     }
 
     @Override
     public void drop(Player player) {
-        interfaceHolder.stopWatching(player);
         super.drop(player);
+        interfaceHolder.stopWatching(player);
     }
 
     @Override
@@ -468,7 +446,7 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
         END
     }
 
-    public class RaceParticipant implements LeaderboardParticipant<RaceParticipant> {
+    public class RaceParticipant implements ForwardOrdering.Orderable<RaceParticipant> {
         private final List<Split> raceSplits = new ArrayList<>();
         private final List<TimedLapResultSource> completedLaps = new ArrayList<>();
 
@@ -483,11 +461,22 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
 
         private boolean finished = false;
 
-        RaceParticipant() {
+        private Component name;
+
+        RaceParticipant(Component name) {
+            this.name = name;
             currentLap = new TimedLap(
                     track,
                     null
             );
+        }
+
+        public ForwardOrdering<RaceParticipant>.Entry getTowerEntry() {
+            return towerEntryCache.get(this);
+        };
+
+        public Component getName() {
+            return name;
         }
 
         public @Nullable TimedLap nextCheckpoint(Split split) {
@@ -534,7 +523,8 @@ public class RaceStage extends BoatedTrackInstance implements EventStage, Partic
             return completedLap;
         }
 
-        public long deltaTo(RaceParticipant other) {
+        @Override
+        public long distanceTo(RaceParticipant other) {
             int max_checkpoint = Math.min(getRaceSplits().size(), other.getRaceSplits().size()) - 1;
 
             if (max_checkpoint < 0) return 0;

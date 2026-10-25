@@ -1,7 +1,9 @@
 package io.gitlab.icestom.icestom.command;
 
 import io.gitlab.icestom.icestom.entity.Boat;
+import io.gitlab.icestom.icestom.entity.IceStomPlayer;
 import io.gitlab.icestom.icestom.instance.BoatInstance;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.entity.Player;
@@ -34,6 +36,8 @@ public class BoatCommand extends Command {
             boatInstance.createBoat(player, player.getPosition());
             return;
         }
+
+        ((IceStomPlayer) player).preference(BoatInstance.BOAT_TYPE, Key.key("cherry_boat"));
 
         player.sendMessage(Component.translatable("command.boat.not_here"));
     }

@@ -9,6 +9,7 @@ import io.gitlab.icestom.icestom.event.stage.EventStage;
 import io.gitlab.icestom.icestom.event.stage.InvalidStageArgumentsException;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.track.Track;
+import io.gitlab.icestom.icestom.track.TrackEventStage;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
@@ -16,7 +17,7 @@ import net.minestom.server.entity.Player;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
-public class PracticeStage extends TimeTrialingInstance implements EventStage, Stateful<PracticeStage.PracticeState>, ParticipantStoreHolder, LateJoinable {
+public class PracticeStage extends TimeTrialingInstance implements TrackEventStage, Stateful<PracticeStage.PracticeState>, ParticipantStoreHolder, LateJoinable {
 
     private final CompletableFuture<List<Result<EventParticipant>>> future = new CompletableFuture<>();
     private final String stageName;
@@ -39,24 +40,8 @@ public class PracticeStage extends TimeTrialingInstance implements EventStage, S
             return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'track' isn't a string"));
         }
 
-        return CompletableFuture.supplyAsync(() -> {
-            Optional<TrackLibrary.Ticket> optionalTicket =
-                    IceStom.getInstance()
-                            .getTrackLibrary()
-                            .loadTrack(track_id);
 
-            if (optionalTicket.isEmpty()) {
-                throw new InvalidStageArgumentsException(
-                        "Track '" + track_id + "' doesn't exist"
-                );
-            }
-
-            TrackLibrary.Ticket ticket = optionalTicket.get();
-
-            Track track = ticket.getTrack().join();
-
-            return new PracticeStage(name, ticket, track);
-        });
+        return TrackEventStage.withTrackTicket(track_id, (ticket, track) -> new PracticeStage(name, ticket, track));
     }
 
     private void endPractice() {

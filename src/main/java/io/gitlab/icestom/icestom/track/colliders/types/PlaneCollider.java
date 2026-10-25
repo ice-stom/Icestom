@@ -41,11 +41,13 @@ public class PlaneCollider implements CrossCollider {
     public Vec getUp() { return up; }
     public double getHeight() { return height; }
 
-    @Override
-    public @Nullable Long detectCross(@Nullable Vec before, TrackInstance.TickLocation currentLocation) {
-        if (before == null) return null;
 
-        final Vec current = currentLocation.pos();
+    @Override
+    public @Nullable Long detectCross(@Nullable TrackInstance.TickLocation previous, TrackInstance.TickLocation now) {
+        if (previous == null) return null;
+
+        final Vec before = previous.pos();
+        final Vec current = now.pos();
 
         final double nx = normal.x(), ny = normal.y(), nz = normal.z();
         final double ux = up.x(), uy = up.y(), uz = up.z();
@@ -91,8 +93,10 @@ public class PlaneCollider implements CrossCollider {
     }
 
     // yes this is duplicated, it's faster to do it like this for a collection of movements
+
+
     @Override
-    public Map<TrackInstance.TickLocation, Long> detectCrosses(List<Vec> oldList, SequencedCollection<TrackInstance.TickLocation> newList) {
+    public Map<TrackInstance.TickLocation, Long> detectCrosses(List<TrackInstance.TickLocation> previous, SequencedCollection<TrackInstance.TickLocation> now) {
         final Map<TrackInstance.TickLocation, Long> crosses = new HashMap<>();
 
         final double nx = normal.x(), ny = normal.y(), nz = normal.z();
@@ -103,11 +107,13 @@ public class PlaneCollider implements CrossCollider {
         final double halfHeight = height * 0.5;
 
         int index = 0;
-        for (final TrackInstance.TickLocation currentLocation : newList) {
-            final Vec before = oldList.get(index++);
-            final Vec current = currentLocation.pos();
+        for (final TrackInstance.TickLocation currentLocation : now) {
+            final TrackInstance.TickLocation prev = previous.get(index++);
 
-            if (before == null) continue;
+            if (prev == null) continue;
+
+            final Vec before = prev.pos();
+            final Vec current = currentLocation.pos();
 
             final double bx = before.x(), by = before.y(), bz = before.z();
             final double cx = current.x(), cy = current.y(), cz = current.z();

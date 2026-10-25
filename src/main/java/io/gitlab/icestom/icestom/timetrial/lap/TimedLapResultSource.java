@@ -19,4 +19,6 @@ public interface TimedLapResultSource {
     default long getTime() {
         return splits().getLast().ms();
     }
+
+
 }

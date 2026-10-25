@@ -7,6 +7,11 @@ import io.gitlab.icestom.icestom.track.colliders.InsideCollider;
 import net.minestom.server.coordinate.Vec;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
+import java.util.Map;
+import java.util.SequencedCollection;
+import java.util.Set;
+
 public class CuboidCollider implements InsideCollider, CrossCollider {
     protected final Vec a;
     protected final Vec b;
@@ -20,8 +25,13 @@ public class CuboidCollider implements InsideCollider, CrossCollider {
     public Vec getB() { return b; }
 
     @Override
-    public @Nullable Long detectCross(Vec before, TrackInstance.TickLocation now) {
+    public @Nullable Long detectCross(@Nullable TrackInstance.TickLocation previous, TrackInstance.TickLocation now) {
+
+        if (previous == null) return null;
+
+        Vec before = previous.pos();
         Vec current = now.pos();
+
 
         if (before == null) return null;
         if (isInside(before)) return null;
@@ -56,7 +66,7 @@ public class CuboidCollider implements InsideCollider, CrossCollider {
 
     @Override
     public boolean detectInside(PlayerMovement movement) {
-        return isInside(movement.current());
+        return isInside(movement.current().pos());
     }
 
     protected boolean isInside(Vec p) {

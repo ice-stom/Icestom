@@ -34,6 +34,9 @@ public class DefaultSpawnInstance extends InstanceContainer implements SpawnInst
     public DefaultSpawnInstance() {
         super(UUID.randomUUID(), DimensionType.OVERWORLD, Key.key(IceStom.NAMESPACE, "spawn"));
 
+        setTimeRate(0);
+        setTime(6000);
+
         PolarLoader polarLoader = null;
 
         Path worldPath = Path.of("spawn.polar");

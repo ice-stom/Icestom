@@ -148,23 +148,6 @@ public class PanelServer {
         return "http://" + host + ":" + config.port;
     }
 
-    public boolean isOperator(@Nullable UUID uuid, String name) {
-        List<String> operators = config.operators;
-
-        if (operators == null || operators.isEmpty()) return false;
-
-        for (String entry : operators) {
-            if (entry == null) continue;
-
-            String trimmed = entry.trim();
-
-            if (trimmed.equalsIgnoreCase(name)) return true;
-            if (uuid != null && trimmed.equalsIgnoreCase(uuid.toString())) return true;
-        }
-
-        return false;
-    }
-
     void stream(HttpExchange exchange) throws IOException {
         if (clients.size() >= MAX_STREAMS) {
             Http.sendError(exchange, 503, "Too many panels are already connected to this server.");

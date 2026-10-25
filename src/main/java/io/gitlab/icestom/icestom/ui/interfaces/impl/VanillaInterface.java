@@ -3,13 +3,12 @@ package io.gitlab.icestom.icestom.ui.interfaces.impl;
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
 import io.gitlab.icestom.icestom.event.event.EventParticipant;
-import io.gitlab.icestom.icestom.race.RaceLeaderboard;
-import io.gitlab.icestom.icestom.race.RaceLeaderboardRow;
+import io.gitlab.icestom.icestom.ordering.ForwardOrdering;
+import io.gitlab.icestom.icestom.ordering.Tower;
+import io.gitlab.icestom.icestom.ordering.TowerHolder;
+import io.gitlab.icestom.icestom.race.RaceTimingTower;
+import io.gitlab.icestom.icestom.race.event.*;
 import io.gitlab.icestom.icestom.race.RaceStage;
-import io.gitlab.icestom.icestom.race.event.RaceCompletedEvent;
-import io.gitlab.icestom.icestom.race.event.RaceLapTimerEvent;
-import io.gitlab.icestom.icestom.race.event.RaceLeaderboardUpdateEvent;
-import io.gitlab.icestom.icestom.race.event.RaceTimedLapCompletedEvent;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.timetrial.event.*;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
@@ -34,8 +33,9 @@ import net.kyori.adventure.text.object.ObjectContents;
 import net.kyori.adventure.title.Title;
 import net.minestom.server.adventure.AdventurePacketConvertor;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.EventHandler;
 import net.minestom.server.event.instance.InstanceTickEvent;
-import net.minestom.server.network.packet.server.play.BossBarPacket;
+import net.minestom.server.network.packet.server.play.*;
 import net.minestom.server.scoreboard.Sidebar;
 import net.minestom.server.utils.PacketSendingUtils;
 import org.jetbrains.annotations.NotNull;
@@ -46,8 +46,6 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 public class VanillaInterface implements InterfaceProvider {
-
-    private static final Map<Player, Sidebar> sidebars = new HashMap<>();
 
     private static final Logger log = LoggerFactory.getLogger(VanillaInterface.class);
 
@@ -104,20 +102,6 @@ public class VanillaInterface implements InterfaceProvider {
             log.error("getInterface failed for {}", holder, e);
             throw e;
         }
-    }
-
-    protected static void createSidebar(Player player) {
-        Sidebar sidebar = new Sidebar(Component.empty());
-
-        sidebar.addViewer(player);
-
-        sidebars.put(player, sidebar);
-    }
-
-    protected static void destroySidebar(Player player) {
-        @Nullable Sidebar sidebar = sidebars.remove(player);
-
-        if (sidebar != null) sidebar.removeViewer(player);
     }
 
     protected static @NotNull Component lapCompletedMessage(Track track, TimedLapResultSource result, @Nullable TimedLapResultSource best) {
@@ -236,18 +220,6 @@ public class VanillaInterface implements InterfaceProvider {
             final Track track = event.getInstance().getTrack();
 
             player.sendMessage(Component.translatable("message.timetrial.start", Argument.component("track", track.getName())));
-
-            Sidebar sidebar = sidebars.get(player);
-
-            if (sidebar != null) {
-                sidebar.updateLineContent("0", Component.empty()
-                        .append(Component.text("Track: "))
-                        .append(Component.text(track.getId(), NamedTextColor.GOLD)));
-
-                sidebar.updateLineContent("1", Component.empty()
-                        .append(Component.text("Checkpoints: "))
-                        .append(Component.text(track.getCheckpoints().size(), NamedTextColor.GOLD)));
-            }
         }
 
         protected void timeTrialNewRecordEvent(TimeTrialNewRecordEvent event) {
@@ -303,17 +275,157 @@ public class VanillaInterface implements InterfaceProvider {
 
             player.sendMessage(Component.translatable("message.timetrial.practicepoint_remove"));
         }
+    }
+
+    // don't look at the typedef too hard
+    public static abstract class TowerInterface<R extends ForwardOrdering.Orderable<R>, H extends TowerHolder<R>> extends Interface<H, TowerInterface<R, H>> {
+
+        private static final String OBJECTIVE = "tower";
+
+        private static final Sidebar.NumberFormat NO_NUMBERS = Sidebar.NumberFormat.blank();
+
+        private static final ScoreboardObjectivePacket CREATE_OBJECTIVE = new ScoreboardObjectivePacket(
+                OBJECTIVE,
+                (byte) 0, // create
+                Component.text("Tower"),
+                ScoreboardObjectivePacket.Type.INTEGER,
+                NO_NUMBERS
+        );
+
+        private static final DisplayScoreboardPacket SHOW_SIDEBAR = new DisplayScoreboardPacket(
+                (byte) 1, // sidebar
+                OBJECTIVE
+        );
+
+        private static final ScoreboardObjectivePacket DESTROY_OBJECTIVE = new ScoreboardObjectivePacket(
+                OBJECTIVE,
+                (byte) 1, // destroy
+                null,
+                null,
+                null
+        );
+
+        private record CachedRow(Object[] values, Component rendered) {}
+
+        private final H holder;
+        private final Tower<R> tower;
+
+        private final List<CachedRow> rows = new ArrayList<>();
+
+        public TowerInterface(H holder) {
+            this.holder = holder;
+            this.tower = holder.getTower();
+        }
+
+        protected abstract Component render(Key column, Object value);
+
+        public void update() {
+            int limit = tower.size();
+            List<Tower.TowerColumn<R, ?>> columns = tower.getColumns();
+
+            int i = 0;
+            for (ForwardOrdering<R>.Entry entry : tower) {
+                if (i >= limit) break;
+
+                Object[] values = tower.getRow(entry);
+
+                if (i < rows.size() && Arrays.equals(rows.get(i).values(), values)) {
+                    i++;
+                    continue;
+                }
+
+                CachedRow row = new CachedRow(values.clone(), renderRow(columns, values));
+
+                if (i < rows.size()) rows.set(i, row);
+                else rows.add(row);
+
+                PacketSendingUtils.sendGroupedPacket(getWatching(), scorePacket(i, row));
+                i++;
+            }
+
+            removeLinesFrom(i);
+        }
+
+        private Component renderRow(List<Tower.TowerColumn<R, ?>> columns, Object[] values) {
+            TextComponent.Builder builder = Component.text();
+
+            for (int c = 0; c < columns.size(); c++) {
+                if (c > 0) builder.append(Component.space());
+                builder.append(render(columns.get(c).identifier(), values[c]));
+            }
+
+            return builder.build();
+        }
+
+        private void removeLinesFrom(int count) {
+            if (rows.size() <= count) return;
+
+            var viewers = getWatching();
+            for (int i = count; i < rows.size(); i++) {
+                PacketSendingUtils.sendGroupedPacket(viewers, new ResetScorePacket(lineName(i), OBJECTIVE));
+            }
+
+            rows.subList(count, rows.size()).clear();
+        }
+
+        private static String lineName(int index) {
+            return "tower_" + index;
+        }
+
+        private static UpdateScorePacket scorePacket(int index, CachedRow row) {
+            return new UpdateScorePacket(
+                    lineName(index),
+                    OBJECTIVE,
+                    -index,
+                    row.rendered(),
+                    NO_NUMBERS
+            );
+        }
+
+        @Override
+        public H getHolder() {
+            return holder;
+        }
+
+        @Override
+        public boolean supportsPlayer(Player player) {
+            return true;
+        }
 
         @Override
         public void startWatching(Player player) {
+            update();
+
+            player.sendPacket(CREATE_OBJECTIVE);
+            player.sendPacket(SHOW_SIDEBAR);
+
+            for (int i = 0; i < rows.size(); i++) {
+                player.sendPacket(scorePacket(i, rows.get(i)));
+            }
+
             super.startWatching(player);
-            createSidebar(player);
         }
 
         @Override
         public void stopWatching(Player player) {
+            player.sendPacket(DESTROY_OBJECTIVE);
+
             super.stopWatching(player);
-            destroySidebar(player);
+        }
+    }
+
+    public static class RaceTowerInterface extends TowerInterface<RaceStage.RaceParticipant, RaceStage> {
+        public RaceTowerInterface(RaceStage holder) {
+            super(holder);
+        }
+
+        @Override
+        protected Component render(Key column, Object value) {
+            return switch (column.toString()) {
+                case "icestom:name" -> (Component) value;
+                case "icestom:delta" -> value != null ? TextFormatter.getDelta((Long) value) : Component.text("-", NamedTextColor.YELLOW);
+                default -> Component.text(value.toString());
+            };
         }
     }
 
@@ -324,6 +436,8 @@ public class VanillaInterface implements InterfaceProvider {
 
         private final Map<TickCountdown, String> translations;
 
+        private final RaceTowerInterface towerInterface;
+
         @Override
         public boolean supportsPlayer(Player player) {
             return true;
@@ -331,6 +445,8 @@ public class VanillaInterface implements InterfaceProvider {
 
         public VanillaRaceInterface(RaceStage holder) {
             super(holder);
+
+            towerInterface = new RaceTowerInterface(holder);
 
             translations = Map.of(
                     holder.getChequeredFlagCountdown(), "race.bossbar.chequered_flag_countdown"
@@ -386,13 +502,14 @@ public class VanillaInterface implements InterfaceProvider {
             final EventParticipant participant = event.getParticipant();
             final RaceStage.RaceParticipant racer = event.getRacer();
             final @NotNull RaceStage instance = event.getInstance();
-            final RaceLeaderboard<RaceLeaderboardRow> leaderboard = instance.getRaceLeaderboard();
+
+            final RaceTimingTower tower = instance.getTower();
 
             long tick = instance.getWorldAge();
 
             TimedLap lap = racer.getCurrentLap();
 
-            int pos = leaderboard.getSnapshot().getPosition(racer) + 1;
+            int pos = tower.indexOf(racer.getTowerEntry());
 
             TextComponent.Builder text = Component.text();
 
@@ -414,37 +531,7 @@ public class VanillaInterface implements InterfaceProvider {
         }
 
         protected void raceLeaderboardUpdateEvent(RaceLeaderboardUpdateEvent event) {
-            final @NotNull RaceStage raceStage = event.getInstance();
-            final Track track = raceStage.getTrack();
-
-            final List<RaceLeaderboardRow> rows = raceStage.getRaceLeaderboard().getSnapshot().getRows();
-
-            for (Player player : raceStage.getPlayers()) {
-                @Nullable Sidebar sidebar = sidebars.get(player);
-
-                if (sidebar == null) continue;
-
-                sidebar.setTitle(Component.text("Race at ").append(track.getName()));
-
-                for (int i = 0; i < rows.size(); i++) {
-                    if (sidebar.getLine(String.valueOf(i)) == null) {
-                        sidebar.createLine(new Sidebar.ScoreboardLine(
-                                String.valueOf(i),
-                                Component.empty(),
-                                -i,
-                                Sidebar.NumberFormat.blank()
-                        ));
-                    }
-
-                    RaceLeaderboardRow row = rows.get(i);
-
-                    EventParticipant participant = raceStage.getParticipants().getParticipantFromId(raceStage.getParticipantId(
-                            row.getParticipant()
-                    ));
-
-                    sidebar.updateLineContent(String.valueOf(i), sidebarLeaderboardEntry(row, participant, i));
-                }
-            }
+            towerInterface.update();
         }
 
         protected void instanceTickEvent(InstanceTickEvent event) {
@@ -507,33 +594,16 @@ public class VanillaInterface implements InterfaceProvider {
             });
         }
 
-        protected Component sidebarLeaderboardEntry(RaceLeaderboardRow row, EventParticipant eventParticipant, int position) {
-            UUID id = eventParticipant.getCurrentPlayer().getUuid();
-
-            String username = UsernameCache.getUsernameCached(id);
-
-            Component delta = TextFormatter.getDelta(row.getDelta());
-
-            if (position == 0) {
-                delta = Component.text("");
-            }
-
-            return Component.object(ObjectContents.playerHead(id))
-                    .append(Component.text(" "))
-                    .append(delta)
-                    .append(Component.text(" " + username));
-        }
-
         @Override
         public void startWatching(Player player) {
             super.startWatching(player);
-            createSidebar(player);
+            if (towerInterface.supportsPlayer(player)) towerInterface.startWatching(player);
         }
 
         @Override
         public void stopWatching(Player player) {
             super.stopWatching(player);
-            destroySidebar(player);
+            if (towerInterface.supportsPlayer(player)) towerInterface.stopWatching(player);
 
             countdownViewers.forEach((countdown, players) -> {
                 if (players.remove(player)) {

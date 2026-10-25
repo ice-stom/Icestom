@@ -7,17 +7,22 @@ import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
+import io.gitlab.icestom.icestom.track.PlayerMovement;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
 import io.gitlab.icestom.icestom.track.colliders.InsideCollider;
+import io.gitlab.icestom.icestom.track.event.TrackRegionEnterEvent;
+import io.gitlab.icestom.icestom.track.event.TrackTriggerPassEvent;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import io.gitlab.icestom.icestom.util.BatchQueue;
 import net.kyori.adventure.nbt.ListBinaryTag;
 import net.kyori.adventure.text.Component;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.instance.InstanceRegisterEvent;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
@@ -44,14 +49,13 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
     private final TrackLibrary.Ticket ticket;
 
     private final BatchQueue<TickLocation> movementBatchQueue = new BatchQueue<>();
-    private final Map<UUID, Vec> lastTickPositions = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> ticks = new ConcurrentHashMap<>();
 
     private final Set<String> subscribedRegions = new HashSet<>();
     private final Set<String> subscribedTriggers = new HashSet<>();
 
-    private Set<InsideCollider> watchingRegions = Set.of();
-    private Set<CrossCollider> watchingTriggers = Set.of();
+    private Map<InsideCollider, Set<String>> watchingRegions = Map.of();
+    private Map<CrossCollider, Set<String>> watchingTriggers = Map.of();
 
     protected TrackInstance(TrackLibrary.Ticket ticket, Track track) {
         super(UUID.randomUUID(), track.getMapContainer());
@@ -169,72 +173,71 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
         return track;
     }
 
-    private void updateWatchedRegions() {
-        Map<InsideCollider, Set<String>> colliders = new HashMap<>(track.getRegions());
+    protected final void dispatchTrackEvents(List<PlayerMovement> moves) {
+        if (watchingRegions.isEmpty() && watchingTriggers.isEmpty()) return;
+        if (moves.isEmpty()) return;
 
-        colliders.entrySet().removeIf(entry -> {
-            for (String tag: entry.getValue()) {
-                if (subscribedRegions.contains(tag)) return false;
-            }
+        GlobalEventHandler handler = MinecraftServer.getGlobalEventHandler();
 
-            return true;
+        moves.forEach((movement) -> {
+            Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(movement.current().player());
+
+            if (player == null) return;
+
+            watchingRegions.forEach((region, tags) -> {
+                if (!region.detectInside(movement)) return;
+
+                for (String tag : tags) {
+                    handler.call(new TrackRegionEnterEvent(tag, this, movement, player));
+                }
+            });
+
+            watchingTriggers.forEach((collider, tags) -> {
+                if (collider.detectCross(movement.before(), movement.current()) == null) return;
+
+                for (String tag : tags) {
+                    handler.call(new TrackTriggerPassEvent(tag, this, movement, player));
+                }
+            });
         });
+    }
 
-        watchingRegions = colliders.keySet();
+    private static <C> Map<C, Set<String>> filterSubscribed(Map<C, Set<String>> all, Set<String> subscribed) {
+        Map<C, Set<String>> result = new HashMap<>();
+        all.forEach((collider, tags) -> {
+            Set<String> matching = new HashSet<>(tags);
+            matching.retainAll(subscribed);
+            if (!matching.isEmpty()) result.put(collider, matching);
+        });
+        return result;
+    }
+
+    private void updateWatchedRegions() {
+        watchingRegions = filterSubscribed(track.getRegions(), subscribedRegions);
     }
 
     private void updateWatchedTriggers() {
-        Map<CrossCollider, Set<String>> colliders = new HashMap<>(track.getTriggers());
-
-        colliders.entrySet().removeIf(entry -> {
-            for (String tag: entry.getValue()) {
-                if (subscribedTriggers.contains(tag)) return false;
-            }
-
-            return true;
-        });
-
-        watchingTriggers = colliders.keySet();
+        watchingTriggers = filterSubscribed(track.getTriggers(), subscribedTriggers);
     }
 
     public void subscribeRegionId(String id) {
-        this.subscribedRegions.add(id);
-        updateWatchedRegions();
+        if (subscribedRegions.add(id)) updateWatchedRegions();
     }
 
     public boolean unsubscribeRegionId(String id) {
-        boolean removed = this.subscribedRegions.remove(id);
-        updateWatchedRegions();
+        boolean removed = subscribedRegions.remove(id);
+        if (removed) updateWatchedRegions();
         return removed;
     }
 
     public void subscribeTriggerId(String id) {
-        this.subscribedTriggers.add(id);
-        updateWatchedTriggers();
+        if (subscribedTriggers.add(id)) updateWatchedTriggers();
     }
 
     public boolean unsubscribeTriggerId(String id) {
-        boolean removed = this.subscribedTriggers.remove(id);
-        updateWatchedRegions();
+        boolean removed = subscribedTriggers.remove(id);
+        if (removed) updateWatchedTriggers();
         return removed;
-    }
-
-    public static void tickResetRegions(
-            TrackInstance instance,
-            Player player,
-            Set<String> playerRegions,
-            Map<String, Long> playerTriggers,
-            TimedLap lap
-    ) {
-        boolean hitResetRegion = playerRegions != null && playerRegions.contains("icestom.reset");
-        boolean hitResetTrigger = playerTriggers != null && playerTriggers.containsKey("icestom.reset");
-
-        if (hitResetRegion || hitResetTrigger) {
-            Track track = instance.getTrack();
-            Pos reset_point = track.getLocations().getOrDefault("icestom.reset_" + lap.getLastReachedCheckpoint(), track.getSpawnLocation());
-
-            instance.createBoat(player, reset_point);
-        }
     }
 
     public record TickLocation(

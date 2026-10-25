@@ -36,7 +36,7 @@ dependencies {
     implementation("org.xerial:sqlite-jdbc:3.45.3.0")
     implementation("com.google.code.gson:gson:2.10.1")
 
-    implementation("dev.lu15:spark-minestom:1.10-SNAPSHOT")
+    //implementation("dev.lu15:spark-minestom:1.10-SNAPSHOT")
 
     implementation("ch.qos.logback:logback-classic:1.5.32")
 

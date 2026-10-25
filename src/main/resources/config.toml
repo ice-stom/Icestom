@@ -8,7 +8,7 @@ reset_item = "minecraft:barrier"
 local = "file://./tracks"
 
 [database]
-type = "memory" # memory, sqlite
+type = "sqlite" # only sqlite for now
 address = "localhost"
 database = "minecraft"
 username = ""

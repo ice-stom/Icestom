@@ -29,7 +29,7 @@ import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
 import io.gitlab.icestom.icestom.ui.interfaces.impl.VanillaInterface;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
 import io.gitlab.icestom.icestom.web.PanelServer;
-import me.lucko.spark.minestom.SparkMinestom;
+//import me.lucko.spark.minestom.SparkMinestom;
 import net.kyori.adventure.key.Key;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
@@ -55,6 +55,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -87,12 +88,13 @@ public class IceStom {
     private Supplier<SpawnInstance> spawnProvider = DefaultSpawnInstance::new;
 
     private Function<Key, Boat> boatProvider = Boat::new;
+    private BiPredicate<UUID, String> permissionHandler = (uuid, string) -> false;
 
     private final TimetrialDatabase timetrialDatabase;
 
     private final PerfHud perfHud = new PerfHud();
 
-    private final SparkMinestom spark;
+//    private final SparkMinestom spark;
 
     private PanelServer panelServer;
 
@@ -136,10 +138,10 @@ public class IceStom {
 
         minecraftServer = MinecraftServer.init(auth);
 
-        spark = SparkMinestom.builder(Path.of("spark"))
-                .commands(true)
-                .permissionHandler((_, _) -> true)
-                .enable();
+//        spark = SparkMinestom.builder(Path.of("spark"))
+//                .commands(true)
+//                .permissionHandler((_, _) -> true)
+//                .enable();
 
         MinecraftServer.setCompressionThreshold(config.minestom.compression_threshold);
         MinecraftServer.setBrandName(String.format("IceStom (%s)", MinecraftServer.getBrandName()));
@@ -323,7 +325,7 @@ public class IceStom {
         consoleThread.start();
 
         MinecraftServer.getSchedulerManager().buildShutdownTask(console::stop);
-        MinecraftServer.getSchedulerManager().buildShutdownTask(spark::shutdown);
+//        MinecraftServer.getSchedulerManager().buildShutdownTask(spark::shutdown);
         MinecraftServer.getSchedulerManager().scheduleTask(timeTrialManager::cullDeadTimetrialInstances, TaskSchedule.immediate(), TaskSchedule.tick(100));
     }
 
@@ -333,6 +335,14 @@ public class IceStom {
 
     public void setBoatProvider(Function<Key, Boat> boatProvider) {
         this.boatProvider = boatProvider;
+    }
+
+    public void setPermissionHandler(BiPredicate<UUID, String> permissionHandler) {
+        this.permissionHandler = permissionHandler;
+    }
+
+    public BiPredicate<UUID, String> getPermissionHandler() {
+        return permissionHandler;
     }
 
     public Function<Key, Boat> getBoatProvider() { return boatProvider; }

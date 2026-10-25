@@ -40,7 +40,9 @@ public class IceStomPlayer extends Player implements EventParticipant {
         preferences.put(key, value);
     }
 
-    public boolean hasPermission(String permission) { return false; }
+    public boolean hasPermission(String permission) {
+        return IceStom.getInstance().getPermissionHandler().test(getUuid(), permission);
+    }
 
     public void setOpenBoatUtilsVersion(@Nullable Integer openBoatUtilsVersion) { this.openBoatUtilsVersion = openBoatUtilsVersion; }
 

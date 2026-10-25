@@ -19,7 +19,6 @@ import io.gitlab.icestom.icestom.ui.event.GenericErrorMessageEvent;
 import io.gitlab.icestom.icestom.ui.event.GenericMessageEvent;
 import io.gitlab.icestom.icestom.ui.interfaces.*;
 import io.gitlab.icestom.icestom.util.TextFormatter;
-import io.gitlab.icestom.icestom.util.UsernameCache;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
@@ -29,11 +28,9 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.translation.Argument;
-import net.kyori.adventure.text.object.ObjectContents;
 import net.kyori.adventure.title.Title;
 import net.minestom.server.adventure.AdventurePacketConvertor;
 import net.minestom.server.entity.Player;
-import net.minestom.server.event.EventHandler;
 import net.minestom.server.event.instance.InstanceTickEvent;
 import net.minestom.server.network.packet.server.play.*;
 import net.minestom.server.scoreboard.Sidebar;
@@ -200,8 +197,9 @@ public class VanillaInterface implements InterfaceProvider {
                     result,
                     best
             ));
-
-            player.playSound(best == null ? TRACK_FIRST_COMPLETION : PING, Sound.Emitter.self());
+            if (result.isBetterThan(best)) {
+                player.playSound(PING, Sound.Emitter.self());
+            }
         }
 
         protected void TimeTrialLapTimerEvent(TimeTrialLapTimerEvent event) {

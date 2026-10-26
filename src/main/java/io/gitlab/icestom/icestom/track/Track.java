@@ -71,6 +71,10 @@ public class Track {
         wrapIndex = checkpoints.values().stream().max(Integer::compareTo).orElse(-1) + 1;
     }
 
+    public int getHighestCheckpoint() {
+        return wrapIndex;
+    }
+
     public int wrapCheckpointIndex(int checkpoint) {
         if (!looped) return checkpoint % (wrapIndex + 1);
 

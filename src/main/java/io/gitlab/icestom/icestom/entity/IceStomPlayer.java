@@ -7,6 +7,7 @@ import io.gitlab.icestom.icestom.ui.theme.Themes;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.player.PlayerPluginMessageEvent;
 import net.minestom.server.network.player.GameProfile;
 import net.minestom.server.network.player.PlayerConnection;
 import org.jetbrains.annotations.NotNull;
@@ -22,8 +23,18 @@ public class IceStomPlayer extends Player implements EventParticipant {
     private final Map<PreferenceKey<?>, Object> preferences = new HashMap<>();
     private @Nullable Integer openBoatUtilsVersion = null;
 
+    private final Set<String> seenPluginMessageChannels = new HashSet<>();
+
     public IceStomPlayer(@NotNull PlayerConnection playerConnection, GameProfile profile) {
         super(playerConnection, profile);
+
+        eventNode().addListener(PlayerPluginMessageEvent.class, event -> {
+            seenPluginMessageChannels.add(event.getIdentifier());
+        });
+    }
+
+    public boolean hasSeenPluginMessageChannel(String channel) {
+        return seenPluginMessageChannels.contains(channel);
     }
 
     public @NotNull Component translate(@NotNull Component component) {

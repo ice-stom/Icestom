@@ -26,10 +26,10 @@ import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
+import io.gitlab.icestom.icestom.ui.interfaces.impl.BodkinBoatHudInterface;
 import io.gitlab.icestom.icestom.ui.interfaces.impl.VanillaInterface;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
 import io.gitlab.icestom.icestom.web.PanelServer;
-//import me.lucko.spark.minestom.SparkMinestom;
 import net.kyori.adventure.key.Key;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
@@ -195,9 +195,16 @@ public class IceStom {
         pluginManager.loadPlugins();
 
         if (registerDefaultInterface) {
-            InterfaceManager.register(TimeTrialingInstance.class, new VanillaInterface());
-            InterfaceManager.register(RaceStage.class, new VanillaInterface());
-            InterfaceManager.register(IceStom.class, new VanillaInterface());
+            VanillaInterface vanillaInterface = new VanillaInterface();
+
+            InterfaceManager.register(IceStom.class, vanillaInterface);
+            InterfaceManager.register(TimeTrialingInstance.class, vanillaInterface);
+            InterfaceManager.register(RaceStage.class, vanillaInterface);
+
+            BodkinBoatHudInterface bodkinBoatHudInterface = new BodkinBoatHudInterface();
+
+            InterfaceManager.register(IceStom.class, bodkinBoatHudInterface);
+            InterfaceManager.register(TimeTrialingInstance.class, bodkinBoatHudInterface);
         }
 
         GlobalEventHandler globalEventHandler = MinecraftServer.getGlobalEventHandler();

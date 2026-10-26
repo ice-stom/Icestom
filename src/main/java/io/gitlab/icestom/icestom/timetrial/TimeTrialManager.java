@@ -1,17 +1,12 @@
 package io.gitlab.icestom.icestom.timetrial;
 
 import io.gitlab.icestom.icestom.IceStom;
-import io.gitlab.icestom.icestom.entity.IceStomPlayer;
 import io.gitlab.icestom.icestom.timetrial.event.TimeTrialStartEvent;
-import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
-import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -65,6 +60,9 @@ public class TimeTrialManager {
                     loading_trials.remove(instance_id);
 
                     newInstance.consume(player);
+
+                    MinecraftServer.getGlobalEventHandler()
+                            .call(new TimeTrialStartEvent(newInstance, player));
 
                     return newInstance;
                 });

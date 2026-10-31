@@ -30,6 +30,7 @@ import io.gitlab.icestom.icestom.intergrations.BodkinBoatHudInterface;
 import io.gitlab.icestom.icestom.ui.interfaces.VanillaInterface;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
 import io.gitlab.icestom.icestom.web.PanelServer;
+import io.gitlab.icestom.linefold.PlaybackCommand;
 import net.kyori.adventure.key.Key;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
@@ -67,6 +68,8 @@ public class IceStom {
     public static final String VERSION;
 
     private static final Logger log = LoggerFactory.getLogger(IceStom.class);
+
+    public static final Path RECORDINGS_PATH = Path.of("recordings");
 
     private static IceStom instance;
 
@@ -123,6 +126,8 @@ public class IceStom {
         instance = this;
 
         log.info("Hello from IceStom!");
+
+        boolean _ = RECORDINGS_PATH.toFile().mkdirs();
 
         IceStomConfig config = IceStomConfig.loadConfig();
 
@@ -284,6 +289,7 @@ public class IceStom {
         commandManager.register(new ResetCommand());
         commandManager.register(new GamemodeCommand());
         commandManager.register(new PanelCommand());
+        commandManager.register(new PlaybackCommand());
 
         InstanceManager instanceManager = MinecraftServer.getInstanceManager();
         instanceManager.registerInstance(spawnInstance);

@@ -45,7 +45,7 @@ public class SQLiteTimetrialDatabase implements TimetrialDatabase, AutoCloseable
 
     @Override
     public @NotNull UUID newAttempt(@NotNull TimeTrialResult result) {
-        UUID id = UUID.randomUUID();
+        UUID id = result.uuid();
 
         try (PreparedStatement ps = connection.prepareStatement("""
                 INSERT INTO attempts (id, player, track, time, checkpoints, splits, ticks)
@@ -163,10 +163,12 @@ public class SQLiteTimetrialDatabase implements TimetrialDatabase, AutoCloseable
     }
 
     private @NotNull TimeTrialResult mapRow(@NotNull ResultSet rs) throws SQLException {
+        UUID id = UUID.fromString(rs.getString("id"));
         UUID player = UUID.fromString(rs.getString("player"));
         String track = rs.getString("track");
 
         return new TimeTrialResult(
+                id,
                 player,
                 track,
                 TimeTrialSerializer.decodeSplits(rs.getString("splits")),

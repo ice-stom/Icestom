@@ -12,6 +12,8 @@ public interface TimedLapResultSource {
 
     Map<Integer, Pos> ticks();
 
+    UUID uuid();
+
     default long getSplitTime(int index) {
         return splits().get(index).ms();
     }

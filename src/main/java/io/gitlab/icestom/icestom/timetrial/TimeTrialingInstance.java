@@ -21,7 +21,11 @@ import io.gitlab.icestom.icestom.track.event.TrackColliderEvent;
 import io.gitlab.icestom.icestom.track.event.TrackRegionEnterEvent;
 import io.gitlab.icestom.icestom.track.event.TrackTriggerPassEvent;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
+import io.gitlab.icestom.icestom.ui.event.GenericErrorMessageEvent;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
+import io.gitlab.icestom.linefold.LZ4PositionWriter;
+import io.gitlab.icestom.linefold.LZ4SinglePositionReader;
+import io.gitlab.icestom.linefold.LZ4SinglePositionWriter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.Style;
@@ -43,9 +47,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
 
+import static io.gitlab.icestom.icestom.IceStom.RECORDINGS_PATH;
 import static io.gitlab.icestom.icestom.intergrations.OpenBoatUtilsManager.writePacket;
 import static io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager.getHolder;
 
@@ -67,6 +73,8 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
     private final InterfaceManager.InterfaceHolder interfaceHolder;
 
     private final Map<UUID, TimedLap> timeTrials = new HashMap<>();
+    private final Map<UUID, LZ4SinglePositionWriter> recordings = new HashMap<>();
+
     private final Map<UUID, Pos> practicePoints = new HashMap<>();
 
     private final ItemStack RESET_ITEM = ItemStack.of(Objects.requireNonNull(Material.fromKey(IceStomConfig.getConfig().icestom.reset_item)))
@@ -235,6 +243,12 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
             @Nullable TimedLap lap = getTimedLap(player);
             if (lap != null) next_no = track.wrapCheckpointIndex(lap.getLastReachedCheckpoint() + 1);
 
+            @Nullable LZ4SinglePositionWriter writer = recordings.get(player);
+
+            if (writer != null) {
+                writer.writePacket(movement.pos().x(), movement.pos().y(), movement.pos().z());
+            }
+
             pending.computeIfAbsent(next_no, _ -> new LinkedHashMap<>())
                     .computeIfAbsent(player, _ -> new ArrayDeque<>())
                     .add(movement);
@@ -310,11 +324,20 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                             0
                     ));
 
+                    try {
+                        recordings.put(player, new LZ4SinglePositionWriter(RECORDINGS_PATH.resolve(timedLap.uuid().toString() + ".lf")));
+                    } catch (IOException e) {
+                        log.warn("Failed to record lap", e);
+                        MinecraftServer.getGlobalEventHandler().call(
+                                new GenericErrorMessageEvent(Objects.requireNonNull(MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(player)), Component.translatable("message.generic.recording_failed_start"))
+                        );
+                        return;
+                    }
+
                     MinecraftServer.getGlobalEventHandler()
                             .call(new TimeTrialCheckpointAdvancedEvent(this, timedLap, Objects.requireNonNull(getPlayerByUuid(player))));
 
                     timeTrials.put(player, timedLap);
-
                     next_checkpoint = track.wrapCheckpointIndex(checkpoint + 1);
                 } else {
                     boolean finished = lap.advanceCheckpoint(new Split(
@@ -396,6 +419,17 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
             TimedLapResultSource result = TimedLapResult.freeze(timedLap);
 
             if (result.splits().size() == 1) return;
+
+            @Nullable LZ4SinglePositionWriter writer = recordings.remove(player);
+
+            if (writer != null) {
+                writer.flush();
+                try {
+                    writer.close();
+                } catch (IOException e) {
+                    log.error("Failed to close LZ4Writer", e);
+                }
+            }
 
             @Nullable TimeTrialResult best = timetrialDatabase.getBestAttempt(player, track.getId());
 

@@ -7,15 +7,14 @@ import net.kyori.adventure.text.Component;
 import net.minestom.server.coordinate.Pos;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class TimedLap implements TimedLapResultSource {
 
     private final Track track;
     @Nullable private final TimedLapResultSource bestPreviousResult;
+
+    private final UUID uuid =UUID.randomUUID();
 
     private final List<Split> splits = new ArrayList<>();
     private final Map<Integer, Pos> ticks = new HashMap<>();
@@ -90,6 +89,11 @@ public class TimedLap implements TimedLapResultSource {
         }
 
         return text;
+    }
+
+    @Override
+    public UUID uuid() {
+        return uuid;
     }
 
     public long getMsStart() { return msStart; }

@@ -25,6 +25,7 @@ repositories {
 dependencies {
     implementation("io.github.openboatutils:Protocol:0.0.7")
     implementation(project(":stomtrack"))
+    implementation(project(":linefold"))
 
     implementation("net.minestom:minestom:2026.01.08-1.21.11")
     implementation("net.kyori:adventure-text-minimessage:4.25.0")

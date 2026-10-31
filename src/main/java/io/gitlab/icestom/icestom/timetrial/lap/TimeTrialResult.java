@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public record TimeTrialResult(
+        UUID uuid,
         UUID player,
         String track,
         List<Split> splits,
@@ -15,6 +16,7 @@ public record TimeTrialResult(
 ) implements TimedLapResultSource {
     public static TimeTrialResult fromResult(UUID player, String track, TimedLapResultSource timedLapResultSource) {
         return new TimeTrialResult(
+                timedLapResultSource.uuid(),
                 player,
                 track,
                 timedLapResultSource.splits(),

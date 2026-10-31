@@ -5,8 +5,6 @@ import java.nio.file.Path;
 
 public final class LZ4SinglePositionReader extends AbstractLZ4PositionReader {
 
-    private static final int RECORD_BYTES = 24;
-
     private final PacketHandler handler;
     private long prevX = 0L;
     private long prevY = 0L;
@@ -26,15 +24,10 @@ public final class LZ4SinglePositionReader extends AbstractLZ4PositionReader {
     }
 
     @Override
-    protected int recordBytes() {
-        return RECORD_BYTES;
-    }
-
-    @Override
-    protected void processRecord(byte[] decompressed, int offset) {
-        long d1 = readLong(decompressed, offset);
-        long d2 = readLong(decompressed, offset + 8);
-        long d3 = readLong(decompressed, offset + 16);
+    protected void processRecord(byte[] decompressed, int[] offsetHolder) {
+        long d1 = readVarint(decompressed, offsetHolder);
+        long d2 = readVarint(decompressed, offsetHolder);
+        long d3 = readVarint(decompressed, offsetHolder);
 
         long v1 = d1 ^ prevX;
         long v2 = d2 ^ prevY;

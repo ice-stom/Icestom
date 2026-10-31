@@ -7,8 +7,6 @@ import java.util.Map;
 
 public final class LZ4PositionReader extends AbstractLZ4PositionReader {
 
-    private static final int RECORD_BYTES = 28;
-
     private final PacketHandler handler;
     private final Map<Integer, long[]> prevByStream = new HashMap<>();
 
@@ -26,16 +24,11 @@ public final class LZ4PositionReader extends AbstractLZ4PositionReader {
     }
 
     @Override
-    protected int recordBytes() {
-        return RECORD_BYTES;
-    }
-
-    @Override
-    protected void processRecord(byte[] decompressed, int offset) {
-        int streamId = readInt(decompressed, offset);
-        long d1 = readLong(decompressed, offset + 4);
-        long d2 = readLong(decompressed, offset + 12);
-        long d3 = readLong(decompressed, offset + 20);
+    protected void processRecord(byte[] decompressed, int[] offsetHolder) {
+        int streamId = readVarintInt(decompressed, offsetHolder);
+        long d1 = readVarint(decompressed, offsetHolder);
+        long d2 = readVarint(decompressed, offsetHolder);
+        long d3 = readVarint(decompressed, offsetHolder);
 
         long[] prev = prevByStream.computeIfAbsent(streamId, k -> new long[3]);
         long v1 = d1 ^ prev[0];

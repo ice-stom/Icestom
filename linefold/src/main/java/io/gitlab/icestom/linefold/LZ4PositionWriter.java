@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,8 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class LZ4PositionWriter extends AbstractLZ4PositionWriter {
 
     private static final Logger log = LoggerFactory.getLogger(LZ4PositionWriter.class);
-
-    private static final int RECORD_BYTES = 28;
 
     private final Map<Integer, long[]> prevByStream = new ConcurrentHashMap<>();
     private final Object bufferLock = new Object();
@@ -23,7 +20,7 @@ public final class LZ4PositionWriter extends AbstractLZ4PositionWriter {
     }
 
     public LZ4PositionWriter(Path path, int bufferCapacityBytes) throws IOException {
-        super(path, bufferCapacityBytes, RECORD_BYTES, log);
+        super(path, bufferCapacityBytes, log);
     }
 
     public void writePacket(int streamId, double x, double y, double z) {
@@ -49,10 +46,10 @@ public final class LZ4PositionWriter extends AbstractLZ4PositionWriter {
 
         synchronized (bufferLock) {
             ensureCapacity();
-            active.putInt(streamId);
-            active.putLong(d1);
-            active.putLong(d2);
-            active.putLong(d3);
+            putVarintInt(active, streamId);
+            putVarint(active, d1);
+            putVarint(active, d2);
+            putVarint(active, d3);
         }
     }
 
@@ -60,13 +57,6 @@ public final class LZ4PositionWriter extends AbstractLZ4PositionWriter {
     public void flush() {
         synchronized (bufferLock) {
             doFlush();
-        }
-    }
-
-    @Override
-    protected void returnSpare(ByteBuffer buffer) {
-        synchronized (bufferLock) {
-            super.returnSpare(buffer);
         }
     }
 }

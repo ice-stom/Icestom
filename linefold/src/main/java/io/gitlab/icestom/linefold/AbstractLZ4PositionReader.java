@@ -14,13 +14,10 @@ abstract class AbstractLZ4PositionReader {
 
     protected AbstractLZ4PositionReader() {}
 
-    protected abstract int recordBytes();
-
-    protected abstract void processRecord(byte[] decompressed, int offset);
+    protected abstract void processRecord(byte[] decompressed, int[] offsetHolder);
 
     protected final void readAllFrames(Path path) throws IOException {
         LZ4FastDecompressor decompressor = LZ4Factory.fastestInstance().fastDecompressor();
-        final int recordBytes = recordBytes();
 
         try (DataInputStream in = new DataInputStream(
                 new BufferedInputStream(Files.newInputStream(path)))) {
@@ -40,30 +37,40 @@ abstract class AbstractLZ4PositionReader {
                 byte[] decompressed = new byte[uncompressedLength];
                 decompressor.decompress(compressed, 0, decompressed, 0, uncompressedLength);
 
-                if (decompressed.length % recordBytes != 0) {
-                    throw new IOException("Frame length " + decompressed.length
-                            + " is not a multiple of the record size (" + recordBytes + ")");
-                }
-
-                for (int offset = 0; offset < decompressed.length; offset += recordBytes) {
-                    processRecord(decompressed, offset);
+                int[] offsetHolder = new int[1];
+                offsetHolder[0] = 0;
+                while (offsetHolder[0] < decompressed.length) {
+                    processRecord(decompressed, offsetHolder);
                 }
             }
         }
     }
 
-    protected static int readInt(byte[] b, int off) {
-        return ((b[off] & 0xFF) << 24)
-                | ((b[off + 1] & 0xFF) << 16)
-                | ((b[off + 2] & 0xFF) << 8)
-                | (b[off + 3] & 0xFF);
+    protected static long readVarint(byte[] b, int[] offsetHolder) {
+        int off = offsetHolder[0];
+        long result = 0;
+        int shift = 0;
+        byte bVal;
+        do {
+            bVal = b[off++];
+            result |= (long) (bVal & 0x7F) << shift;
+            shift += 7;
+        } while ((bVal & 0x80) != 0);
+        offsetHolder[0] = off;
+        return result;
     }
 
-    protected static long readLong(byte[] b, int off) {
-        long v = 0L;
-        for (int i = 0; i < 8; i++) {
-            v = (v << 8) | (b[off + i] & 0xFF);
-        }
-        return v;
+    protected static int readVarintInt(byte[] b, int[] offsetHolder) {
+        int off = offsetHolder[0];
+        int result = 0;
+        int shift = 0;
+        byte bVal;
+        do {
+            bVal = b[off++];
+            result |= (bVal & 0x7F) << shift;
+            shift += 7;
+        } while ((bVal & 0x80) != 0);
+        offsetHolder[0] = off;
+        return result;
     }
 }

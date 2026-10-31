@@ -10,8 +10,6 @@ public final class LZ4SinglePositionWriter extends AbstractLZ4PositionWriter {
 
     private static final Logger log = LoggerFactory.getLogger(LZ4SinglePositionWriter.class);
 
-    private static final int RECORD_BYTES = 24;
-
     private long prevX = 0L;
     private long prevY = 0L;
     private long prevZ = 0L;
@@ -21,7 +19,7 @@ public final class LZ4SinglePositionWriter extends AbstractLZ4PositionWriter {
     }
 
     public LZ4SinglePositionWriter(Path path, int bufferCapacityBytes) throws IOException {
-        super(path, bufferCapacityBytes, RECORD_BYTES, log);
+        super(path, bufferCapacityBytes, log);
     }
 
     public void writePacket(double x, double y, double z) {
@@ -41,9 +39,9 @@ public final class LZ4SinglePositionWriter extends AbstractLZ4PositionWriter {
         prevZ = v3;
 
         ensureCapacity();
-        active.putLong(d1);
-        active.putLong(d2);
-        active.putLong(d3);
+        putVarint(active, d1);
+        putVarint(active, d2);
+        putVarint(active, d3);
     }
 
     @Override

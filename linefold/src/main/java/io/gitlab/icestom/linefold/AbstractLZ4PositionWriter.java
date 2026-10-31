@@ -20,8 +20,8 @@ import java.util.concurrent.TimeUnit;
 abstract class AbstractLZ4PositionWriter implements Closeable {
 
     protected static final int DEFAULT_BUFFER_CAPACITY_BYTES = 1 << 20;
+    protected static final int MAX_RECORD_BYTES = 40;
 
-    private final int recordBytes;
     private final LZ4Compressor compressor = LZ4Factory.fastestInstance().fastCompressor();
     private final DataOutputStream fileOut;
     private final Object fileLock = new Object();
@@ -34,25 +34,33 @@ abstract class AbstractLZ4PositionWriter implements Closeable {
     });
 
     private final BlockingQueue<ByteBuffer> pendingFlushSlots = new ArrayBlockingQueue<>(2);
+    private final BlockingQueue<ByteBuffer> bufferPool = new ArrayBlockingQueue<>(2);
 
     protected ByteBuffer active;
-    protected ByteBuffer spare;
     protected volatile boolean closed = false;
 
-    protected AbstractLZ4PositionWriter(Path path, int bufferCapacityBytes, int recordBytes, Logger log)
+    protected AbstractLZ4PositionWriter(Path path, int bufferCapacityBytes, Logger log)
             throws IOException {
-        if (bufferCapacityBytes < recordBytes) {
+        if (bufferCapacityBytes < MAX_RECORD_BYTES) {
             throw new IllegalArgumentException("bufferCapacityBytes must hold at least one record");
         }
-        this.recordBytes = recordBytes;
         this.log = log;
         this.fileOut = new DataOutputStream(new BufferedOutputStream(Files.newOutputStream(path)));
-        this.active = ByteBuffer.allocate(bufferCapacityBytes);
-        this.spare = ByteBuffer.allocate(bufferCapacityBytes);
+
+        ByteBuffer buf1 = ByteBuffer.allocate(bufferCapacityBytes);
+        ByteBuffer buf2 = ByteBuffer.allocate(bufferCapacityBytes);
+        try {
+            bufferPool.put(buf1);
+            bufferPool.put(buf2);
+            this.active = bufferPool.take();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("interrupted while initializing buffers", e);
+        }
     }
 
     protected final void ensureCapacity() {
-        if (active.remaining() < recordBytes) {
+        if (active.remaining() < MAX_RECORD_BYTES) {
             swapAndScheduleFlush();
         }
     }
@@ -65,11 +73,31 @@ abstract class AbstractLZ4PositionWriter implements Closeable {
 
     public abstract void flush();
 
+    protected static void putVarint(ByteBuffer buf, long v) {
+        while ((v & ~0x7FL) != 0L) {
+            buf.put((byte) ((v & 0x7F) | 0x80));
+            v >>>= 7;
+        }
+        buf.put((byte) (v & 0x7F));
+    }
+
+    protected static void putVarintInt(ByteBuffer buf, int v) {
+        while ((v & ~0x7F) != 0) {
+            buf.put((byte) ((v & 0x7F) | 0x80));
+            v >>>= 7;
+        }
+        buf.put((byte) (v & 0x7F));
+    }
+
     private void swapAndScheduleFlush() {
         final ByteBuffer full = active;
-        active = spare;
+        try {
+            active = bufferPool.take();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("interrupted while waiting for buffer", e);
+        }
         active.clear();
-        spare = null;
 
         full.flip();
         try {
@@ -102,13 +130,11 @@ abstract class AbstractLZ4PositionWriter implements Closeable {
         } finally {
             pendingFlushSlots.remove(readyBuffer);
             readyBuffer.clear();
-            returnSpare(readyBuffer);
-        }
-    }
-
-    protected void returnSpare(ByteBuffer buffer) {
-        if (spare == null) {
-            spare = buffer;
+            try {
+                bufferPool.put(readyBuffer);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 

@@ -1,13 +1,15 @@
-package io.gitlab.icestom.icestom.openboatutils;
+package io.gitlab.icestom.icestom.intergrations;
 
 import io.github.openboatutils.protocol.OBUChannel;
 import io.github.openboatutils.protocol.OBUPacket;
 import io.github.openboatutils.protocol.channels.OBUSettingsPacket;
 import io.github.openboatutils.protocol.impl.DataOutputStreamWriter;
-import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.config.IceStomConfig;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
+import io.gitlab.icestom.icestom.ui.event.GenericErrorMessageEvent;
+import io.gitlab.icestom.icestom.ui.event.GenericWarningMessageEvent;
 import net.kyori.adventure.text.Component;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventHandler;
@@ -72,7 +74,7 @@ public class OpenBoatUtilsManager implements EventHandler<Event> {
             int version = in.readInt();
 
             if (version < MIN_OPENBOATUTILS_VERSION) {
-                player.sendMessage(Component.translatable("message.openboatutils.outdated_version_global"));
+                MinecraftServer.getGlobalEventHandler().call(new GenericErrorMessageEvent(player, Component.translatable("message.openboatutils.outdated_version_global")));
                 return;
             }
 
@@ -84,7 +86,7 @@ public class OpenBoatUtilsManager implements EventHandler<Event> {
                     return;
                 }
 
-                player.sendMessage(Component.translatable("message.openboatutils.warning_unstable"));
+                MinecraftServer.getGlobalEventHandler().call(new GenericWarningMessageEvent(player, Component.translatable("message.openboatutils.warning_unstable")));
             }
 
             ((IceStomPlayer) player).setOpenBoatUtilsVersion(version);

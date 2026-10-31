@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="IceStom" type="Application" factoryName="Application" nameIsGenerated="true">
+    <option name="ALTERNATIVE_JRE_PATH" value="25" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <option name="MAIN_CLASS_NAME" value="io.gitlab.icestom.icestom.IceStom" />
+    <module name="IceStom.icestom.main" />
+    <option name="VM_PARAMETERS" value="--enable-native-access=ALL-UNNAMED -Dicestom.dev --sun-misc-unsafe-memory-access=allow -Xmx5G -Xms5G" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/.run" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

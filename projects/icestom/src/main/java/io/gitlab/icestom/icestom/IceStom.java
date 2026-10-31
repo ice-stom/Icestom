@@ -30,7 +30,6 @@ import io.gitlab.icestom.icestom.intergrations.BodkinBoatHudInterface;
 import io.gitlab.icestom.icestom.ui.interfaces.VanillaInterface;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
 import io.gitlab.icestom.icestom.web.PanelServer;
-import io.gitlab.icestom.linefold.PlaybackCommand;
 import net.kyori.adventure.key.Key;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;

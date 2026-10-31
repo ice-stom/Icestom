@@ -1,5 +1,6 @@
-package io.gitlab.icestom.linefold;
+package io.gitlab.icestom.icestom.command;
 
+import io.gitlab.icestom.linefold.LZ4SinglePositionReader;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.command.builder.suggestion.SuggestionEntry;

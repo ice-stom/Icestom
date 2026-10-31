@@ -1,4 +1,11 @@
 rootProject.name = "IceStom"
 
-include("stomtrack")
-include("linefold")
+include(
+    ":icestom",
+    ":stomtrack",
+    ":linefold"
+)
+
+project(":icestom").projectDir = file("projects/icestom")
+project(":stomtrack").projectDir = file("projects/stomtrack")
+project(":linefold").projectDir = file("projects/linefold")

@@ -14,12 +14,9 @@ public abstract class AbstractGeneralInterface extends Interface<IceStom, Abstra
     private final EventNode<Event> eventNode;
 
     public AbstractGeneralInterface(IceStom holder) {
-
         this.holder = new WeakReference<>(holder);
 
-        eventNode = EventNode.all("general_interface");
-
-        super();
+        eventNode = EventNode.all("vanilla_general");
     }
 
     @Override

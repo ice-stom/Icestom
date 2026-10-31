@@ -1,4 +1,4 @@
-package io.gitlab.icestom.icestom.ui.interfaces.impl;
+package io.gitlab.icestom.icestom.intergrations;
 
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
@@ -88,8 +88,6 @@ public class BodkinBoatHudInterface implements InterfaceProvider {
                 try {
                     byte type = is.readByte();
 
-                    log.info("Bodkin Plugin {} Message: {}", type, Arrays.toString(data));
-
                     switch (type) {
                         case 0 -> {
                             int version = is.readInt();
@@ -100,13 +98,6 @@ public class BodkinBoatHudInterface implements InterfaceProvider {
                             boolean disableVanillaForTimeTrials = is.readBoolean();
 
                             if (enablesForTimeTrials) enabledTimetrial.add(player);
-
-                            log.info("Feature Packet: Version: {} Flags: {} {} {} {}",
-                                    version,
-                                    enabledForRaces,
-                                    disableVanillaForRaces,
-                                    enablesForTimeTrials,
-                                    disableVanillaForTimeTrials);
                         }
                         case 1 -> {
                             long most = is.readLong();
@@ -168,7 +159,6 @@ public class BodkinBoatHudInterface implements InterfaceProvider {
             super(holder);
 
             eventNode().addListener(TimeTrialStartEvent.class, event -> {
-                log.info("tt start");
                 final Player player = event.getPlayer();
 
                 ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
@@ -194,7 +184,6 @@ public class BodkinBoatHudInterface implements InterfaceProvider {
 
                 player.sendPacket(new PluginMessagePacket(CHANNEL, byteArray.toByteArray()));
 
-                log.info("sent structure");
                 updateLeaderboard(player);
             });
 
@@ -232,7 +221,26 @@ public class BodkinBoatHudInterface implements InterfaceProvider {
                 }
 
                 writer.write(encodeString(DataType.STRING_64, componentSerializer.serialize(track.getName())));
-                writer.write(encodeString(DataType.STRING_64, "By: " + track.getTags().getOrDefault("icestom.author", "unknown")));
+
+                StringBuilder subtitle = new StringBuilder("By: " + track.getTags().getOrDefault("icestom.author", "unknown"));
+
+                String contributors = track.getTags().get("icestom.contributors");
+
+                if (contributors != null) {
+                    String[] names = contributors.split(",");
+
+                    for (int j = 0; j < names.length; j++) {
+                        if (j == names.length - 1) {
+                            subtitle.append(" and ");
+                        } else {
+                            subtitle.append(", ");
+                        }
+                        String name = names[j];
+                        subtitle.append(name);
+                    }
+                }
+
+                writer.write(encodeString(DataType.STRING_64, subtitle.toString()));
                 writer.writeInt(track.getHighestCheckpoint() + 1);
                 writer.writeInt(-1);
 

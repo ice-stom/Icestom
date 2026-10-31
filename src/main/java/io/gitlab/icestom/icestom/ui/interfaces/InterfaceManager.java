@@ -1,5 +1,6 @@
 package io.gitlab.icestom.icestom.ui.interfaces;
 
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventFilter;
@@ -23,12 +24,6 @@ public class InterfaceManager {
         registry.computeIfAbsent(type, _ -> new HashSet<>()).add(provider);
     }
 
-    // me when java:
-    @SuppressWarnings("unchecked")
-    private static void link(EventNode<?> parent, EventNode<?> child) {
-        ((EventNode<Event>) parent).addChild(child);
-    }
-
     public static <T> InterfaceHolder getHolder(Class<?> type, T holder) {
         @Nullable Set<InterfaceProvider> providers = registry.get(type);
 
@@ -43,11 +38,9 @@ public class InterfaceManager {
         for (InterfaceProvider provider : providers) {
             Interface<?, ?> anInterface = provider.getInterface(holder);
 
-            if (holder instanceof EventHandler<?> eventHandler
-                    && anInterface instanceof EventHandler<?> eventInterface) {
-                link(eventHandler.eventNode(), eventInterface.eventNode());
+            if (anInterface instanceof EventHandler<?> eventInterface) {
+                EVENT_NODE.addChild(eventInterface.eventNode());
             }
-
             interfaces.add(anInterface);
         }
 

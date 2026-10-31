@@ -17,7 +17,7 @@ import io.gitlab.icestom.icestom.event.stage.StageSchema;
 import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import io.gitlab.icestom.icestom.instance.DefaultSpawnInstance;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
-import io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager;
+import io.gitlab.icestom.icestom.intergrations.OpenBoatUtilsManager;
 import io.gitlab.icestom.icestom.plugins.PluginManager;
 import io.gitlab.icestom.icestom.race.RaceStage;
 import io.gitlab.icestom.icestom.stages.PodiumStage;
@@ -26,8 +26,8 @@ import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
-import io.gitlab.icestom.icestom.ui.interfaces.impl.BodkinBoatHudInterface;
-import io.gitlab.icestom.icestom.ui.interfaces.impl.VanillaInterface;
+import io.gitlab.icestom.icestom.intergrations.BodkinBoatHudInterface;
+import io.gitlab.icestom.icestom.ui.interfaces.VanillaInterface;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
 import io.gitlab.icestom.icestom.web.PanelServer;
 import net.kyori.adventure.key.Key;
@@ -333,7 +333,7 @@ public class IceStom {
 
         MinecraftServer.getSchedulerManager().buildShutdownTask(console::stop);
 //        MinecraftServer.getSchedulerManager().buildShutdownTask(spark::shutdown);
-        MinecraftServer.getSchedulerManager().scheduleTask(timeTrialManager::cullDeadTimetrialInstances, TaskSchedule.immediate(), TaskSchedule.tick(100));
+//        MinecraftServer.getSchedulerManager().scheduleTask(timeTrialManager::cullDeadTimetrialInstances, TaskSchedule.immediate(), TaskSchedule.tick(100));
     }
 
     public void setSpawnProvider(Supplier<SpawnInstance> spawnProvider) {

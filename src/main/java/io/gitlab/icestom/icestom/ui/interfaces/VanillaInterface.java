@@ -1,4 +1,4 @@
-package io.gitlab.icestom.icestom.ui.interfaces.impl;
+package io.gitlab.icestom.icestom.ui.interfaces;
 
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
@@ -17,7 +17,8 @@ import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.ui.TickCountdown;
 import io.gitlab.icestom.icestom.ui.event.GenericErrorMessageEvent;
 import io.gitlab.icestom.icestom.ui.event.GenericMessageEvent;
-import io.gitlab.icestom.icestom.ui.interfaces.*;
+import io.gitlab.icestom.icestom.ui.event.GenericWarningMessageEvent;
+import io.gitlab.icestom.icestom.ui.event.MessageEvent;
 import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.key.Key;
@@ -31,6 +32,7 @@ import net.kyori.adventure.text.minimessage.translation.Argument;
 import net.kyori.adventure.title.Title;
 import net.minestom.server.adventure.AdventurePacketConvertor;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.Event;
 import net.minestom.server.event.instance.InstanceTickEvent;
 import net.minestom.server.network.packet.server.play.*;
 import net.minestom.server.scoreboard.Sidebar;
@@ -41,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 public class VanillaInterface implements InterfaceProvider {
 
@@ -73,13 +76,6 @@ public class VanillaInterface implements InterfaceProvider {
             Key.key("block.note_block.bass"),
             Sound.Source.MASTER,
             0.5f,
-            1f
-    );
-
-    private static final Sound TRACK_FIRST_COMPLETION = Sound.sound(
-            Key.key("ui.toast.challenge_complete"),
-            Sound.Source.MASTER,
-            1f,
             1f
     );
 
@@ -148,16 +144,11 @@ public class VanillaInterface implements InterfaceProvider {
             super(holder);
 
             eventNode().addListener(GenericMessageEvent.class, this::genericMessageEvent);
-            eventNode().addListener(GenericErrorMessageEvent.class, this::genericErrorMessageEvent);
+            eventNode().addListener(GenericWarningMessageEvent.class, this::genericMessageEvent);
+            eventNode().addListener(GenericErrorMessageEvent.class, this::genericMessageEvent);
         }
 
-        protected void genericErrorMessageEvent(GenericErrorMessageEvent event) {
-            final Player player = event.getPlayer();
-
-            player.sendMessage(event.getComponent());
-        }
-
-        protected void genericMessageEvent(GenericMessageEvent event) {
+        protected void genericMessageEvent(MessageEvent event) {
             final Player player = event.getPlayer();
 
             player.sendMessage(event.getComponent());
@@ -174,7 +165,7 @@ public class VanillaInterface implements InterfaceProvider {
         public VanillaTimetrialInterface(TimeTrialingInstance holder) {
             super(holder);
 
-            eventNode().addListener(TimedLapCheckpointAdvancedEvent.class, this::timedLapCheckpointAdvancedEvent);
+            eventNode().addListener(TimeTrialCheckpointAdvancedEvent.class, this::timedLapCheckpointAdvancedEvent);
 
             eventNode().addListener(TimeTrialStartEvent.class, this::timeTrialStartEvent);
             eventNode().addListener(TimeTrialLapTimerEvent.class, this::TimeTrialLapTimerEvent);
@@ -197,6 +188,7 @@ public class VanillaInterface implements InterfaceProvider {
                     result,
                     best
             ));
+
             if (result.isBetterThan(best)) {
                 player.playSound(PING, Sound.Emitter.self());
             }
@@ -236,7 +228,7 @@ public class VanillaInterface implements InterfaceProvider {
             ));
         }
 
-        protected void timedLapCheckpointAdvancedEvent(TimedLapCheckpointAdvancedEvent event) {
+        protected void timedLapCheckpointAdvancedEvent(TimeTrialCheckpointAdvancedEvent event) {
             final Player player = event.getPlayer();
             final TimedLap lap = event.getLap();
             final TimedLapResultSource result = lap.getBestPreviousResult();

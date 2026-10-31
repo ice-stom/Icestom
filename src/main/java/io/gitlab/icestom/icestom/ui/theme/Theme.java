@@ -8,6 +8,7 @@ public interface Theme {
 
     TextColor main();
     TextColor special();
+    TextColor warn();
     TextColor error();
     TextColor delta_positive();
     TextColor delta_equal();

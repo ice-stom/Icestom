@@ -5,7 +5,7 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.event.trait.PlayerEvent;
 import org.jetbrains.annotations.NotNull;
 
-public class GenericMessageEvent implements PlayerEvent, MessageEvent {
+public class GenericMessageEvent implements MessageEvent {
     private final @NotNull Player player;
     private final @NotNull Component component;
 

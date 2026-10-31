@@ -1,8 +1,6 @@
 package io.gitlab.icestom.icestom.command;
 
 import io.gitlab.icestom.icestom.IceStom;
-import io.gitlab.icestom.icestom.command.common.CommandLoadTrack;
-import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.command.CommandSender;
@@ -11,14 +9,12 @@ import net.minestom.server.command.builder.CommandContext;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.command.builder.suggestion.Suggestion;
 import net.minestom.server.command.builder.suggestion.SuggestionEntry;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 public class TrackCommand extends Command {
 
@@ -40,8 +36,15 @@ public class TrackCommand extends Command {
             addSyntax((commandSender, commandContext) -> {
                 final String track_id = commandContext.get(trackArgument);
 
-                CommandLoadTrack.loadTrack(commandSender, track_id, ticket -> {
-                    ticket.getTrack().thenAccept(track -> {
+                trackLibrary.loadTrack(track_id).thenAccept(optionalTicket -> {
+                    if (optionalTicket.isEmpty()) {
+                        commandSender.sendMessage(Component.translatable("<theme:error>Unknown track '<theme:special><arg:0></theme:special>'."));
+                        return;
+                    }
+
+                    TrackLibrary.Ticket ticket = optionalTicket.get();
+
+                    ticket.getTrackMeta().thenAccept(track -> {
                         ticket.burn();
 
                         final Component[] text = {Component.text("Track " + track_id + "\n")

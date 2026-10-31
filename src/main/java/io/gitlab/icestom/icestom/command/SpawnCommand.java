@@ -4,7 +4,6 @@ import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
-import io.gitlab.icestom.icestom.instance.DefaultSpawnInstance;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.command.builder.Command;
@@ -31,7 +30,7 @@ public class SpawnCommand extends Command {
             if (instance instanceof SpawnInstance spawnInstance) {
                 spawnInstance.resetPlayer(player);
             } else if (instance instanceof TimeTrialingInstance) {
-                timeTrialManager.stopTimeTrialing(player);
+                // TODO: handle this properly?
                 IceStom.getInstance().getSpawnInstance().consume(player);
             } else if (instance instanceof PlayerHolder playerHolder) {
                 playerHolder.drop(player);

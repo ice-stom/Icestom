@@ -1,13 +1,15 @@
 package io.gitlab.icestom.icestom.command;
 
 import io.gitlab.icestom.icestom.IceStom;
-import io.gitlab.icestom.icestom.command.common.CommandLoadTrack;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
+import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
+import io.gitlab.icestom.icestom.ui.event.GenericErrorMessageEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.CommandContext;
@@ -16,15 +18,16 @@ import net.minestom.server.command.builder.suggestion.Suggestion;
 import net.minestom.server.command.builder.suggestion.SuggestionEntry;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 public class TimeTrialCommand extends Command {
 
@@ -68,9 +71,22 @@ public class TimeTrialCommand extends Command {
                 }
             }
 
-            CommandLoadTrack.loadTrack(commandSender, track_id, ticket -> {
-                timeTrialManager.startTimeTrialing(player, ticket);
-            });
+            timeTrialManager.requestTimeTrial(player, track_id)
+                    .whenComplete((ticket, throwable) -> {
+                        if (throwable != null) {
+                            MinecraftServer.getGlobalEventHandler().call(new GenericErrorMessageEvent(player, Component.text(throwable.getMessage(), NamedTextColor.RED)));
+                            log.warn("failed to tt!", throwable);
+                            return;
+                        }
+
+                        ticket.instance().thenAccept(instance -> {
+                            if (player.getInstance() instanceof PlayerHolder holder) {
+                                holder.drop(player);
+                            }
+
+                            instance.consume(player);
+                        });
+                    });
         }, trackArgument);
     }
 

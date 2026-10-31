@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public class Track {
 
@@ -40,11 +41,11 @@ public class Track {
 
     private final Map<Integer, List<CrossCollider>> checkpoint_lookup = new HashMap<>();
 
-    private final VirtualTrackInstance mapContainer;
+    private final VirtualTrackInstance map;
 
     private final int wrapIndex;
 
-    public Track(TrackFile trackFile, TrackLoad load) {
+    public Track(TrackFile trackFile, VirtualTrackInstance map) {
         this.id = trackFile.getId();
         this.name = trackFile.getName();
         this.looped = trackFile.isLooped();
@@ -57,7 +58,7 @@ public class Track {
         this.triggers = TriggerConverter.fromTriggerDef(trackFile.getTriggers());
         this.locations = LocationConverter.fromLocationDef(trackFile.getLocations());
 
-        this.mapContainer = load.instanceContainer();
+        this.map = map;
 
         for (Map.Entry<CrossCollider, Integer> entry : checkpoints.entrySet()) {
             CrossCollider checkpoint = entry.getKey();
@@ -117,7 +118,7 @@ public class Track {
 
     public Map<String, Pos> getLocations() { return locations; }
 
-    public VirtualTrackInstance getMapContainer() { return mapContainer; }
+    public VirtualTrackInstance getMap() { return map; }
 
     public static RegistryKey<DimensionType> getDimensionKey(EnvironmentFile environmentFile) {
 

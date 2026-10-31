@@ -1,6 +1,5 @@
 package io.gitlab.icestom.icestom.track.library.source;
 
-import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.TrackLoad;
 import io.gitlab.icestom.icestom.track.library.VirtualTrackInstance;
@@ -8,17 +7,13 @@ import io.gitlab.icestom.stomtrack.EnvironmentFile;
 import io.gitlab.icestom.stomtrack.TrackFile;
 import io.gitlab.icestom.stomtrack.TrackLoader;
 import net.hollowcube.polar.PolarDataConverter;
+import net.hollowcube.polar.PolarLoadHandle;
 import net.hollowcube.polar.PolarLoader;
 import net.hollowcube.polar.PolarWorldAccess;
-import net.kyori.adventure.key.Key;
 import net.kyori.adventure.nbt.BinaryTag;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import net.kyori.adventure.nbt.ListBinaryTag;
-import net.minestom.server.MinecraftServer;
-import net.minestom.server.coordinate.Pos;
-import net.minestom.server.entity.Entity;
 import net.minestom.server.instance.Chunk;
-import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.network.NetworkBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,13 +25,14 @@ import java.net.URI;
 import java.nio.channels.Channels;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
-
-import static io.gitlab.icestom.icestom.track.Track.getDimensionKey;
-import static io.gitlab.icestom.icestom.util.DisplayEntityConverter.*;
 
 public class FileSystemSource extends TrackSource {
 
@@ -84,7 +80,6 @@ public class FileSystemSource extends TrackSource {
 
                             EnvironmentFile environmentFile = TrackLoader.loadEnvironmentFile(new ByteArrayInputStream(bytes));
 
-                            // preload all the environments
                             Track.getDimensionKey(environmentFile);
                         }
                     }
@@ -100,7 +95,7 @@ public class FileSystemSource extends TrackSource {
     }
 
     @Override
-    public @NotNull CompletableFuture<Track> loadTrack(String track_id) {
+    public @NotNull CompletableFuture<TrackLoad> loadTrack(String track_id) {
 
         Path file = sourceFiles.get(track_id);
 
@@ -115,7 +110,8 @@ public class FileSystemSource extends TrackSource {
 
             String env_name = null;
 
-            ZipFile zipFile;
+            ZipFile zipFile = null;
+            boolean handedOff = false;
             try {
                 zipFile = new ZipFile(file.toFile());
 
@@ -148,29 +144,14 @@ public class FileSystemSource extends TrackSource {
                     throw new RuntimeException("Track file has no world!");
                 }
 
-                ZipEntry zipEntry = zipFile.getEntry(polar_entry);
-
-                TrackLoad trackLoad = new PolarTrackLoad(
-                        environmentFile,
-                        env_name,
-                        zipFile.getInputStream(zipEntry),
-                        zipEntry.getSize()
-                );
-
-                trackLoad.fullyLoaded().thenRun(() -> {
-                    try {
-                        zipFile.close();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+                VirtualTrackInstance map = new VirtualTrackInstance(env_name, environmentFile);
 
                 Track source = null;
 
                 for (TrackFile trackFile : trackFiles) {
                     Track track = new Track(
                             trackFile,
-                            trackLoad
+                            map
                     );
 
                     if (trackFile.getId().equals(track_id)) {
@@ -183,70 +164,152 @@ public class FileSystemSource extends TrackSource {
                     throw new RuntimeException("Failed to locate track in file.");
                 }
 
-                trackLoad.spawnLoaded().join();
+                ZipEntry zipEntry = zipFile.getEntry(polar_entry);
 
-                return source;
+                TrackLoad trackLoad = new PolarTrackLoad(
+                        map,
+                        source,
+                        zipFile.getInputStream(zipEntry),
+                        zipEntry.getSize()
+                );
+
+                final ZipFile finalZipFile = zipFile;
+                trackLoad.fullyLoaded().whenComplete((ignored, err) -> closeQuietly(finalZipFile));
+                handedOff = true;
+
+                return trackLoad;
             } catch (IOException e) {
                 log.error("Failed to load stomtrack from file", e);
                 throw new RuntimeException("Failed to load stomtrack from file");
+            } finally {
+                if (zipFile != null && !handedOff) {
+                    closeQuietly(zipFile);
+                }
             }
         });
     }
 
+    private static void closeQuietly(Closeable closeable) {
+        try {
+            closeable.close();
+        } catch (IOException e) {
+            log.error("Failed to cleanup {}", closeable, e);
+        }
+    }
+
     public static class PolarTrackLoad implements TrackLoad {
+
+        private static final ExecutorService executor = Executors.newSingleThreadExecutor();
+
+        private final InputStream inputStream;
+        private final long bytes;
 
         private final VirtualTrackInstance instanceContainer;
 
-        private final CompletableFuture<Void> fullyLoaded;
+        private final Track meta;
+
+        private final CompletableFuture<Void> fullyLoaded = new CompletableFuture<>();
+
+        private final Object lock = new Object();
+        private boolean cancelled;
+        private @Nullable PolarLoadHandle handle;
+
+        public PolarTrackLoad(VirtualTrackInstance map, Track track, InputStream inputStream, long bytes) {
+            instanceContainer = map;
+
+            meta = track;
+
+            this.inputStream = inputStream;
+            this.bytes = bytes;
+        }
+
+        public void promote() {
+            executor.execute(this::load);
+        }
 
         @SuppressWarnings("UnstableApiUsage")
-        public PolarTrackLoad(EnvironmentFile environmentFile, String env_name, InputStream inputStream, long bytes) {
-            instanceContainer = new VirtualTrackInstance(env_name, environmentFile);
+        private void load() {
+            Throwable failure = null;
+            try (var channel = Channels.newChannel(inputStream)) {
+                final PolarLoadHandle started;
+                synchronized (lock) {
+                    if (cancelled) return;
 
-            fullyLoaded = PolarLoader.streamLoad(
-                    instanceContainer,
-                    Channels.newChannel(inputStream),
-                    bytes,
-                    PolarDataConverter.NOOP,
-                    new PolarWorldAccess() {
-                        boolean hasEntityData = true;
+                    started = PolarLoader.streamLoadCancellable(
+                            instanceContainer,
+                            channel,
+                            bytes,
+                            PolarDataConverter.NOOP,
+                            new PolarWorldAccess() {
+                                boolean hasEntityData = true;
 
-                        @Override
-                        public void loadChunkData(@NotNull Chunk chunk, @Nullable NetworkBuffer userData) {
-                            if (!hasEntityData) return;
-                            if (userData == null) return;
+                                @Override
+                                public void loadChunkData(@NotNull Chunk chunk, @Nullable NetworkBuffer userData) {
+                                    if (!hasEntityData) return;
+                                    if (userData == null) return;
 
-                            try {
-                                CompoundBinaryTag root = userData.read(NetworkBuffer.NBT_COMPOUND);
-                                ListBinaryTag list = root.getList("entities");
+                                    try {
+                                        CompoundBinaryTag root = userData.read(NetworkBuffer.NBT_COMPOUND);
+                                        ListBinaryTag list = root.getList("entities");
 
-                                for (BinaryTag binaryTag : list) {
-                                    instanceContainer.addDisplayEntity((CompoundBinaryTag) binaryTag);
+                                        for (BinaryTag binaryTag : list) {
+                                            instanceContainer.addDisplayEntity((CompoundBinaryTag) binaryTag);
+                                        }
+                                    } catch (IndexOutOfBoundsException e) {
+                                        hasEntityData = false;
+                                    }
                                 }
-                            } catch (IndexOutOfBoundsException e) {
-                                hasEntityData = false;
-                            }
-                        }
-                    },
-                    true
-            ).exceptionally(throwable -> {
-                log.error("Failed track load!", throwable);
-                return null;
-            });
+                            },
+                            true
+                    );
+                    handle = started;
+                }
+
+                started.future().join();
+            } catch (Throwable t) {
+                failure = t instanceof CompletionException && t.getCause() != null ? t.getCause() : t;
+            }
+
+            if (failure == null) fullyLoaded.complete(null);
+            else if (failure instanceof CancellationException) fullyLoaded.cancel(false);
+            else fullyLoaded.completeExceptionally(failure);
         }
 
         @Override
-        public VirtualTrackInstance instanceContainer() {
+        public void cancel() {
+            final PolarLoadHandle running;
+            synchronized (lock) {
+                if (cancelled) return;
+                cancelled = true;
+                running = handle;
+            }
+
+            if (running != null) {
+                running.cancel();
+            } else {
+                try {
+                    fullyLoaded.cancel(true);
+                } catch (CancellationException _) {}
+            }
+        }
+
+        @Override
+        public VirtualTrackInstance map() {
             return instanceContainer;
         }
 
         @Override
-        public CompletableFuture<Void> spawnLoaded() {
-            return fullyLoaded; // make this actually check for spawn to be loaded :thumbs_up:
+        public CompletableFuture<Track> metadataLoaded() {
+            return CompletableFuture.completedFuture(meta);
         }
 
         @Override
-        public CompletableFuture<Void> fullyLoaded() {
+        public @Nullable CompletableFuture<Void> spawnLoaded() {
+            return fullyLoaded;
+        }
+
+        @Override
+        public @Nullable CompletableFuture<Void> fullyLoaded() {
             return fullyLoaded;
         }
     }

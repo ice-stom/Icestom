@@ -17,7 +17,7 @@ public interface TrackEventStage extends EventStage {
             Optional<TrackLibrary.Ticket> optionalTicket =
                     IceStom.getInstance()
                             .getTrackLibrary()
-                            .loadTrack(track_id);
+                            .loadTrack(track_id).join();
 
             if (optionalTicket.isEmpty()) {
                 throw new InvalidStageArgumentsException(
@@ -27,7 +27,7 @@ public interface TrackEventStage extends EventStage {
 
             TrackLibrary.Ticket ticket = optionalTicket.get();
 
-            Track track = ticket.getTrack().join();
+            Track track = ticket.getTrackMeta().join();
 
             return fn.apply(ticket, track);
         });

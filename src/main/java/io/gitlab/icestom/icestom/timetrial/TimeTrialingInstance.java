@@ -17,7 +17,6 @@ import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
-import io.gitlab.icestom.icestom.track.event.HasTag;
 import io.gitlab.icestom.icestom.track.event.TrackColliderEvent;
 import io.gitlab.icestom.icestom.track.event.TrackRegionEnterEvent;
 import io.gitlab.icestom.icestom.track.event.TrackTriggerPassEvent;
@@ -47,7 +46,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
 
-import static io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager.writePacket;
+import static io.gitlab.icestom.icestom.intergrations.OpenBoatUtilsManager.writePacket;
 import static io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager.getHolder;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -261,9 +260,9 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
             List<PlayerMovement> moves = new ArrayList<>();
 
-            List<TickLocation> nows = new ArrayList<>(candidates.values());
-            List<TickLocation> old_locations = new ArrayList<>(nows.size());
-            for (TickLocation now : nows) {
+            List<TickLocation> now_locations = new ArrayList<>(candidates.values());
+            List<TickLocation> old_locations = new ArrayList<>(now_locations.size());
+            for (TickLocation now : now_locations) {
                 @Nullable TickLocation old = lastPosition.getOrDefault(now.player(), null);
 
                 old_locations.add(old);
@@ -275,7 +274,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
             Map<TickLocation, Long> hits = new HashMap<>();
             for (CrossCollider trackCheckpoint : track.getCheckpoints(checkpoint)) {
-                for (Map.Entry<TickLocation, Long> hit : trackCheckpoint.detectCrosses(old_locations, nows).entrySet()) {
+                for (Map.Entry<TickLocation, Long> hit : trackCheckpoint.detectCrosses(old_locations, now_locations).entrySet()) {
                     hits.putIfAbsent(hit.getKey(), hit.getValue());
                 }
             }
@@ -312,7 +311,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                     ));
 
                     MinecraftServer.getGlobalEventHandler()
-                            .call(new TimedLapCheckpointAdvancedEvent(timedLap, Objects.requireNonNull(getPlayerByUuid(player))));
+                            .call(new TimeTrialCheckpointAdvancedEvent(this, timedLap, Objects.requireNonNull(getPlayerByUuid(player))));
 
                     timeTrials.put(player, timedLap);
 
@@ -325,7 +324,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                     ));
 
                     MinecraftServer.getGlobalEventHandler()
-                            .call(new TimedLapCheckpointAdvancedEvent(lap, Objects.requireNonNull(getPlayerByUuid(player))));
+                            .call(new TimeTrialCheckpointAdvancedEvent(this, lap, Objects.requireNonNull(getPlayerByUuid(player))));
 
                     if (finished) {
                         endTimeTrial(player);
@@ -428,6 +427,9 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         super.consume(player);
 
         interfaceHolder.startWatching(player);
+
+        MinecraftServer.getGlobalEventHandler()
+                .call(new TimeTrialStartEvent(this, player));
     }
 
     @Override

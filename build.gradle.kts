@@ -13,8 +13,8 @@ java {
 }
 
 repositories {
-    mavenCentral()
     mavenLocal()
+    mavenCentral()
 
     // Spark everything
     maven("https://repo.hypera.dev/snapshots/")
@@ -29,7 +29,7 @@ dependencies {
     implementation("net.minestom:minestom:2026.01.08-1.21.11")
     implementation("net.kyori:adventure-text-minimessage:4.25.0")
 
-    implementation("dev.hollowcube:polar:1.15.0")
+    implementation("dev.hollowcube:polar:dev")
     implementation("it.unimi.dsi:fastutil:8.5.13")
     implementation("com.moandjiezana.toml:toml4j:0.7.2")
 

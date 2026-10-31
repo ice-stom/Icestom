@@ -1,6 +1,7 @@
 package io.gitlab.icestom.icestom.track.library.source;
 
 import io.gitlab.icestom.icestom.track.Track;
+import io.gitlab.icestom.icestom.track.TrackLoad;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
@@ -20,5 +21,5 @@ public abstract class TrackSource {
     }
 
     public abstract List<String> preloadTracks();
-    public abstract @NotNull CompletableFuture<Track> loadTrack(String track_id);
+    public abstract @NotNull CompletableFuture<TrackLoad> loadTrack(String track_id);
 }

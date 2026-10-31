@@ -4,16 +4,23 @@ import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public class TimedLapCheckpointAdvancedEvent implements TimedLapEvent {
+public class TimeTrialCheckpointAdvancedEvent implements TimeTrialEvent, TimedLapEvent {
     @NotNull private final TimedLap lap;
     @NotNull private final Player player;
+    @NotNull private final TimeTrialingInstance instance;
 
-    public TimedLapCheckpointAdvancedEvent(@NotNull TimedLap lap, @NotNull Player player) {
+    public TimeTrialCheckpointAdvancedEvent(@NotNull TimeTrialingInstance instance, @NotNull TimedLap lap, @NotNull Player player) {
         this.lap = lap;
         this.player = player;
+        this.instance = instance;
     }
 
+    @Override
+    public @NotNull TimeTrialingInstance getInstance() {
+        return instance;
+    }
     @Override
     public @NotNull TimedLap getLap() {
         return lap;

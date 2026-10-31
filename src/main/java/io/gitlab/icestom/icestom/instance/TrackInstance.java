@@ -6,7 +6,6 @@ import io.github.openboatutils.protocol.channels.OBUSettingsPacket;
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
-import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.track.PlayerMovement;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
@@ -14,6 +13,7 @@ import io.gitlab.icestom.icestom.track.colliders.InsideCollider;
 import io.gitlab.icestom.icestom.track.event.TrackRegionEnterEvent;
 import io.gitlab.icestom.icestom.track.event.TrackTriggerPassEvent;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
+import io.gitlab.icestom.icestom.ui.event.GenericErrorMessageEvent;
 import io.gitlab.icestom.icestom.util.BatchQueue;
 import net.kyori.adventure.nbt.ListBinaryTag;
 import net.kyori.adventure.text.Component;
@@ -37,7 +37,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static io.gitlab.icestom.icestom.openboatutils.OpenBoatUtilsManager.writePacket;
+import static io.gitlab.icestom.icestom.intergrations.OpenBoatUtilsManager.writePacket;
 import static io.gitlab.icestom.icestom.util.DisplayEntityConverter.*;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -58,7 +58,7 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
     private Map<CrossCollider, Set<String>> watchingTriggers = Map.of();
 
     protected TrackInstance(TrackLibrary.Ticket ticket, Track track) {
-        super(UUID.randomUUID(), track.getMapContainer());
+        super(UUID.randomUUID(), track.getMap());
 
         this.ticket = ticket;
         this.track = track;
@@ -69,7 +69,7 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
         eventNode().addListener(PlayerBlockPlaceEvent.class, event -> event.setCancelled(true));
 
         eventNode().addListener(InstanceRegisterEvent.class, event -> {
-            track.getMapContainer().onNewDisplayEntity(nbt -> {
+            track.getMap().onNewDisplayEntity(nbt -> {
                 String id = nbt.getString("id");
 
                 Entity entity = switch (id) {
@@ -137,7 +137,7 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
 
         if (!track.getOpenBoatUtilsPackets().isEmpty()) {
             if (((IceStomPlayer) player).getOpenBoatUtilsVersion() == null) {
-                player.sendMessage(Component.translatable("message.timetrial.requires_open_boat_utils"));
+                MinecraftServer.getGlobalEventHandler().call(new GenericErrorMessageEvent(player, Component.translatable("message.timetrial.requires_open_boat_utils")));
                 drop(player);
                 IceStom.getInstance().getSpawnInstance().consume(player);
             } else {

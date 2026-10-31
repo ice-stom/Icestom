@@ -54,7 +54,7 @@ dependencies {
 
 val panelSiteDir = providers.gradleProperty("icestom.panelSite").orNull
     ?.let { file(it) }
-    ?: file("../IcestomSite/site")
+    ?: file("../../../IcestomSite/site")
 
 val bundlePanelSite = tasks.register<Sync>("bundlePanelSite") {
     description = "Copies the event panel site into the jar under web/."

@@ -73,7 +73,7 @@ public class EventManager {
         for (IceStomEvent<EventParticipant> activeEvent : events) {
             for (EventStage loadedStage : activeEvent.getLoadedStages()) {
                 if (loadedStage instanceof ParticipantStoreHolder holder) {
-                    if (holder.getParticipants().isPlayerParticipating(player)) {
+                    if (holder.getParticipants().isPlayerParticipating(player.getUuid())) {
                         return loadedStage;
                     }
                 }

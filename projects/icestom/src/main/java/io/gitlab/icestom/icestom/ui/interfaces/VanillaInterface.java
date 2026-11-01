@@ -6,9 +6,12 @@ import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import io.gitlab.icestom.icestom.ordering.ForwardOrdering;
 import io.gitlab.icestom.icestom.ordering.Tower;
 import io.gitlab.icestom.icestom.ordering.TowerHolder;
-import io.gitlab.icestom.icestom.race.RaceTimingTower;
-import io.gitlab.icestom.icestom.race.event.*;
-import io.gitlab.icestom.icestom.race.RaceStage;
+import io.gitlab.icestom.icestom.stages.race.RaceTimingTower;
+import io.gitlab.icestom.icestom.stages.race.RaceStage;
+import io.gitlab.icestom.icestom.stages.race.event.RaceCompletedEvent;
+import io.gitlab.icestom.icestom.stages.race.event.RaceLapTimerEvent;
+import io.gitlab.icestom.icestom.stages.race.event.RaceLeaderboardUpdateEvent;
+import io.gitlab.icestom.icestom.stages.race.event.RaceTimedLapCompletedEvent;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.timetrial.event.*;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
@@ -32,7 +35,6 @@ import net.kyori.adventure.text.minimessage.translation.Argument;
 import net.kyori.adventure.title.Title;
 import net.minestom.server.adventure.AdventurePacketConvertor;
 import net.minestom.server.entity.Player;
-import net.minestom.server.event.Event;
 import net.minestom.server.event.instance.InstanceTickEvent;
 import net.minestom.server.network.packet.server.play.*;
 import net.minestom.server.scoreboard.Sidebar;
@@ -43,7 +45,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 public class VanillaInterface implements InterfaceProvider {
 
@@ -412,8 +413,9 @@ public class VanillaInterface implements InterfaceProvider {
         @Override
         protected Component render(Key column, Object value) {
             return switch (column.toString()) {
+                case "icestom:pos" -> Component.text(String.format("%2s.", value), NamedTextColor.YELLOW);
+                case "icestom:delta" -> value != null ? TextFormatter.getDelta((Long) value) : Component.text("   -   ", NamedTextColor.YELLOW);
                 case "icestom:name" -> (Component) value;
-                case "icestom:delta" -> value != null ? TextFormatter.getDelta((Long) value) : Component.text("-", NamedTextColor.YELLOW);
                 default -> Component.text(value.toString());
             };
         }
@@ -423,6 +425,7 @@ public class VanillaInterface implements InterfaceProvider {
 
         private final Map<TickCountdown, UUID> countdowns = new HashMap<>();
         private final Map<TickCountdown, Set<Player>> countdownViewers = new HashMap<>();
+
 
         private final Map<TickCountdown, String> translations;
 
@@ -495,7 +498,7 @@ public class VanillaInterface implements InterfaceProvider {
 
             final RaceTimingTower tower = instance.getTower();
 
-            long tick = instance.getWorldAge();
+            long tick = instance.getPlayerTick(participant.getCurrentPlayer().getUuid());
 
             TimedLap lap = racer.getCurrentLap();
 
@@ -505,7 +508,7 @@ public class VanillaInterface implements InterfaceProvider {
 
             text.append(Component.text("P")
                     .decorate(TextDecoration.BOLD)
-                    .append(Component.text(pos, TextColor.color(0x4fd3ff))));
+                    .append(Component.text(pos + 1, TextColor.color(0x4fd3ff))));
 
             text.append(Component.text(" "));
             text.append(Component.text(Math.max(0, racer.getCompletedLapCount()) + "/" + instance.getTotalLaps()));
@@ -552,7 +555,7 @@ public class VanillaInterface implements InterfaceProvider {
 
                     Component translatable = Component.translatable(
                             translations.get(tickCountdown),
-                            Argument.component("time", Component.text(Math.floor((double) tickCountdown.getRemainingTicks() / 20)))
+                            Argument.component("time", Component.text(tickCountdown.getRemainingTicks() / 20))
                     );
 
                     for (Player player : getWatching()) {

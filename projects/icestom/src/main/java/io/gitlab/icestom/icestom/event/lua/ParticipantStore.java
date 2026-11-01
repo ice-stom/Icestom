@@ -76,8 +76,8 @@ public class ParticipantStore {
         return weakParticipantMap.get(uuid);
     }
 
-    public boolean isPlayerParticipating(Player player) {
-        return weakParticipants.containsKey(player.getUuid());
+    public boolean isPlayerParticipating(UUID player) {
+        return weakParticipants.containsKey(player);
     }
 
     public boolean isPlayerActivelyParticipating(Player player) {
@@ -88,8 +88,8 @@ public class ParticipantStore {
         return weakActiveParticipants.get(player);
     }
 
-    public EventParticipant getParticipantFromPlayer(Player player) {
-        return weakParticipants.get(player.getUuid());
+    public EventParticipant getParticipantFromPlayer(UUID player) {
+        return weakParticipants.get(player);
     }
 
     public int getIndexOfParticipant(EventParticipant participant) {

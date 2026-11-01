@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public abstract class BoatInstance extends SharedInstance {
 
@@ -78,7 +79,7 @@ public abstract class BoatInstance extends SharedInstance {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public Boat createBoat(Player player, Pos pos) {
+    public CompletableFuture<Boat> createBoat(Player player, Pos pos) {
         removeBoat(player);
 
         Key key = ((IceStomPlayer) player).preference(BOAT_TYPE);
@@ -94,6 +95,8 @@ public abstract class BoatInstance extends SharedInstance {
         boats.put(player, boat);
 
         if (player.getInstance() == this) {
+            CompletableFuture<Boat> future = new CompletableFuture<>();
+
             EventListener<@NotNull PlayerPacketEvent> listener = EventListener.builder(PlayerPacketEvent.class)
                     .filter(e -> e.getPlayer() == player && e.getPacket() instanceof ClientTeleportConfirmPacket)
                     .handler(_ -> {
@@ -102,11 +105,15 @@ public abstract class BoatInstance extends SharedInstance {
                         boat.setInstance(this, pos);
                         boat.addPassenger(player);
                         boat.addViewer(player);
+
+                        future.complete(boat);
                     })
                     .expireCount(1)
                     .build();
 
             eventNode().addListener(listener);
+
+            return future;
         } else {
             boat.setInstance(this, pos);
             boat.addPassenger(player);
@@ -114,6 +121,6 @@ public abstract class BoatInstance extends SharedInstance {
 
         player.teleport(pos.withPitch(player.getPosition().pitch()));
 
-        return boat;
+        return CompletableFuture.completedFuture(boat);
     }
 }

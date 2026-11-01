@@ -29,6 +29,10 @@ public interface TrackEventStage extends EventStage {
 
             Track track = ticket.getTrackMeta().join();
 
+            ticket.promote();
+
+            ticket.readyForTeleport().join();
+
             return fn.apply(ticket, track);
         });
     };

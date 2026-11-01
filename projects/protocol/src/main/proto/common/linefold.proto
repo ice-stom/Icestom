@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package icestom.common;
+
+option java_package = "io.gitlab.icestom.protocol.common";
+option java_multiple_files = true;
+
+message LinefoldLine {
+  bytes data = 1;
+}

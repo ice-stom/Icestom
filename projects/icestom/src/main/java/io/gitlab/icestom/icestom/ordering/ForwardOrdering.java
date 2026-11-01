@@ -20,9 +20,9 @@ public class ForwardOrdering<T extends ForwardOrdering.Orderable<T>> implements 
         Entry entry = new Entry(item);
         entry.owner = this;
 
-        Entry next = null;
         Entry previous = tail;
-        while (previous != null && previous.item.distanceTo(item) < 0) {
+        Entry next = null;
+        while (previous != null && item.betterThan(previous.item)) {
             next = previous;
             previous = previous.previous;
         }
@@ -34,56 +34,42 @@ public class ForwardOrdering<T extends ForwardOrdering.Orderable<T>> implements 
         if (previous == null) head = entry;
         else previous.next = entry;
 
-        if (next == null) {
-            tail = entry;
-        } else {
-            next.previous = entry;
-            entry.distance = item.distanceTo(next.item);
-            entry.hasDistance = true;
-        }
+        if (next == null) tail = entry;
+        else next.previous = entry;
 
         indexInserted(entry);
 
         return entry;
     }
 
-
     public void update(Entry entry) {
         T item = entry.item;
 
-        final Entry oldNext = entry.next;
-
-        Entry next = oldNext;
-        Entry last = null;
-        long gap = 0;
-        while (next != null) {
-            gap = item.distanceTo(next.item);
-            if (gap >= 0) break;
-            last = next;
-            next = next.next;
+        Entry target = entry.previous;
+        while (target != null && item.betterThan(target.item)) {
+            target = target.previous;
         }
 
-        entry.distance = gap;
-        entry.hasDistance = next != null;
-
-        if (last == null) {
-            assert entry.previous == null || entry.previous.item.distanceTo(item) >= 0 : "item moved backwards";
+        if (target == entry.previous) {
             return;
         }
 
-        invalidateIndexFrom(entry);
+        Entry firstShifted = target == null ? head : target.next;
+        invalidateIndexFrom(firstShifted);
 
-        Entry previous = entry.previous;
-        if (previous == null) head = oldNext;
-        else previous.next = oldNext;
-        oldNext.previous = previous;
+        Entry oldNext = entry.next;
 
-        last.next = entry;
-        entry.previous = last;
-        entry.next = next;
+        Entry oldPrevious = entry.previous;
+        oldPrevious.next = oldNext;
+        if (oldNext == null) tail = oldPrevious;
+        else oldNext.previous = oldPrevious;
 
-        if (next == null) tail = entry;
-        else next.previous = entry;
+        Entry newNext = target == null ? head : target.next;
+        entry.previous = target;
+        entry.next = newNext;
+        if (target == null) head = entry;
+        else target.next = entry;
+        newNext.previous = entry;
     }
 
     public void remove(Entry entry) {
@@ -100,7 +86,6 @@ public class ForwardOrdering<T extends ForwardOrdering.Orderable<T>> implements 
 
         entry.previous = null;
         entry.next = null;
-        entry.hasDistance = false;
         entry.owner = null;
         entry.index = -1;
         size--;
@@ -112,7 +97,6 @@ public class ForwardOrdering<T extends ForwardOrdering.Orderable<T>> implements 
             Entry next = current.next;
             current.previous = null;
             current.next = null;
-            current.hasDistance = false;
             current.owner = null;
             current.index = -1;
             current = next;
@@ -228,9 +212,6 @@ public class ForwardOrdering<T extends ForwardOrdering.Orderable<T>> implements 
     public class Entry {
         private final T item;
 
-        private long distance;
-        private boolean hasDistance;
-
         private @Nullable Entry next;
         private @Nullable Entry previous;
 
@@ -246,10 +227,6 @@ public class ForwardOrdering<T extends ForwardOrdering.Orderable<T>> implements 
             return item;
         }
 
-        public @Nullable Long getDistance() {
-            return hasDistance ? distance : null;
-        }
-
         public @Nullable Entry getNext() {
             return next;
         }
@@ -257,9 +234,14 @@ public class ForwardOrdering<T extends ForwardOrdering.Orderable<T>> implements 
         public @Nullable Entry getPrevious() {
             return previous;
         }
+
+        public int getIndex() {
+            ForwardOrdering<T> owner = this.owner;
+            return owner == null ? -1 : owner.indexOf(this);
+        }
     }
 
     public interface Orderable<T extends Orderable<T>> {
-        long distanceTo(T other);
+        boolean betterThan(T other);
     }
 }

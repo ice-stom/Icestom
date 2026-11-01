@@ -35,18 +35,29 @@ public class Tower<R extends ForwardOrdering.Orderable<R>> extends ForwardOrderi
 
         values.put(entry.getItem(), row);
     }
+
+    private void refreshAll() {
+        for (Entry entry : this) updateColumns(entry);
+    }
+
     @Override
     public ForwardOrdering<R>.Entry add(R item) {
         ForwardOrdering<R>.Entry entry = super.add(item);
-
-        updateColumns(entry);
-
+        refreshAll();
         return entry;
     }
 
     @Override
     public void update(ForwardOrdering<R>.Entry entry) {
-        updateColumns(entry);
+        super.update(entry);
+        refreshAll();
+    }
+
+    @Override
+    public void remove(ForwardOrdering<R>.Entry entry) {
+        values.remove(entry.getItem());
+        super.remove(entry);
+        refreshAll();
     }
 
     public record TowerColumn<R extends Orderable<R>, V>(

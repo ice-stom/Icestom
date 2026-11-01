@@ -1,7 +1,7 @@
-package io.gitlab.icestom.icestom.race.event;
+package io.gitlab.icestom.icestom.stages.race.event;
 
 import io.gitlab.icestom.icestom.event.event.EventParticipantEvent;
-import io.gitlab.icestom.icestom.race.RaceStage;
+import io.gitlab.icestom.icestom.stages.race.RaceStage;
 
 public interface RaceParticipantEvent extends RaceEvent, EventParticipantEvent {
     default RaceStage.RaceParticipant getRacer() {

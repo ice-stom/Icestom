@@ -1,4 +1,4 @@
-package io.gitlab.icestom.icestom.race;
+package io.gitlab.icestom.icestom.stages.race;
 
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.entity.Boat;
@@ -11,13 +11,16 @@ import io.gitlab.icestom.icestom.event.stage.InvalidStageArgumentsException;
 import io.gitlab.icestom.icestom.instance.BoatedTrackInstance;
 import io.gitlab.icestom.icestom.ordering.ForwardOrdering;
 import io.gitlab.icestom.icestom.ordering.TowerHolder;
-import io.gitlab.icestom.icestom.race.event.RaceLapTimerEvent;
+import io.gitlab.icestom.icestom.stages.race.event.RaceLapTimerEvent;
+import io.gitlab.icestom.icestom.stages.race.event.RaceLeaderboardUpdateEvent;
 import io.gitlab.icestom.icestom.timetrial.Split;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResult;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
+import io.gitlab.icestom.icestom.track.PlayerMovement;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.TrackEventStage;
+import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import io.gitlab.icestom.icestom.ui.TickCountdown;
 import io.gitlab.icestom.icestom.ui.event.GenericErrorMessageEvent;
@@ -61,6 +64,8 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
     private final CompletableFuture<List<Result<EventParticipant>>> future = new CompletableFuture<>();
 
     private final String name;
+
+    private final Map<UUID, TickLocation> lastPosition = new HashMap<>();
 
     protected RaceStage(String stageName, TrackLibrary.Ticket ticket, Track track, int totalLaps, int totalPits) {
         super(ticket, track);
@@ -120,7 +125,123 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
 
     @Override
     protected void handleMovements(List<TickLocation> movements) {
+        if (movements.isEmpty()) return;
 
+        Map<Integer, LinkedHashMap<UUID, ArrayDeque<TickLocation>>> pending = new HashMap<>();
+        ArrayDeque<Integer> checkpointQueue = new ArrayDeque<>();
+
+        Map<UUID, RaceParticipant> playerRacers = new HashMap<>();
+
+        for (TickLocation movement : movements) {
+            UUID player = movement.player();
+
+            EventParticipant participant = getParticipants().getParticipantFromPlayer(player);
+
+            if (participant == null) continue;
+            if (!participant.getCurrentPlayer().getUuid().equals(player)) continue;
+
+            RaceParticipant racer = getRacer(participant.getUuid());
+
+            playerRacers.put(player, racer);
+
+            int next_no = 0;
+            @Nullable TimedLap lap = racer.getCurrentLap();
+            if (lap != null) next_no = track.wrapCheckpointIndex(lap.getLastReachedCheckpoint() + 1);
+
+            pending.computeIfAbsent(next_no, _ -> new LinkedHashMap<>())
+                    .computeIfAbsent(player, _ -> new ArrayDeque<>())
+                    .add(movement);
+
+            checkpointQueue.add(next_no);
+        }
+
+        Integer checkpoint;
+        while ((checkpoint = checkpointQueue.poll()) != null) {
+            LinkedHashMap<UUID, ArrayDeque<TickLocation>> bucket = pending.get(checkpoint);
+            if (bucket == null || bucket.isEmpty()) continue;
+
+            LinkedHashMap<UUID, TickLocation> candidates = new LinkedHashMap<>();
+            for (Map.Entry<UUID, ArrayDeque<TickLocation>> e : bucket.entrySet()) {
+                TickLocation head = e.getValue().peek();
+                if (head != null) candidates.put(e.getKey(), head);
+            }
+
+            if (candidates.isEmpty()) {
+                pending.remove(checkpoint);
+                continue;
+            }
+
+            List<PlayerMovement> moves = new ArrayList<>();
+
+            List<TickLocation> now_locations = new ArrayList<>(candidates.values());
+            List<TickLocation> old_locations = new ArrayList<>(now_locations.size());
+            for (TickLocation now : now_locations) {
+                @Nullable TickLocation old = lastPosition.getOrDefault(now.player(), null);
+
+                old_locations.add(old);
+
+                moves.add(new PlayerMovement(now.tick(), old, now));
+            }
+
+            dispatchTrackEvents(moves);
+
+            Map<TickLocation, Long> hits = new HashMap<>();
+            for (CrossCollider trackCheckpoint : track.getCheckpoints(checkpoint)) {
+                for (Map.Entry<TickLocation, Long> hit : trackCheckpoint.detectCrosses(old_locations, now_locations).entrySet()) {
+                    hits.putIfAbsent(hit.getKey(), hit.getValue());
+                }
+            }
+
+            for (Map.Entry<UUID, TickLocation> entry : candidates.entrySet()) {
+                UUID player = entry.getKey();
+                TickLocation location = entry.getValue();
+
+                ArrayDeque<TickLocation> playerQueue = bucket.get(player);
+                playerQueue.poll();
+
+                lastPosition.put(player, location);
+
+                Long tick_delta = hits.get(location);
+
+                if (tick_delta == null) {
+                    if (playerQueue.isEmpty()) bucket.remove(player);
+                    continue;
+                }
+
+                RaceParticipant racer = playerRacers.get(player);
+
+                bucket.remove(player);
+
+                racer.nextCheckpoint(new Split(
+                        location.tick() * 50,
+                        tick_delta,
+                        checkpoint
+                ));
+
+                tower.update(racer.getTowerEntry());
+
+//                MinecraftServer.getGlobalEventHandler()
+//                        .call(new TimeTrialCheckpointAdvancedEvent(this, lap, Objects.requireNonNull(getPlayerByUuid(player))));
+
+                int next_checkpoint = track.wrapCheckpointIndex(checkpoint + 1);
+
+                if (!playerQueue.isEmpty()) {
+                    LinkedHashMap<UUID, ArrayDeque<TickLocation>> nextBucket =
+                            pending.computeIfAbsent(next_checkpoint, _ -> new LinkedHashMap<>());
+                    nextBucket.put(player, playerQueue);
+                    checkpointQueue.add(next_checkpoint);
+                }
+            }
+
+            if (bucket.isEmpty()) {
+                pending.remove(checkpoint);
+            } else {
+                checkpointQueue.add(checkpoint);
+            }
+        }
+
+        MinecraftServer.getGlobalEventHandler()
+                .call(new RaceLeaderboardUpdateEvent(this));
     }
 //
 //    @Override
@@ -338,11 +459,11 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
 
         if (grid_location == null) return false;
 
-        Boat boat = createBoat(player, grid_location);
+        createBoat(player, grid_location).thenAccept(boat -> {
+            GridBoatHolder holder = new GridBoatHolder(this, grid_location);
 
-        GridBoatHolder holder = new GridBoatHolder(this, grid_location);
-
-        holder.addPassenger(boat);
+            holder.addPassenger(boat);
+        });
 
         return true;
     }
@@ -457,11 +578,13 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
         private int nextExpected = 0;
 
         private int completedLapCount = 0;
-        private final int completedPitCount = 0;
+        private int completedPitCount = 0;
 
         private boolean finished = false;
 
         private Component name;
+
+        private long deltaToAhead = 0;
 
         RaceParticipant(Component name) {
             this.name = name;
@@ -523,25 +646,39 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
             return completedLap;
         }
 
+        public long getDeltaToAhead() {
+            return deltaToAhead;
+        }
+
         @Override
-        public long distanceTo(RaceParticipant other) {
-            int max_checkpoint = Math.min(getRaceSplits().size(), other.getRaceSplits().size()) - 1;
+        public boolean betterThan(RaceParticipant other) {
 
-            if (max_checkpoint < 0) return 0;
+            if (raceState == RaceState.GRID || raceState == RaceState.COUNTDOWN) {
+                int this_start = startOrder.indexOf(participants.getParticipantFromId(getParticipantId(this)));
+                int other_start = startOrder.indexOf(participants.getParticipantFromId(getParticipantId(other)));
 
-            Split local = getRaceSplits().get(max_checkpoint);
-            Split foreign = other.getRaceSplits().get(max_checkpoint);
+                if (this_start == -1) return false;
 
-            long delta = local.ms() - foreign.ms();
-
-            if (delta < 0) {
-                // when someone overtakes, the most recent shared checkpoint is when the overtaken driver was still in the lead.
-                // its pretty much impossible to guess a deltas for a checkpoint that doesn't exist yet
-                // can't really do much about this so just assume 0 for now.
-                return 0;
+                return this_start < other_start;
             }
 
-            return delta;
+            int mine = getRaceSplits().size();
+            int theirs = other.getRaceSplits().size();
+
+            int shared = Math.min(mine, theirs) - 1;
+            long delta = shared < 0 ? 0 : getRaceSplits().get(shared).ms() - other.getRaceSplits().get(shared).ms();
+
+            if (mine > theirs) {
+                deltaToAhead = 0;
+                return true;
+            };
+
+            deltaToAhead = delta;
+
+/*            if (mine > theirs) return Math.min(delta, -1);
+            if (mine < theirs) return Math.max(delta, 0);*/
+
+            return delta <= 0;
         }
 
         public int getNextExpected() {

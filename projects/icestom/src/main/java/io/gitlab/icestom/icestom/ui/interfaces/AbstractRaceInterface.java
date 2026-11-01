@@ -1,11 +1,12 @@
 package io.gitlab.icestom.icestom.ui.interfaces;
 
-import io.gitlab.icestom.icestom.race.RaceStage;
-import io.gitlab.icestom.icestom.race.event.RaceEvent;
+import io.gitlab.icestom.icestom.stages.race.RaceStage;
+import io.gitlab.icestom.icestom.stages.race.event.RaceEvent;
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventFilter;
 import net.minestom.server.event.EventHandler;
 import net.minestom.server.event.EventNode;
+import net.minestom.server.event.trait.InstanceEvent;
 import net.minestom.server.event.trait.PlayerEvent;
 import org.jspecify.annotations.NonNull;
 
@@ -24,6 +25,10 @@ public abstract class AbstractRaceInterface extends Interface<RaceStage, Abstrac
         eventNode = EventNode.type("race_interface", EventFilter.ALL, (event, _) -> {
            if (event instanceof RaceEvent raceEvent) {
                if (raceEvent.getInstance() != weakReference.get()) return false;
+           }
+
+           if (event instanceof InstanceEvent instanceEvent) {
+               if (instanceEvent.getInstance() != weakReference.get()) return false;
            }
 
             if (event instanceof PlayerEvent playerEvent) {

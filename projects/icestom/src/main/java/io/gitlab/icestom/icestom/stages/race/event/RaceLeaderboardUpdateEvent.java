@@ -1,6 +1,6 @@
-package io.gitlab.icestom.icestom.race.event;
+package io.gitlab.icestom.icestom.stages.race.event;
 
-import io.gitlab.icestom.icestom.race.RaceStage;
+import io.gitlab.icestom.icestom.stages.race.RaceStage;
 import org.jetbrains.annotations.NotNull;
 
 public class RaceLeaderboardUpdateEvent implements RaceEvent {

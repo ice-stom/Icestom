@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package icestom.packets.configuration.serverbound;
+
+option java_package = "io.gitlab.icestom.protocol.packets.configuration.serverbound";
+option java_multiple_files = true;
+
+message ClientHello {
+  string namespace = 1;
+  string version = 2;
+  bool unstable = 3;
+
+  repeated Feature features = 4;
+
+  message Feature {
+    string key = 1;
+    int32 version = 2;
+  }
+}

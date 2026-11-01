@@ -17,9 +17,10 @@ import io.gitlab.icestom.icestom.event.stage.StageSchema;
 import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import io.gitlab.icestom.icestom.instance.DefaultSpawnInstance;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
+import io.gitlab.icestom.icestom.intergrations.IceStomModManager;
 import io.gitlab.icestom.icestom.intergrations.OpenBoatUtilsManager;
 import io.gitlab.icestom.icestom.plugins.PluginManager;
-import io.gitlab.icestom.icestom.race.RaceStage;
+import io.gitlab.icestom.icestom.stages.race.RaceStage;
 import io.gitlab.icestom.icestom.stages.PodiumStage;
 import io.gitlab.icestom.icestom.stages.PracticeStage;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialManager;
@@ -46,7 +47,6 @@ import net.minestom.server.instance.*;
 import net.minestom.server.network.packet.server.play.EntityStatusPacket;
 import net.minestom.server.network.packet.server.play.EntityVelocityPacket;
 import net.minestom.server.network.packet.server.play.VehicleMovePacket;
-import net.minestom.server.timer.TaskSchedule;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,6 +84,7 @@ public class IceStom {
     private final StageRegistry stageRegistry;
     private final TimeTrialManager timeTrialManager;
     private final OpenBoatUtilsManager openBoatUtilsManager;
+    private final IceStomModManager icestomModManager;
     private final EventManager eventManager;
 
     private final Instance spawnInstance;
@@ -181,6 +182,7 @@ public class IceStom {
 
         timeTrialManager = new TimeTrialManager();
         openBoatUtilsManager = new OpenBoatUtilsManager();
+        icestomModManager = new IceStomModManager();
 
         eventManager = new EventManager(Path.of("events"));
 
@@ -217,6 +219,7 @@ public class IceStom {
         interfaceHolder = getHolder(IceStom.class, this);
 
         globalEventHandler.addChild(openBoatUtilsManager.eventNode());
+        globalEventHandler.addChild(icestomModManager.eventNode());
         globalEventHandler.addChild(perfHud.eventNode());
         globalEventHandler.addChild(InterfaceManager.EVENT_NODE);
 

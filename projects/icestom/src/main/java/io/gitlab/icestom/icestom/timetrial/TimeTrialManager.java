@@ -79,6 +79,7 @@ public class TimeTrialManager {
                             TimeTrialingInstance created = new ManagedTimetrialInstance(loadTicket, track);
                             weakInstances.add(created);
                             MinecraftServer.getInstanceManager().registerSharedInstance(created);
+                            created.initialize();
                             return created;
                         }
                     });

@@ -10,21 +10,16 @@ import io.gitlab.icestom.icestom.entity.TimetrialLeaderboard;
 import io.gitlab.icestom.icestom.instance.BoatedTrackInstance;
 import io.gitlab.icestom.icestom.instance.SpawnLocation;
 import io.gitlab.icestom.icestom.timetrial.event.*;
-import io.gitlab.icestom.icestom.timetrial.lap.TimeTrialResult;
-import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResult;
+import io.gitlab.icestom.icestom.timetrial.lap.*;
 import io.gitlab.icestom.icestom.track.PlayerMovement;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
-import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
-import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.track.event.TrackColliderEvent;
 import io.gitlab.icestom.icestom.track.event.TrackRegionEnterEvent;
 import io.gitlab.icestom.icestom.track.event.TrackTriggerPassEvent;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import io.gitlab.icestom.icestom.ui.event.GenericErrorMessageEvent;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
-import io.gitlab.icestom.linefold.LZ4PositionWriter;
-import io.gitlab.icestom.linefold.LZ4SinglePositionReader;
 import io.gitlab.icestom.linefold.LZ4SinglePositionWriter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -47,7 +42,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -73,7 +67,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
     private final InterfaceManager.InterfaceHolder interfaceHolder;
 
     private final Map<UUID, TimedLap> timeTrials = new HashMap<>();
-    private final Map<UUID, LZ4SinglePositionWriter> recordings = new HashMap<>();
+    private final Map<UUID, Recording> recordings = new HashMap<>();
 
     private final Map<UUID, Pos> practicePoints = new HashMap<>();
 
@@ -243,10 +237,10 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
             @Nullable TimedLap lap = getTimedLap(player);
             if (lap != null) next_no = track.wrapCheckpointIndex(lap.getLastReachedCheckpoint() + 1);
 
-            @Nullable LZ4SinglePositionWriter writer = recordings.get(player);
+            @Nullable Recording recording = recordings.get(player);
 
-            if (writer != null) {
-                writer.writePacket(movement.pos().x(), movement.pos().y(), movement.pos().z());
+            if (recording != null) {
+                recording.writePacket(movement.pos().x(), movement.pos().y(), movement.pos().z(), movement.yaw());
             }
 
             pending.computeIfAbsent(next_no, _ -> new LinkedHashMap<>())
@@ -324,15 +318,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                             0
                     ));
 
-                    try {
-                        recordings.put(player, new LZ4SinglePositionWriter(RECORDINGS_PATH.resolve(timedLap.uuid().toString() + ".lf")));
-                    } catch (IOException e) {
-                        log.warn("Failed to record lap", e);
-                        MinecraftServer.getGlobalEventHandler().call(
-                                new GenericErrorMessageEvent(Objects.requireNonNull(MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(player)), Component.translatable("message.generic.recording_failed_start"))
-                        );
-                        return;
-                    }
+                    recordings.put(player, new Recording());
 
                     MinecraftServer.getGlobalEventHandler()
                             .call(new TimeTrialCheckpointAdvancedEvent(this, timedLap, Objects.requireNonNull(getPlayerByUuid(player))));
@@ -420,16 +406,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
             if (result.splits().size() == 1) return;
 
-            @Nullable LZ4SinglePositionWriter writer = recordings.remove(player);
-
-            if (writer != null) {
-                writer.flush();
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    log.error("Failed to close LZ4Writer", e);
-                }
-            }
+            @Nullable Recording recording = recordings.remove(player);
 
             @Nullable TimeTrialResult best = timetrialDatabase.getBestAttempt(player, track.getId());
 
@@ -437,7 +414,20 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
             boolean is_best_checkpoints = !is_first && result.splits().size() > best.splits().size();
             boolean is_best_time = !is_first && result.splits().size() == best.splits().size() && result.getTime() < best.getTime();
 
-            if (is_first || is_best_checkpoints || is_best_time) {
+            boolean is_improvement = is_first || is_best_checkpoints || is_best_time;
+
+            if (is_improvement) {
+
+                if (recording != null) {
+                    try {
+                        recording.dump(RECORDINGS_PATH.resolve(result.uuid().toString() + ".lf"));
+                    } catch (IOException e) {
+                        log.warn("Failed to save recording", e);
+                        MinecraftServer.getGlobalEventHandler()
+                                .call(new GenericErrorMessageEvent(player_instance, Component.translatable("message.lap.error.recording_save_fail")));
+                    }
+                }
+
                 List<TimeTrialResult> bestRuns = IceStom.getInstance().getTimetrialDatabase().getBestAttempts(track.getId(), 1);
                 if (!bestRuns.isEmpty()) {
                     if (timedLap.getTime() < bestRuns.getFirst().getTime()) {
@@ -448,12 +438,21 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                 IceStom.getInstance().getTimetrialDatabase().newAttempt(TimeTrialResult.fromResult(player, track.getId(), result));
             }
 
+            if (recording != null) {
+                try {
+                    recording.discard();
+                } catch (IOException e) {
+                    log.warn("Failed to discard recording", e);
+                    MinecraftServer.getGlobalEventHandler()
+                            .call(new GenericErrorMessageEvent(player_instance, Component.translatable("message.lap.error.recording_discard_fail")));
+                }
+            }
+
             MinecraftServer.getGlobalEventHandler()
                     .call(new TimeTrialTimedLapEndedEvent(this, timedLap, player_instance, best));
 
             leaderboard.updateLeaderboard();
         }
-
     }
 
     @Override

@@ -8,9 +8,8 @@ import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -39,13 +38,20 @@ abstract class AbstractLZ4PositionWriter implements Closeable {
     protected ByteBuffer active;
     protected volatile boolean closed = false;
 
-    protected AbstractLZ4PositionWriter(Path path, int bufferCapacityBytes, Logger log)
-            throws IOException {
+    protected AbstractLZ4PositionWriter(OutputStream out, int bufferCapacityBytes, Logger log) {
+        if (out == null) {
+            throw new NullPointerException("out");
+        }
         if (bufferCapacityBytes < MAX_RECORD_BYTES) {
+            try {
+                out.close();
+            } catch (IOException ignored) {
+                // best effort; we are already failing
+            }
             throw new IllegalArgumentException("bufferCapacityBytes must hold at least one record");
         }
         this.log = log;
-        this.fileOut = new DataOutputStream(new BufferedOutputStream(Files.newOutputStream(path)));
+        this.fileOut = new DataOutputStream(new BufferedOutputStream(out));
 
         ByteBuffer buf1 = ByteBuffer.allocate(bufferCapacityBytes);
         ByteBuffer buf2 = ByteBuffer.allocate(bufferCapacityBytes);

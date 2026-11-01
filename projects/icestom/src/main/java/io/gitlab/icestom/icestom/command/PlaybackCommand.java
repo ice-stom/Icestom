@@ -62,8 +62,8 @@ public final class PlaybackCommand extends Command {
 
             List<Pos> positions = new ArrayList<>();
             try {
-                LZ4SinglePositionReader.readAll(path, (x, y, z) -> {
-                    positions.add(new Pos(x, y, z));
+                LZ4SinglePositionReader.readAll(Files.newInputStream(path), (x, y, z, yaw) -> {
+                    positions.add(new Pos(x, y, z, yaw, 0));
                 });
             } catch (IOException e) {
                 player.sendMessage("Failed to read recording: " + e.getMessage());
@@ -89,7 +89,7 @@ public final class PlaybackCommand extends Command {
                 Pos pos = positions.get(index);
 
                 ParticlePacket particlePacket = new ParticlePacket(
-                        Particle.ANGRY_VILLAGER,
+                        Particle.HEART,
                         true,
                         true,
                         pos.x(), pos.y(), pos.z(),

@@ -9,7 +9,7 @@ import java.util.*;
 
 public class Benchmark {
 
-    private record Packet(int streamId, double x, double y, double z) {}
+    private record Packet(int streamId, double x, double y, double z, float yaw) {}
 
     private record Result(String name, long bytes, long nanos) {
         double nanosPerPacket(int count) {
@@ -43,10 +43,10 @@ public class Benchmark {
         // Uses a separate file to avoid affecting measured output.
         Path warmup = dir.resolve("warmup.lz4");
 
-        try (LZ4PositionWriter writer = new LZ4PositionWriter(warmup)) {
+        try (LZ4PositionWriter writer = new LZ4PositionWriter(Files.newOutputStream(warmup))) {
             for (int i = 0; i < Math.min(count, 10_000); i++) {
                 Packet p = packets.get(i);
-                writer.writePacket(p.streamId(), p.x(), p.y(), p.z());
+                writer.writePacket(p.streamId(), p.x(), p.y(), p.z(), p.yaw());
             }
         }
 
@@ -132,10 +132,12 @@ public class Benchmark {
 
         // Simulate 3 independent streams (matching streamId = i % 3)
         double[][] streamPositions = new double[3][3];
+        float[] streamYaw = new float[3];
         for (int s = 0; s < 3; s++) {
             streamPositions[s][0] = random.nextDouble(-10_000.0, 10_000.0);
             streamPositions[s][1] = random.nextDouble(-10_000.0, 10_000.0);
             streamPositions[s][2] = random.nextDouble(-10_000.0, 10_000.0);
+            streamYaw[s] = random.nextFloat(-180f, 180f);
         }
 
         for (int i = 0; i < count; i++) {
@@ -147,7 +149,9 @@ public class Benchmark {
             pos[1] += offsetPool[random.nextInt(100)];
             pos[2] += offsetPool[random.nextInt(100)];
 
-            packets.add(new Packet(streamId, pos[0], pos[1], pos[2]));
+            streamYaw[streamId] += offsetPool[random.nextInt(100)] * 2f;
+
+            packets.add(new Packet(streamId, pos[0], pos[1], pos[2], streamYaw[streamId]));
         }
 
         return packets;
@@ -160,13 +164,14 @@ public class Benchmark {
 
         long start = System.nanoTime();
 
-        try (LZ4PositionWriter writer = new LZ4PositionWriter(file)) {
+        try (LZ4PositionWriter writer = new LZ4PositionWriter(Files.newOutputStream(file))) {
             for (Packet p : packets) {
                 writer.writePacket(
                         p.streamId(),
                         p.x(),
                         p.y(),
-                        p.z()
+                        p.z(),
+                        p.yaw()
                 );
             }
 
@@ -206,6 +211,9 @@ public class Benchmark {
                 out.write(",\"z\":");
                 out.write(Double.toString(p.z()));
 
+                out.write(",\"yaw\":");
+                out.write(Float.toString(p.yaw()));
+
                 out.write("}\n");
             }
         }
@@ -229,7 +237,7 @@ public class Benchmark {
         try (OutputStream out = new BufferedOutputStream(
                 Files.newOutputStream(file)
         )) {
-            ByteBuffer buffer = ByteBuffer.allocate(28)
+            ByteBuffer buffer = ByteBuffer.allocate(32)
                     .order(ByteOrder.BIG_ENDIAN);
 
             for (Packet p : packets) {
@@ -239,6 +247,7 @@ public class Benchmark {
                 buffer.putDouble(p.x());
                 buffer.putDouble(p.y());
                 buffer.putDouble(p.z());
+                buffer.putFloat(p.yaw());
 
                 out.write(buffer.array());
             }

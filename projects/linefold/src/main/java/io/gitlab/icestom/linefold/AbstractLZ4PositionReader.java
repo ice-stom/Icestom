@@ -7,8 +7,7 @@ import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.InputStream;
 
 abstract class AbstractLZ4PositionReader {
 
@@ -16,11 +15,10 @@ abstract class AbstractLZ4PositionReader {
 
     protected abstract void processRecord(byte[] decompressed, int[] offsetHolder);
 
-    protected final void readAllFrames(Path path) throws IOException {
+    protected final void readAllFrames(InputStream source) throws IOException {
         LZ4FastDecompressor decompressor = LZ4Factory.fastestInstance().fastDecompressor();
 
-        try (DataInputStream in = new DataInputStream(
-                new BufferedInputStream(Files.newInputStream(path)))) {
+        try (DataInputStream in = new DataInputStream(new BufferedInputStream(source))) {
 
             while (true) {
                 int uncompressedLength;

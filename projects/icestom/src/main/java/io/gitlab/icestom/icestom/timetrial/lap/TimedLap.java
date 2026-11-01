@@ -14,7 +14,7 @@ public class TimedLap implements TimedLapResultSource {
     private final Track track;
     @Nullable private final TimedLapResultSource bestPreviousResult;
 
-    private final UUID uuid =UUID.randomUUID();
+    private final UUID uuid = UUID.randomUUID();
 
     private final List<Split> splits = new ArrayList<>();
     private final Map<Integer, Pos> ticks = new HashMap<>();

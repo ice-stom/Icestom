@@ -2,7 +2,6 @@ package io.gitlab.icestom.linefold;
 
 import net.jpountz.lz4.LZ4Compressor;
 import net.jpountz.lz4.LZ4Factory;
-import org.slf4j.Logger;
 
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
@@ -24,7 +23,6 @@ abstract class AbstractLZ4PositionWriter implements Closeable {
     private final LZ4Compressor compressor = LZ4Factory.fastestInstance().fastCompressor();
     private final DataOutputStream fileOut;
     private final Object fileLock = new Object();
-    private final Logger log;
 
     private final ExecutorService compressionExecutor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "lz4-position-writer");
@@ -38,7 +36,7 @@ abstract class AbstractLZ4PositionWriter implements Closeable {
     protected ByteBuffer active;
     protected volatile boolean closed = false;
 
-    protected AbstractLZ4PositionWriter(OutputStream out, int bufferCapacityBytes, Logger log) {
+    protected AbstractLZ4PositionWriter(OutputStream out, int bufferCapacityBytes) {
         if (out == null) {
             throw new NullPointerException("out");
         }
@@ -50,7 +48,6 @@ abstract class AbstractLZ4PositionWriter implements Closeable {
             }
             throw new IllegalArgumentException("bufferCapacityBytes must hold at least one record");
         }
-        this.log = log;
         this.fileOut = new DataOutputStream(new BufferedOutputStream(out));
 
         ByteBuffer buf1 = ByteBuffer.allocate(bufferCapacityBytes);
@@ -132,7 +129,7 @@ abstract class AbstractLZ4PositionWriter implements Closeable {
                 fileOut.write(dst, 0, compressedLength);
             }
         } catch (IOException e) {
-            log.error("failed to write compressed position frame", e);
+            e.printStackTrace();
         } finally {
             pendingFlushSlots.remove(readyBuffer);
             readyBuffer.clear();

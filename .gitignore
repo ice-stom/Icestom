@@ -1,9 +1,10 @@
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
-/run/*
-/run/**
-!/run/.gitkeep
+/.run/*
+/.run/**
+!/.run/.gitkeep
+!/.run/IceStom.run.xml
 
 ### IntelliJ IDEA ###
 .idea

@@ -1,15 +1,10 @@
 package io.gitlab.icestom.linefold;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class LZ4PositionWriter extends AbstractLZ4PositionWriter {
-
-    private static final Logger log = LoggerFactory.getLogger(LZ4PositionWriter.class);
 
     private final Map<Integer, long[]> prevByStream = new ConcurrentHashMap<>();
     private final Object bufferLock = new Object();
@@ -19,7 +14,7 @@ public final class LZ4PositionWriter extends AbstractLZ4PositionWriter {
     }
 
     public LZ4PositionWriter(OutputStream out, int bufferCapacityBytes) {
-        super(out, bufferCapacityBytes, log);
+        super(out, bufferCapacityBytes);
     }
 
     public void writePacket(int streamId, double x, double y, double z, float yaw) {

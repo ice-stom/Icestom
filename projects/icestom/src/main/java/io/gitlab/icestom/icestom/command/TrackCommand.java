@@ -3,12 +3,15 @@ package io.gitlab.icestom.icestom.command;
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.Tag;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.CommandContext;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.command.builder.suggestion.Suggestion;
 import net.minestom.server.command.builder.suggestion.SuggestionEntry;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,18 +50,44 @@ public class TrackCommand extends Command {
                     ticket.getTrackMeta().thenAccept(track -> {
                         ticket.burn();
 
-                        final Component[] text = {Component.text("Track " + track_id + "\n")
-                                .append(Component.text(" - Checkpoints:\n"))};
+                        @Nullable String contributors = track.getTags().get("icestom.contributors");
 
-                        track.getCheckpoints()
-                                .entrySet()
-                                .stream()
-                                .sorted(Comparator.comparingInt(Map.Entry::getValue))
-                                .forEach(entry -> {
-                                    text[0] = text[0].append(Component.text("  " + entry.getValue() + ": " + entry.getKey().getClass().getSimpleName() + "\n"));
-                                });
+                        String date = track.getTags().get("icestom.date");
 
-                        commandSender.sendMessage(text[0]);
+                        if (date == null) date = "unknown";
+
+                        if (contributors != null) {
+                            commandSender.sendMessage(Component.translatable("command.track.info_contributors",
+                                    Argument.component("track", track.getName()),
+                                    Argument.string("track_id", track_id),
+                                    Argument.string("looped", track.isLooped() ? "looped" : "p2p"),
+                                    Argument.string("date", date),
+                                    Argument.string("author", track.getTags().getOrDefault("icestom.author", "unknown")),
+                                    Argument.string("contributors", contributors),
+                                    Argument.string("license", track.getTags().getOrDefault("icestom.license", "unspecified")),
+                                    Argument.numeric("checkpoints", track.getHighestCheckpoint()),
+                                    Argument.numeric("regions", track.getRegions().size()),
+                                    Argument.numeric("triggers", track.getTriggers().size()),
+                                    Argument.numeric("grids", track.getGridLocations().size()),
+                                    Argument.string("obu", track.getOpenBoatUtilsPackets().isEmpty() ? "no" : "yes"),
+                                    Argument.string("packets", track.getOpenBoatUtilsPackets().isEmpty() ? "" : "(" + track.getOpenBoatUtilsPackets().size() + " packets)")
+                            ));
+                        } else {
+                            commandSender.sendMessage(Component.translatable("command.track.info",
+                                    Argument.component("track", track.getName()),
+                                    Argument.string("track_id", track_id),
+                                    Argument.string("looped", track.isLooped() ? "looped" : "p2p"),
+                                    Argument.string("date", date),
+                                    Argument.string("author", track.getTags().getOrDefault("icestom.author", "unknown")),
+                                    Argument.string("license", track.getTags().getOrDefault("icestom.license", "unspecified")),
+                                    Argument.numeric("checkpoints", track.getHighestCheckpoint()),
+                                    Argument.numeric("regions", track.getRegions().size()),
+                                    Argument.numeric("triggers", track.getTriggers().size()),
+                                    Argument.numeric("grids", track.getGridLocations().size()),
+                                    Argument.string("obu", track.getOpenBoatUtilsPackets().isEmpty() ? "no" : "yes"),
+                                    Argument.string("packets", track.getOpenBoatUtilsPackets().isEmpty() ? "" : "(" + track.getOpenBoatUtilsPackets().size() + " packets)")
+                            ));
+                        }
                     });
                 });
             }, trackArgument);

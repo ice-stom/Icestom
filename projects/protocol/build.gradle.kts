@@ -3,6 +3,7 @@ plugins {
     `java-library`
     `maven-publish`
     id("com.google.protobuf") version "0.9.5"
+    id("com.gradleup.shadow") version("9.4.3")
 }
 
 group = "io.gitlab.icestom"
@@ -19,6 +20,11 @@ dependencies {
 tasks.withType<JavaCompile> {
     options.release.set(21)
 }
+
+tasks.shadowJar {
+    archiveClassifier.set("")
+}
+
 
 protobuf {
     protoc {

@@ -81,15 +81,12 @@ public class Track {
     }
 
     public int wrapCheckpointIndex(int checkpoint) {
-        if (!looped) return checkpoint % (wrapIndex + 1);
-
         return checkpoint % wrapIndex;
     }
 
     public boolean isLastCheckpoint(int checkpoint) {
-        if (!looped) return checkpoint == (wrapIndex - 1);
-
-        return checkpoint % wrapIndex == 0;
+        int idx = wrapCheckpointIndex(looped ? checkpoint : checkpoint + 1);
+        return idx == 0;
     }
 
     public TrackFile getSource() {

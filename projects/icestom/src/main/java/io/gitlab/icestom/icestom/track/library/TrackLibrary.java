@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -137,6 +138,8 @@ public class TrackLibrary {
 
             trackLoad.fullyLoaded().whenComplete((_, throwable) -> {
                 if (throwable != null) {
+                    if (throwable instanceof CancellationException) return;
+
                     log.error("Track load failed", throwable);
                     return;
                 }

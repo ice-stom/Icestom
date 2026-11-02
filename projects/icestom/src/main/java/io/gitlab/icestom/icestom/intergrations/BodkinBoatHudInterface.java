@@ -106,6 +106,8 @@ public class BodkinBoatHudInterface implements InterfaceProvider {
 
                             String name = UsernameCache.getUsernameCached(uuid);
 
+                            if (name == null) name = "<unknown>";
+
                             ByteArrayOutputStream out = new ByteArrayOutputStream();
                             DataOutputStream w = new DataOutputStream(out);
                             w.writeByte(2);

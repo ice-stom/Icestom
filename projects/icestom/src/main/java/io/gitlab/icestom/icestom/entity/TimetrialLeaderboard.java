@@ -73,8 +73,8 @@ public class TimetrialLeaderboard extends Entity {
             leaderboard.append(Component.text(name));
             leaderboard.appendSpace();
 
-            if (track.wrapCheckpointIndex(attempt.splits().size()) == 0) {
-                int checkpoints = attempt.splits().size() - 1;
+            int checkpoints = attempt.splits().size() - 1;
+            if (!track.isLastCheckpoint(checkpoints)) {
                 leaderboard.append(Component.text(checkpoints + "C", NamedTextColor.GREEN));
                 leaderboard.appendSpace();
             }

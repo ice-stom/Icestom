@@ -1,13 +1,8 @@
 package io.gitlab.icestom.linefold;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.OutputStream;
 
 public final class LZ4SinglePositionWriter extends AbstractLZ4PositionWriter {
-
-    private static final Logger log = LoggerFactory.getLogger(LZ4SinglePositionWriter.class);
 
     private long prevX = 0L;
     private long prevY = 0L;
@@ -19,7 +14,7 @@ public final class LZ4SinglePositionWriter extends AbstractLZ4PositionWriter {
     }
 
     public LZ4SinglePositionWriter(OutputStream out, int bufferCapacityBytes) {
-        super(out, bufferCapacityBytes, log);
+        super(out, bufferCapacityBytes);
     }
 
     public void writePacket(double x, double y, double z, float yaw) {

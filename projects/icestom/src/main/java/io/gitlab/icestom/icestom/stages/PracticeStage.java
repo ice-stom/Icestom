@@ -1,11 +1,9 @@
 package io.gitlab.icestom.icestom.stages;
 
-import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.event.*;
 import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import io.gitlab.icestom.icestom.event.event.Result;
 import io.gitlab.icestom.icestom.event.lua.ParticipantStore;
-import io.gitlab.icestom.icestom.event.stage.EventStage;
 import io.gitlab.icestom.icestom.event.stage.InvalidStageArgumentsException;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.track.Track;

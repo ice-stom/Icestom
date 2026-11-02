@@ -6,6 +6,7 @@ import io.gitlab.icestom.icestom.util.TextFormatter;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.coordinate.Pos;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 
 import java.util.*;
 
@@ -92,7 +93,7 @@ public class TimedLap implements TimedLapResultSource {
     }
 
     @Override
-    public UUID uuid() {
+    public @NonNull UUID uuid() {
         return uuid;
     }
 
@@ -102,10 +103,10 @@ public class TimedLap implements TimedLapResultSource {
     public long getRecentSplit() { return recentSplit; }
 
     @Override
-    public List<Split> splits() { return splits; }
+    public @NonNull List<Split> splits() { return splits; }
 
     @Override
-    public Map<Integer, Pos> ticks() { return ticks; }
+    public @NonNull Map<Integer, Pos> ticks() { return ticks; }
 
     public @Nullable TimedLapResultSource getBestPreviousResult() {
         return bestPreviousResult;

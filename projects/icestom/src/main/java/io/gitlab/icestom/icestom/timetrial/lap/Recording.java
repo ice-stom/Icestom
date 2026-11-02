@@ -22,12 +22,13 @@ public class Recording {
 
     public void dump(Path path) throws IOException {
         writer.flush();
-        writer.close();
         try (OutputStream file = Files.newOutputStream(path)) {
             buffer.writeTo(file);
-        } finally {
-            buffer.close();
         }
+    }
+
+    public ByteArrayOutputStream getBuffer() {
+        return buffer;
     }
 
     public void discard() throws IOException {

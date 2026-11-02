@@ -1,9 +1,10 @@
 plugins {
     id("java")
+    `maven-publish`
 }
 
 group = "io.gitlab.icestom"
-version = "0.3.2"
+version = "0.0.1"
 
 repositories {
     mavenCentral()
@@ -19,6 +20,18 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+tasks.withType<JavaCompile> {
+    options.release.set(21)
+}
+
 tasks.test {
     useJUnitPlatform()
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+        }
+    }
 }

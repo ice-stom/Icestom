@@ -1,12 +1,11 @@
 package io.gitlab.icestom.icestom.intergrations;
 
+import io.gitlab.icestom.icestom.entity.IceStomPlayer;
 import io.gitlab.icestom.protocol.ISChannel;
 import io.gitlab.icestom.protocol.packets.configuration.ClientboundConfiguration;
 import io.gitlab.icestom.protocol.packets.configuration.ServerboundConfiguration;
 import io.gitlab.icestom.protocol.packets.configuration.clientbound.ServerHello;
 import io.gitlab.icestom.protocol.packets.configuration.serverbound.ClientHello;
-import net.hollowcube.luau.LuaString;
-import net.kyori.adventure.key.Key;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.Event;
@@ -21,9 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 public class IceStomModManager implements EventHandler<Event> {
 
@@ -46,18 +43,16 @@ public class IceStomModManager implements EventHandler<Event> {
                                             .setSpec(1)
                                             .build())
                                     .build()
-                                    .toByteArray()
-                    ));
+                                    .toByteArray()));
                 }
         );
 
-        MinecraftServer.getPacketListenerManager()
-                .setConfigurationListener(
-                        ClientPluginMessagePacket.class,
-                        (packet, connection) -> {
-                            onPluginMessage(connection, packet.channel(), packet.data());
-                        }
-                );
+        MinecraftServer.getPacketListenerManager().setConfigurationListener(
+                ClientPluginMessagePacket.class,
+                (packet, connection) -> {
+                    onPluginMessage(connection, packet.channel(), packet.data());
+                }
+        );
     }
 
     private void onPluginMessage(Player player, String identifier, byte[] data) {
@@ -89,6 +84,8 @@ public class IceStomModManager implements EventHandler<Event> {
 
                     for (ClientHello.Feature feature : clientHello.getFeaturesList()) {
                         log.info("Feature {}, {}", feature.getKey(), feature.getVersion());
+
+                        ((IceStomPlayer) player).addModFeature(feature.getKey(), feature.getVersion());
                     }
                 }
             }

@@ -5,6 +5,7 @@ import io.gitlab.icestom.icestom.database.preference.PreferenceKey;
 import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import io.gitlab.icestom.icestom.ui.theme.Themes;
 import io.gitlab.icestom.icestom.ui.translation.TranslationManager;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerPluginMessageEvent;
@@ -22,6 +23,8 @@ public class IceStomPlayer extends Player implements EventParticipant {
 
     private final Map<PreferenceKey<?>, Object> preferences = new HashMap<>();
     private @Nullable Integer openBoatUtilsVersion = null;
+
+    private final Map<String, Integer> modFeatures = new HashMap<>();
 
     private final Set<String> seenPluginMessageChannels = new HashSet<>();
 
@@ -59,6 +62,22 @@ public class IceStomPlayer extends Player implements EventParticipant {
 
     public @Nullable Integer getOpenBoatUtilsVersion() {
         return openBoatUtilsVersion;
+    }
+
+    public void addModFeature(String feature, int version) {
+        modFeatures.put(feature, version);
+    }
+
+    public boolean supportsModFeature(Key feature, int min_version) {
+        return supportsModFeature(feature.toString(), min_version);
+    }
+
+    public boolean supportsModFeature(String feature, int min_vesion) {
+        Integer version = modFeatures.get(feature);
+
+        if (version == null) return false;
+
+        return version >= min_vesion;
     }
 
     @Override

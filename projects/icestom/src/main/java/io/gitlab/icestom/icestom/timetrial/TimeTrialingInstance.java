@@ -1,11 +1,13 @@
 package io.gitlab.icestom.icestom.timetrial;
 
+import com.google.protobuf.ByteString;
 import io.github.openboatutils.protocol.channels.OBUSettingsPacket;
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.command.BoatCommand;
 import io.gitlab.icestom.icestom.config.IceStomConfig;
 import io.gitlab.icestom.icestom.database.TimetrialDatabase;
 import io.gitlab.icestom.icestom.entity.Boat;
+import io.gitlab.icestom.icestom.entity.IceStomPlayer;
 import io.gitlab.icestom.icestom.entity.TimetrialLeaderboard;
 import io.gitlab.icestom.icestom.instance.BoatedTrackInstance;
 import io.gitlab.icestom.icestom.instance.SpawnLocation;
@@ -20,7 +22,11 @@ import io.gitlab.icestom.icestom.track.event.TrackTriggerPassEvent;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import io.gitlab.icestom.icestom.ui.event.GenericErrorMessageEvent;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
-import io.gitlab.icestom.linefold.LZ4SinglePositionWriter;
+import io.gitlab.icestom.protocol.ISChannel;
+import io.gitlab.icestom.protocol.common.LinefoldLine;
+import io.gitlab.icestom.protocol.packets.timetrial.ClientboundTimetrial;
+import io.gitlab.icestom.protocol.packets.timetrial.clientbound.ServerPBLine;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.Style;
@@ -41,7 +47,11 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -54,11 +64,13 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
     private static final Logger log = LoggerFactory.getLogger(TimeTrialingInstance.class);
 
-    private static final PluginMessagePacket nocol_packet;
+    private static final Key MOD_FEATURE_TIMETRIAL = Key.key(IceStom.NAMESPACE, "timetrial");
+
+    private static final PluginMessagePacket no_collision_packet;
 
     static {
         try {
-            nocol_packet = writePacket(new OBUSettingsPacket.CollisionMode(OBUSettingsPacket.CollisionModes.NO_BOATS_AND_PLAYERS));
+            no_collision_packet = writePacket(new OBUSettingsPacket.CollisionMode(OBUSettingsPacket.CollisionModes.NO_BOATS_AND_PLAYERS));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -223,6 +235,28 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         }
     }
 
+    private TimedLap startTimedLap(UUID player, TickLocation location, long tick_delta, int checkpoint) {
+        @Nullable TimeTrialResult best_result =
+                IceStom.getInstance().getTimetrialDatabase().getBestAttempt(player, track.getId());
+
+        TimedLap timedLap = new TimedLap(track, best_result, new Split(
+                location.tick() * 50,
+                tick_delta,
+                checkpoint
+        ));
+
+        Recording recording = new Recording();
+        recording.writePacket(location.pos().x(), location.pos().y(), location.pos().z(), location.yaw());
+        recordings.put(player, recording);
+
+        timeTrials.put(player, timedLap);
+
+        MinecraftServer.getGlobalEventHandler()
+                .call(new TimeTrialCheckpointAdvancedEvent(this, timedLap, Objects.requireNonNull(getPlayerByUuid(player))));
+
+        return timedLap;
+    }
+
     @Override
     protected void handleMovements(List<TickLocation> movements) {
         if (movements.isEmpty()) return;
@@ -305,26 +339,10 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
                 bucket.remove(player);
 
-                int next_checkpoint;
                 @Nullable TimedLap lap = getTimedLap(player);
 
                 if (lap == null) {
-                    @Nullable TimeTrialResult best_result =
-                            IceStom.getInstance().getTimetrialDatabase().getBestAttempt(player, track.getId());
-
-                    TimedLap timedLap = new TimedLap(track, best_result, new Split(
-                            location.tick() * 50,
-                            tick_delta,
-                            0
-                    ));
-
-                    recordings.put(player, new Recording());
-
-                    MinecraftServer.getGlobalEventHandler()
-                            .call(new TimeTrialCheckpointAdvancedEvent(this, timedLap, Objects.requireNonNull(getPlayerByUuid(player))));
-
-                    timeTrials.put(player, timedLap);
-                    next_checkpoint = track.wrapCheckpointIndex(checkpoint + 1);
+                    startTimedLap(player, location, tick_delta, 0);
                 } else {
                     boolean finished = lap.advanceCheckpoint(new Split(
                             location.tick() * 50,
@@ -337,10 +355,15 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
                     if (finished) {
                         endTimeTrial(player);
-                    }
 
-                    next_checkpoint = track.wrapCheckpointIndex(checkpoint + 1);
+                        if (track.isLooped()) {
+                            startTimedLap(player, location, tick_delta, 0);
+                            lastPosition.put(player, location);
+                        }
+                    }
                 }
+
+                int next_checkpoint = track.wrapCheckpointIndex(checkpoint + 1);
 
                 if (!playerQueue.isEmpty()) {
                     LinkedHashMap<UUID, ArrayDeque<TickLocation>> nextBucket =
@@ -373,7 +396,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         endTimeTrial(player.getUuid());
         super.resetPlayer(player);
 
-        player.sendPacket(nocol_packet);
+        player.sendPacket(no_collision_packet);
 
         PlayerInventory inventory = player.getInventory();
 
@@ -419,13 +442,16 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
             if (is_improvement) {
 
                 if (recording != null) {
-                    try {
-                        recording.dump(RECORDINGS_PATH.resolve(result.uuid().toString() + ".lf"));
-                    } catch (IOException e) {
-                        log.warn("Failed to save recording", e);
-                        MinecraftServer.getGlobalEventHandler()
-                                .call(new GenericErrorMessageEvent(player_instance, Component.translatable("message.lap.error.recording_save_fail")));
-                    }
+                    MinecraftServer.getSchedulerManager().execute(() -> {
+                        try {
+                            recording.dump(RECORDINGS_PATH.resolve(result.uuid() + ".lf"));
+                            tryUpdatePBLine(player_instance);
+                        } catch (IOException e) {
+                            log.warn("Failed to save recording", e);
+                            MinecraftServer.getGlobalEventHandler()
+                                    .call(new GenericErrorMessageEvent(player_instance, Component.translatable("message.lap.error.recording_save_fail")));
+                        }
+                    });
                 }
 
                 List<TimeTrialResult> bestRuns = IceStom.getInstance().getTimetrialDatabase().getBestAttempts(track.getId(), 1);
@@ -463,6 +489,39 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
         MinecraftServer.getGlobalEventHandler()
                 .call(new TimeTrialStartEvent(this, player));
+
+        tryUpdatePBLine(player);
+    }
+
+    private void tryUpdatePBLine(Player player) {
+        if (!((IceStomPlayer) player).supportsModFeature(MOD_FEATURE_TIMETRIAL, 1)) return;
+
+        MinecraftServer.getSchedulerManager().execute(() -> {
+            @Nullable TimeTrialResult result = IceStom.getInstance().getTimetrialDatabase().getBestAttempt(player.getUuid(), track.getId());
+
+            if (result == null) return;
+
+            Path recording = RECORDINGS_PATH.resolve(result.uuid() + ".lf");
+
+            if (!recording.toFile().exists()) return;
+
+            try (InputStream input = Files.newInputStream(recording)) {
+                ByteString bytes = ByteString.readFrom(input);
+
+                MinecraftServer.getSchedulerManager().execute(() -> player.sendPacket(new PluginMessagePacket(
+                        ISChannel.TIMETRIAL.getIdentifier(),
+                        ClientboundTimetrial.newBuilder()
+                                .setPbLine(ServerPBLine.newBuilder()
+                                        .setLine(LinefoldLine.newBuilder()
+                                                .setData(bytes)
+                                                .build())
+                                        .build())
+                                .build()
+                                .toByteArray())));
+            } catch (IOException e) {
+                log.warn("Failed to read pb line", e);
+            }
+        });
     }
 
     @Override
@@ -477,7 +536,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
         player.getInventory().clear();
 
-        player.sendPacket(nocol_packet);
+        player.sendPacket(no_collision_packet);
 
         interfaceHolder.stopWatching(player);
     }

@@ -5,15 +5,16 @@ import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class TimeTrialNewRecordEvent implements TimeTrialInstanceEvent, TimedLapResultSourceEvent {
     @NotNull private final TimedLap lap;
     @NotNull private final Player player;
     @NotNull private final TimeTrialingInstance instance;
     @NotNull private final TimedLapResultSource result;
-    @NotNull private final TimedLapResultSource oldResult;
+    @Nullable private final TimedLapResultSource oldResult;
 
-    public TimeTrialNewRecordEvent(@NotNull TimedLap lap, @NotNull Player player, @NotNull TimeTrialingInstance instance, @NotNull TimedLapResultSource result, @NotNull TimedLapResultSource oldResult) {
+    public TimeTrialNewRecordEvent(@NotNull TimedLap lap, @NotNull Player player, @NotNull TimeTrialingInstance instance, @NotNull TimedLapResultSource result, @Nullable TimedLapResultSource oldResult) {
         this.lap = lap;
         this.player = player;
         this.instance = instance;
@@ -27,23 +28,21 @@ public class TimeTrialNewRecordEvent implements TimeTrialInstanceEvent, TimedLap
     }
 
     @Override
-    public TimedLapResultSource getResult() {
+    public @NotNull TimedLapResultSource getResult() {
         return result;
     }
 
-    public TimedLapResultSource getOldResult() {
+    public @Nullable TimedLapResultSource getPreviousBest() {
         return oldResult;
     }
 
     @Override
-    public TimedLap getLap() {
+    public @NotNull TimedLap getLap() {
         return lap;
     }
 
     @Override
-    public Player getPlayer() {
+    public @NotNull Player getPlayer() {
         return player;
     }
-
-
 }

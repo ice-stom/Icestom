@@ -13,7 +13,12 @@ import net.minestom.server.network.packet.server.play.EntityHeadLookPacket;
 import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class Boat extends Entity {
+
+    private final Map<Integer, Float> lastSentYaw = new HashMap<>();
 
     public Boat(Key type) {
         if (!type.namespace().equals(Key.MINECRAFT_NAMESPACE)) {
@@ -54,10 +59,16 @@ public class Boat extends Entity {
 
         float yaw = getPosition().yaw();
 
+        lastSentYaw.keySet().removeIf(id -> getPassengers().stream().noneMatch(p -> p.getEntityId() == id));
+
         for (Entity passenger : getPassengers()) {
-            if (passenger instanceof Player player) {
-                sendPacketToViewers(new EntityHeadLookPacket(player.getEntityId(), yaw));
-            }
+            if (!(passenger instanceof Player player)) continue;
+
+            Float last = lastSentYaw.get(player.getEntityId());
+            if (last != null && last == yaw) continue;
+
+            lastSentYaw.put(player.getEntityId(), yaw);
+            sendPacketToViewers(new EntityHeadLookPacket(player.getEntityId(), yaw));
         }
     }
 }

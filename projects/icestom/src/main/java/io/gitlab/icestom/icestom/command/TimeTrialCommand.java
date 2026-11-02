@@ -9,6 +9,7 @@ import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import io.gitlab.icestom.icestom.ui.event.GenericErrorMessageEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.Command;
@@ -71,22 +72,39 @@ public class TimeTrialCommand extends Command {
                 }
             }
 
-            timeTrialManager.requestTimeTrial(player, track_id)
-                    .whenComplete((ticket, throwable) -> {
-                        if (throwable != null) {
-                            MinecraftServer.getGlobalEventHandler().call(new GenericErrorMessageEvent(player, Component.text(throwable.getMessage(), NamedTextColor.RED)));
-                            log.warn("failed to tt!", throwable);
-                            return;
-                        }
+            long loadStart = System.nanoTime();
 
-                        ticket.instance().thenAccept(instance -> {
-                            if (player.getInstance() instanceof PlayerHolder holder) {
-                                holder.drop(player);
-                            }
+            CompletableFuture<TimeTrialManager.Ticket> ttTicket = timeTrialManager.requestTimeTrial(player, track_id);
 
-                            instance.consume(player);
-                        });
-                    });
+            boolean cached = ttTicket.isDone();
+
+            ttTicket.whenComplete((ticket, throwable) -> {
+                if (throwable != null) {
+                    MinecraftServer.getGlobalEventHandler().call(new GenericErrorMessageEvent(player, Component.text(throwable.getMessage(), NamedTextColor.RED)));
+                    log.warn("failed to tt!", throwable);
+                    return;
+                }
+
+                if (!cached) {
+                    player.sendMessage(Component.translatable("command.generic.loading_track", Component.text(track_id)));
+                }
+
+                ticket.instance().thenAccept(instance -> {
+                    long loadEnd = System.nanoTime();
+
+                    if (!cached) {
+                        player.sendMessage(Component.translatable("command.generic.loaded_track",
+                                Argument.component("track", instance.getTrack().getName()),
+                                Argument.string("time", String.format("%.2f", 1e-6 * (loadEnd - loadStart)))));
+                    }
+
+                    if (player.getInstance() instanceof PlayerHolder holder) {
+                        holder.drop(player);
+                    }
+
+                    instance.consume(player);
+                });
+            });
         }, trackArgument);
     }
 

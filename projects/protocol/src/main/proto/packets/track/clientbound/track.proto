@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package icestom.packets.track.clientbound;
+
+option java_package = "io.gitlab.icestom.protocol.packets.track.clientbound";
+option java_multiple_files = true;
+
+message ServerTrack {
+  optional bytes track = 1;
+}

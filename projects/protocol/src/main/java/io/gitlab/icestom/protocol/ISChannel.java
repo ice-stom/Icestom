@@ -2,7 +2,8 @@ package io.gitlab.icestom.protocol;
 
 public enum ISChannel {
     CONFIGURATION("icestom:configuration", Phase.CONFIGURATION),
-    TIMETRIAL("icestom:timetrial", Phase.PLAY);
+    TIMETRIAL("icestom:timetrial", Phase.PLAY),
+    TRACK("icestom:track", Phase.PLAY);
 
     private final String identifier;
     private final Phase phase;

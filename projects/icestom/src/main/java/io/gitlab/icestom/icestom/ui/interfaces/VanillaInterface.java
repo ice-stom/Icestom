@@ -217,16 +217,49 @@ public class VanillaInterface implements InterfaceProvider {
             final Player player = event.getPlayer();
             final Track track = event.getInstance().getTrack();
             final TimedLapResultSource result = event.getResult();
-            final TimedLapResultSource oldResult = event.getOldResult();
+            final @Nullable TimedLapResultSource best = event.getPreviousBest();
 
-            player.sendMessage(Component.translatable(
-                    "message.timetrial.get_record",
-                    Argument.component("player", player.getName()),
-                    Argument.component("track", track.getName()),
-                    Argument.component("time", TextFormatter.getTime(result.getTime())),
-                    Argument.component("delta", TextFormatter.getDelta(result.getTime() - oldResult.getTime())),
-                    Argument.component("oldtime", TextFormatter.getTime(oldResult.getTime()))
-            ));
+            boolean is_full_run = track.isLastCheckpoint(result.splits().size() - 1);
+
+            if (is_full_run) {
+                if (best == null || result.splits().size() > best.splits().size()) {
+                    player.sendMessage(Component.translatable(
+                            "message.timetrial.record_first_completion",
+                            Argument.component("player", player.getName()),
+                            Argument.component("track", track.getName()),
+                            Argument.component("time", TextFormatter.getTime(result.getTime()))
+                    ));
+                } else {
+                    player.sendMessage(Component.translatable(
+                            "message.timetrial.record",
+                            Argument.component("player", player.getName()),
+                            Argument.component("track", track.getName()),
+                            Argument.component("time", TextFormatter.getTime(result.getTime())),
+                            Argument.component("delta", TextFormatter.getDelta(result.getTime() - best.getTime())),
+                            Argument.component("old_time", TextFormatter.getTime(best.getTime()))
+                    ));
+                }
+            } else {
+                if (best == null || result.splits().size() > best.splits().size()) {
+                    player.sendMessage(Component.translatable(
+                            "message.timetrial.record_first_checkpoint",
+                            Argument.component("player", player.getName()),
+                            Argument.component("track", track.getName()),
+                            Argument.component("checkpoints", Component.text(result.splits().size() - 1)),
+                            Argument.component("time", TextFormatter.getTime(result.getTime()))
+                    ));
+                } else {
+                    player.sendMessage(Component.translatable(
+                            "message.timetrial.record_checkpoint_improvement",
+                            Argument.component("player", player.getName()),
+                            Argument.component("track", track.getName()),
+                            Argument.component("checkpoints", Component.text(result.splits().size() - 1)),
+                            Argument.component("time", TextFormatter.getTime(result.getTime())),
+                            Argument.component("delta", TextFormatter.getDelta(result.getTime() - best.getTime())),
+                            Argument.component("old_time", TextFormatter.getTime(best.getTime()))
+                    ));
+                }
+            }
         }
 
         protected void timedLapCheckpointAdvancedEvent(TimeTrialCheckpointAdvancedEvent event) {
@@ -239,7 +272,7 @@ public class VanillaInterface implements InterfaceProvider {
             if (result != null && result.splits().size() > checkpoint && checkpoint != 0) {
                 player.sendMessage(Component.translatable(
                         "message.timetrial.checkpoint_pass",
-                        Argument.component("checkpoint", Component.text(checkpoint)),
+                        Argument.component("checkpoints", Component.text(checkpoint)),
                         Argument.component("time", TextFormatter.getTime(lap.getSplitTime(checkpoint))),
                         Argument.component("delta", TextFormatter.getDelta(lap.getRecentSplit()))
                 ));
@@ -247,9 +280,8 @@ public class VanillaInterface implements InterfaceProvider {
                 if (checkpoint != 0) {
                     player.sendMessage(Component.translatable(
                             "message.timetrial.checkpoint_pass_no_delta",
-                            Argument.component("checkpoint", Component.text(checkpoint)),
+                            Argument.component("checkpoints", Component.text(checkpoint)),
                             Argument.component("time", TextFormatter.getTime(lap.getSplitTime(checkpoint)))
-
                     ));
                 }
             }

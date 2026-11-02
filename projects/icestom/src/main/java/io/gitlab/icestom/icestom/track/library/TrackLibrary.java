@@ -123,14 +123,9 @@ public class TrackLibrary {
 
         private State state = State.LOADING;
 
-        private final long loadStart;
-
         Ticket(UUID trackId, TrackLoad trackLoad) {
             this.trackInstanceId = trackId;
             this.trackLoad = trackLoad;
-
-            log.info("load start");
-            loadStart = System.nanoTime();
 
             tickets.add(this);
             refCounts.merge(trackId, 1, Integer::sum);
@@ -152,9 +147,6 @@ public class TrackLibrary {
                     }
                     state = State.LOADED;
                 }
-
-                long loadEnd = System.nanoTime();
-                log.info("Ticket[{}/{}] meta load time: {}ms", trackId, nativeTrackIdsLookup.getOrDefault(trackId, "??"), (loadEnd - loadStart) * 1e-6);
             });
         }
 

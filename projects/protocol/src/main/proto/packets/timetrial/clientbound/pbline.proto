@@ -5,8 +5,6 @@ package icestom.packets.timetrial.clientbound;
 option java_package = "io.gitlab.icestom.protocol.packets.timetrial.clientbound";
 option java_multiple_files = true;
 
-import "common/linefold.proto";
-
 message ServerPBLine {
-  common.LinefoldLine line = 1;
+  bytes line = 1;
 }

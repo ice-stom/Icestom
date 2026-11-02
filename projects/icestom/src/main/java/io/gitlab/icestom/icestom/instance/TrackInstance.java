@@ -1,5 +1,6 @@
 package io.gitlab.icestom.icestom.instance;
 
+import com.google.protobuf.ByteString;
 import io.github.openboatutils.protocol.OBUPacket;
 import io.github.openboatutils.protocol.channels.OBUContextPacket;
 import io.github.openboatutils.protocol.channels.OBUSettingsPacket;
@@ -15,6 +16,13 @@ import io.gitlab.icestom.icestom.track.event.TrackTriggerPassEvent;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import io.gitlab.icestom.icestom.ui.event.GenericErrorMessageEvent;
 import io.gitlab.icestom.icestom.util.BatchQueue;
+import io.gitlab.icestom.protocol.ISChannel;
+import io.gitlab.icestom.protocol.packets.track.ClientboundTrack;
+import io.gitlab.icestom.protocol.packets.track.clientbound.ServerTrack;
+import io.gitlab.icestom.stomtrack.TrackFile;
+import io.gitlab.icestom.stomtrack.TrackLoader;
+import io.gitlab.icestom.stomtrack.impl.MutableTrackFile;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.nbt.ListBinaryTag;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
@@ -29,11 +37,14 @@ import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.event.player.PlayerPacketEvent;
 import net.minestom.server.instance.LightingChunk;
 import net.minestom.server.network.packet.client.play.ClientVehicleMovePacket;
+import net.minestom.server.network.packet.server.common.PluginMessagePacket;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -44,6 +55,8 @@ import static io.gitlab.icestom.icestom.util.DisplayEntityConverter.*;
 public abstract class TrackInstance extends BoatInstance implements SpawnLocation {
 
     private static final Logger log = LoggerFactory.getLogger(TrackInstance.class);
+
+    private static final Key MOD_FEATURE_TRACK = Key.key(IceStom.NAMESPACE, "track");
 
     protected final Track track;
     private final TrackLibrary.Ticket ticket;
@@ -150,6 +163,30 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
 
                     player.sendPacket(writePacket(compound));
                 } catch (IOException _) {}
+            }
+        }
+    }
+
+    @Override
+    public void consume(Player player) {
+        SpawnLocation.super.consume(player);
+
+        if (((IceStomPlayer) player).supportsModFeature(MOD_FEATURE_TRACK.toString(), 1)) {
+            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                TrackLoader.saveTrack(outputStream, new MutableTrackFile(track.getSource()));
+
+                player.sendPacket(new PluginMessagePacket(
+                        ISChannel.TRACK.getIdentifier(),
+                        ClientboundTrack.newBuilder()
+                                .setTrack(ServerTrack.newBuilder()
+                                        .setTrack(ByteString.copyFrom(outputStream.toByteArray()))
+                                        .build()
+                                )
+                                .build()
+                                .toByteArray()
+                ));
+            } catch (IOException e) {
+                log.warn("Failed to encode track data for mod", e);
             }
         }
     }

@@ -45,7 +45,11 @@ public class Track {
 
     private final int wrapIndex;
 
+    private final TrackFile source;
+
     public Track(TrackFile trackFile, VirtualTrackInstance map) {
+        this.source = trackFile;
+
         this.id = trackFile.getId();
         this.name = trackFile.getName();
         this.looped = trackFile.isLooped();
@@ -86,6 +90,10 @@ public class Track {
         if (!looped) return checkpoint == (wrapIndex - 1);
 
         return checkpoint % wrapIndex == 0;
+    }
+
+    public TrackFile getSource() {
+        return source;
     }
 
     public @Subst(IceStom.NAMESPACE) @NonNull String getId() { return id; }

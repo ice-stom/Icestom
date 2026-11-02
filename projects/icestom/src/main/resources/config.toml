@@ -16,7 +16,7 @@ password = ""
 table_prefix = ""
 
 [openboatutils]
-block_unstable = false
+block_unstable = true
 interpolation_compatibility = true
 
 [network]
@@ -41,7 +41,6 @@ bind = "0.0.0.0"
 port = 8080
 public_url = ""
 session_minutes = 60
-operators = []
 dev_root = ""
 
 [eschaton]

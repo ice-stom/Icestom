@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package icestom.common;
+
+option java_package = "io.gitlab.icestom.protocol.common";
+option java_multiple_files = true;
+
+message BoatState {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+  float yaw = 4;
+}

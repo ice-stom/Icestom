@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package icestom.packets.track;
+
+option java_package = "io.gitlab.icestom.protocol.packets.track";
+option java_multiple_files = true;
+
+import "packets/track/clientbound/track.proto";
+
+message ClientboundTrack {
+  oneof payload {
+    icestom.packets.track.clientbound.ServerTrack track = 1;
+  }
+}

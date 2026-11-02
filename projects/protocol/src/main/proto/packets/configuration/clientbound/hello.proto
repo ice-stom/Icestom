@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package icestom.packets.configuration.clientbound;
+
+option java_package = "io.gitlab.icestom.protocol.packets.configuration.clientbound";
+option java_multiple_files = true;
+
+message ServerHello {
+  int32 spec = 1;
+}

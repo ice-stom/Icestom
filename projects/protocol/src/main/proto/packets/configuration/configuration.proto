@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package icestom.packets.configuration;
+
+option java_package = "io.gitlab.icestom.protocol.packets.configuration";
+option java_multiple_files = true;
+
+import "packets/configuration/clientbound/hello.proto";
+
+message ClientboundConfiguration {
+  oneof payload {
+    icestom.packets.configuration.clientbound.ServerHello hello = 1;
+  }
+}
+
+import "packets/configuration/serverbound/hello.proto";
+
+message ServerboundConfiguration {
+  oneof payload {
+    icestom.packets.configuration.serverbound.ClientHello hello = 1;
+  }
+}

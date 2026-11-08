@@ -54,6 +54,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import static io.gitlab.icestom.icestom.IceStom.RECORDINGS_PATH;
@@ -111,6 +112,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
     private final TimetrialLeaderboard leaderboard;
 
     private final Map<UUID, TickLocation> lastPosition = new HashMap<>();
+    private final Map<UUID, Long> teleportedAtTick = new HashMap<>();
 
     public TimeTrialingInstance(TrackLibrary.Ticket ticket, Track track) {
         super(ticket, track);
@@ -211,6 +213,18 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
     }
 
     @Override
+    public CompletableFuture<Boat> createBoat(Player player, Pos pos) {
+        teleportedAtTick.put(player.getUuid(), getPlayerTick(player.getUuid()));
+        lastPosition.remove(player.getUuid());
+
+        return super.createBoat(player, pos);
+    }
+
+    private boolean isBeforeTeleport(TickLocation movement) {
+        return movement.tick() <= teleportedAtTick.getOrDefault(movement.player(), -1L);
+    }
+
+    @Override
     public @Nullable Boat removeBoat(Player player) {
         Boat boat = super.removeBoat(player);
 
@@ -285,6 +299,8 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         for (TickLocation movement : movements) {
             UUID player = movement.player();
 
+            if (isBeforeTeleport(movement)) continue;
+
             int next_no = 0;
             @Nullable TimedLap lap = getTimedLap(player);
             if (lap != null) next_no = track.wrapCheckpointIndex(lap.getLastReachedCheckpoint() + 1);
@@ -346,6 +362,11 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                 ArrayDeque<TickLocation> playerQueue = bucket.get(player);
                 playerQueue.poll();
 
+                if (isBeforeTeleport(location)) {
+                    bucket.remove(player);
+                    continue;
+                }
+
                 TickLocation previous = lastPosition.put(player, location);
 
                 Long tick_delta = hits.get(location);
@@ -372,12 +393,10 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                             .call(new TimeTrialCheckpointAdvancedEvent(this, lap, Objects.requireNonNull(getPlayerByUuid(player))));
 
                     if (finished) {
-                        endTimeTrial(player);
-
-                        if (track.isLooped()) {
+                        completeLap(player, lap, () -> {
                             startTimedLap(player, previous, location, tick_delta, 0);
                             lastPosition.put(player, location);
-                        }
+                        });
                     }
                 }
 
@@ -397,6 +416,16 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                 checkpointQueue.add(checkpoint);
             }
         }
+    }
+
+    protected void completeLap(UUID player, TimedLap lap, Runnable startNextLap) {
+        endTimeTrial(player);
+
+        if (track.isLooped()) startNextLap.run();
+    }
+
+    public boolean allowsManualReset() {
+        return true;
     }
 
     @Override
@@ -419,10 +448,13 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         PlayerInventory inventory = player.getInventory();
 
         inventory.clear();
-        inventory.setItemStack(0, RESET_ITEM);
         inventory.setItemStack(1, BOAT_ITEM);
-        inventory.setItemStack(2, PRACTICE_ITEM);
         inventory.setItemStack(8, SPAWN_ITEM);
+
+        if (allowsManualReset()) {
+            inventory.setItemStack(0, RESET_ITEM);
+            inventory.setItemStack(2, PRACTICE_ITEM);
+        }
     }
 
     public @Nullable TimedLap getTimedLap(UUID player) {

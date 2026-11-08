@@ -204,6 +204,14 @@ final class Snapshots {
         json.addProperty("min", option.min());
         json.addProperty("max", option.max());
 
+        if (option.choices() == null) {
+            json.add("choices", null);
+        } else {
+            JsonArray choices = new JsonArray();
+            option.choices().forEach(choices::add);
+            json.add("choices", choices);
+        }
+
         Object defaultValue = option.defaultValue();
 
         if (defaultValue instanceof Boolean bool) json.addProperty("default", bool);

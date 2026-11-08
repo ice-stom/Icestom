@@ -100,6 +100,12 @@ public record EventDocument(String name, List<Stage> stages) {
                             "Option '" + option.name() + "' on stage '" + stageName + "' can't be blank");
                 }
 
+                if (option.choices() != null && !option.choices().contains(string)) {
+                    throw new Http.BadRequestException(
+                            "Option '" + option.name() + "' on stage '" + stageName + "' must be one of "
+                                    + String.join(", ", option.choices()));
+                }
+
                 yield string;
             }
             case BOOLEAN -> {

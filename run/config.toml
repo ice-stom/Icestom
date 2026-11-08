@@ -1,0 +1,47 @@
+# IceStom Configuration
+# https://gitlab.com/IceStom/IceStom
+[icestom]
+leaderboard_rows = 15
+reset_item = "minecraft:barrier"
+
+[library]
+local = "file://./tracks"
+
+[database]
+type = "sqlite" # only sqlite for now
+address = "localhost"
+database = "minecraft"
+username = ""
+password = ""
+table_prefix = ""
+
+[openboatutils]
+block_unstable = true
+interpolation_compatibility = true
+
+[network]
+bind = "0.0.0.0"
+port = 25565
+
+[auth]
+online_mode = false
+forwarding = "NONE" # "NONE" "VELOCITY" "BUNGEE"
+velocity_secret = ""
+bungeeguard_secrets = []
+
+[minestom]
+compression_threshold = 256
+chunk_view_distance = 8
+entity_view_distance = 8
+dispatcher_threads = 2
+
+[web]
+enabled = true
+bind = "0.0.0.0"
+port = 8080
+public_url = ""
+session_minutes = 60
+dev_root = "../../IcestomSite/site"
+
+[eschaton]
+enabled = false

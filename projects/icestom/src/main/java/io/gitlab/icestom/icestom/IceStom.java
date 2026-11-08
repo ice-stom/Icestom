@@ -20,6 +20,7 @@ import io.gitlab.icestom.icestom.instance.SpawnInstance;
 import io.gitlab.icestom.icestom.intergrations.IceStomModManager;
 import io.gitlab.icestom.icestom.intergrations.OpenBoatUtilsManager;
 import io.gitlab.icestom.icestom.plugins.PluginManager;
+import io.gitlab.icestom.icestom.stages.qualifying.QualifyingStage;
 import io.gitlab.icestom.icestom.stages.race.RaceStage;
 import io.gitlab.icestom.icestom.stages.PodiumStage;
 import io.gitlab.icestom.icestom.stages.PracticeStage;
@@ -172,6 +173,19 @@ public class IceStom {
                         StageOption.track("track", "Track", "Which track to race on"),
                         StageOption.number("laps", "Laps", "How many laps to complete", 3, 1d, null),
                         StageOption.number("pits", "Pit stops", "How many pit stops are required", 0, 0d, null)
+                ));
+        stageRegistry.register(Key.key(NAMESPACE, "qualifying"), QualifyingStage.class, QualifyingStage::create,
+                StageSchema.of(
+                        "Qualifying",
+                        "Timed laps ranked by lap time. You start the session; it ends on time or once everyone has set their laps.",
+                        StageOption.track("track", "Track", "Which track to qualify on"),
+                        StageOption.number("duration", "Duration", "Session length in minutes, 0 for no time limit", 10, 0d, null),
+                        StageOption.number("laps", "Laps", "Laps each player can set, 0 for no lap limit", 0, 0d, null),
+                        StageOption.choice("ranking", "Ranking", "How a lap time is picked from a player's laps", "fastest",
+                                "fastest", "nth_fastest", "consecutive", "best_laps"),
+                        StageOption.number("ranking_laps", "Ranking laps", "Which fastest lap (nth_fastest), or how many laps (consecutive, best_laps)", 1, 1d, null),
+                        StageOption.choice("reset", "Reset", "When a player returns to the start", "on_request",
+                                "after_lap", "on_request", "never")
                 ));
         stageRegistry.register(Key.key(NAMESPACE, "podium"), PodiumStage.class, PodiumStage::create,
                 StageSchema.of(

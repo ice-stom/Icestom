@@ -20,6 +20,11 @@ public class ResetCommand extends Command {
                 return;
             }
 
+            if (!timeTrialingInstance.allowsManualReset()) {
+                commandSender.sendMessage(Component.translatable("command.reset.not_allowed"));
+                return;
+            }
+
             timeTrialingInstance.resetPlayer(player);
         });
     }

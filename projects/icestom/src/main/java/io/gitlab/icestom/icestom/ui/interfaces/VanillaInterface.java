@@ -6,6 +6,7 @@ import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import io.gitlab.icestom.icestom.ordering.ForwardOrdering;
 import io.gitlab.icestom.icestom.ordering.Tower;
 import io.gitlab.icestom.icestom.ordering.TowerHolder;
+import io.gitlab.icestom.icestom.stages.qualifying.QualifyingStage;
 import io.gitlab.icestom.icestom.stages.race.RaceTimingTower;
 import io.gitlab.icestom.icestom.stages.race.RaceStage;
 import io.gitlab.icestom.icestom.stages.race.event.RaceCompletedEvent;
@@ -84,6 +85,7 @@ public class VanillaInterface implements InterfaceProvider {
     public <H, I extends Interface<H, I>> I getInterface(H holder) {
         try {
             return (I) switch (holder) {
+                case QualifyingStage instance -> new VanillaQualifyingInterface(instance);
                 case TimeTrialingInstance instance -> new VanillaTimetrialInterface(instance);
                 case RaceStage instance -> new VanillaRaceInterface(instance);
                 case IceStom instance -> new VanillaGeneralInterface(instance);
@@ -331,18 +333,18 @@ public class VanillaInterface implements InterfaceProvider {
         private record CachedRow(Object[] values, Component rendered) {}
 
         private final H holder;
-        private final Tower<R> tower;
 
         private final List<CachedRow> rows = new ArrayList<>();
 
         public TowerInterface(H holder) {
             this.holder = holder;
-            this.tower = holder.getTower();
         }
 
         protected abstract Component render(Key column, Object value);
 
         public void update() {
+            Tower<R> tower = holder.getTower();
+
             int limit = tower.size();
             List<Tower.TowerColumn<R, ?>> columns = tower.getColumns();
 
@@ -450,6 +452,52 @@ public class VanillaInterface implements InterfaceProvider {
                 case "icestom:name" -> (Component) value;
                 default -> Component.text(value.toString());
             };
+        }
+    }
+
+    public static class QualifyingTowerInterface extends TowerInterface<QualifyingStage.Qualifier, QualifyingStage> {
+        public QualifyingTowerInterface(QualifyingStage holder) {
+            super(holder);
+        }
+
+        @Override
+        protected Component render(Key column, Object value) {
+            return switch (column.toString()) {
+                case "icestom:position" -> Component.text(String.format("%2s.", value), NamedTextColor.YELLOW);
+                case "icestom:time" -> value != null ? TextFormatter.getTime((Long) value) : Component.text("   -   ", NamedTextColor.YELLOW);
+                case "icestom:name" -> (Component) value;
+                default -> Component.text(String.valueOf(value));
+            };
+        }
+    }
+
+    public static class VanillaQualifyingInterface extends VanillaTimetrialInterface {
+
+        private final QualifyingTowerInterface towerInterface;
+
+        public VanillaQualifyingInterface(QualifyingStage holder) {
+            super(holder);
+
+            towerInterface = new QualifyingTowerInterface(holder);
+        }
+
+        @Override
+        protected void timeTrialTimedLapEndedEvent(TimeTrialTimedLapEndedEvent event) {
+            super.timeTrialTimedLapEndedEvent(event);
+
+            towerInterface.update();
+        }
+
+        @Override
+        public void startWatching(Player player) {
+            super.startWatching(player);
+            towerInterface.startWatching(player);
+        }
+
+        @Override
+        public void stopWatching(Player player) {
+            super.stopWatching(player);
+            towerInterface.stopWatching(player);
         }
     }
 

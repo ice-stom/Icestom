@@ -42,6 +42,10 @@ public abstract class BoatInstance extends SharedInstance {
         super(uuid, instanceContainer);
     }
 
+    public @Nullable Boat getBoat(Player player) {
+        return boats.get(player);
+    }
+
     public @Nullable Boat removeBoat(Player player) {
         @Nullable Boat boat = boats.remove(player);
 

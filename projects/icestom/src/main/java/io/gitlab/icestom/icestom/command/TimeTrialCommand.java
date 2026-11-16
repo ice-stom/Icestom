@@ -51,16 +51,14 @@ public class TimeTrialCommand extends Command {
 
             final String track_id = commandContext.get(trackArgument);
 
-            if (!((IceStomPlayer) player).hasPermission(PERMISSION_BYPASS_FILTER)) {
-                TrackFilter.Result result = trackFilter.apply(track_id, player);
+            TrackFilter.Result result = checkFilter(track_id, commandSender);
 
-                if (result == TrackFilter.Result.DENY) {
-                    commandSender.sendMessage(Component.translatable("command.timetrial.deny_track", Component.text(track_id)));
-                    return;
-                } else if (result == TrackFilter.Result.HIDE) {
-                    commandSender.sendMessage(Component.translatable("command.generic.unknown_track", Component.text(track_id)));
-                    return;
-                }
+            if (result == TrackFilter.Result.DENY) {
+                commandSender.sendMessage(Component.translatable("command.timetrial.deny_track", Component.text(track_id)));
+                return;
+            } else if (result == TrackFilter.Result.HIDE) {
+                commandSender.sendMessage(Component.translatable("command.generic.unknown_track", Component.text(track_id)));
+                return;
             }
 
             if (player.getInstance() instanceof TimeTrialingInstance timeTrialingInstance) {
@@ -109,22 +107,9 @@ public class TimeTrialCommand extends Command {
     private void suggestionCallback(CommandSender commandSender, CommandContext commandContext, Suggestion suggestion) {
         String input = Arrays.stream(commandContext.getInput().split(" ")).toList().getLast().toLowerCase();
 
-        boolean bypassFilter;
-
-        if (commandSender instanceof IceStomPlayer player) bypassFilter = player.hasPermission(PERMISSION_BYPASS_FILTER);
-        else { bypassFilter = false; }
-
         trackLibrary.getAvailableTracks()
                 .stream()
-                .filter(string -> {
-                    if (bypassFilter) return true;
-
-                    if (commandSender instanceof IceStomPlayer player) {
-                        return trackFilter.apply(string, player) != TrackFilter.Result.HIDE;
-                    }
-
-                    return true;
-                })
+                .filter(track -> checkFilter(track, commandSender) != TrackFilter.Result.HIDE)
                 .filter(track -> input.isBlank() || input.charAt(0) == 0 || track.toLowerCase().startsWith(input))
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .limit(20)
@@ -136,6 +121,13 @@ public class TimeTrialCommand extends Command {
                                 )
                         )
                 );
+    }
+
+    public static @NotNull TrackFilter.Result checkFilter(String track_id, CommandSender commandSender) {
+        if (!(commandSender instanceof IceStomPlayer player) || player.hasPermission(PERMISSION_BYPASS_FILTER)) {
+            return TrackFilter.Result.ALLOW;
+        }
+        return trackFilter.apply(track_id, player);
     }
 
     public static void updateFilter(Function<TrackFilter, TrackFilter> updater) {

@@ -118,7 +118,7 @@ public class SQLiteTimetrialDatabase implements TimetrialDatabase, AutoCloseable
     }
 
     @Override
-    public @NotNull List<TimeTrialResult> getBestAttempts(@NotNull String track_id, int number) {
+    public @NotNull List<TimeTrialResult> getBestAttempts(@NotNull String track_id, int number, int offset) {
         List<TimeTrialResult> results = new ArrayList<>();
 
         try (PreparedStatement ps = connection.prepareStatement("""
@@ -134,10 +134,11 @@ public class SQLiteTimetrialDatabase implements TimetrialDatabase, AutoCloseable
             )
             WHERE rn = 1
             ORDER BY checkpoints DESC, time ASC, id ASC
-            LIMIT ?;
+            LIMIT ? OFFSET ?;
             """)) {
             ps.setString(1, track_id);
             ps.setInt(2, number);
+            ps.setInt(3, offset);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {

@@ -26,7 +26,13 @@ public class Boat extends Entity {
             throw new RuntimeException("Invalid boat type " + type);
         }
 
-        super(EntityType.OAK_BOAT);
+        EntityType entityType = EntityType.fromKey(type);
+
+        if (entityType == null) {
+            throw new RuntimeException("Unknown boat type " + type);
+        }
+
+        super(entityType);
 
         hasPhysics = false;
 

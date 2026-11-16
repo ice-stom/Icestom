@@ -1,16 +1,15 @@
 package io.gitlab.icestom.icestom.entity;
 
 import net.kyori.adventure.key.Key;
-import net.minestom.server.MinecraftServer;
+import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityType;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerEntityInteractEvent;
 import net.minestom.server.event.player.PlayerPacketEvent;
-import net.minestom.server.item.Material;
 import net.minestom.server.network.packet.client.play.ClientVehicleMovePacket;
 import net.minestom.server.network.packet.server.play.EntityHeadLookPacket;
-import net.minestom.server.tag.Tag;
+import net.minestom.server.network.packet.server.play.EntityRotationPacket;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -18,7 +17,7 @@ import java.util.Map;
 
 public class Boat extends Entity {
 
-    private final Map<Integer, Float> lastSentYaw = new HashMap<>();
+    private final Map<Integer, Pos> lastSentView = new HashMap<>();
 
     public Boat(Key type) {
         if (!type.namespace().equals(Key.MINECRAFT_NAMESPACE)) {
@@ -63,18 +62,19 @@ public class Boat extends Entity {
     public void tick(long time) {
         super.tick(time);
 
-        float yaw = getPosition().yaw();
-
-        lastSentYaw.keySet().removeIf(id -> getPassengers().stream().noneMatch(p -> p.getEntityId() == id));
+        lastSentView.keySet().removeIf(id -> getPassengers().stream().noneMatch(p -> p.getEntityId() == id));
 
         for (Entity passenger : getPassengers()) {
             if (!(passenger instanceof Player player)) continue;
 
-            Float last = lastSentYaw.get(player.getEntityId());
-            if (last != null && last == yaw) continue;
+            Pos view = player.getPosition();
+            Pos last = lastSentView.put(player.getEntityId(), view);
+            if (last != null && last.sameView(view)) continue;
 
-            lastSentYaw.put(player.getEntityId(), yaw);
-            sendPacketToViewers(new EntityHeadLookPacket(player.getEntityId(), yaw));
+            player.sendPacketsToViewers(
+                    new EntityHeadLookPacket(player.getEntityId(), view.yaw()),
+                    new EntityRotationPacket(player.getEntityId(), view.yaw(), view.pitch(), player.isOnGround())
+            );
         }
     }
 }

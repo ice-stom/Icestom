@@ -17,9 +17,9 @@ repositories {
     mavenCentral()
 
     // Spark everything
-    maven("https://repo.hypera.dev/snapshots/")
     maven("https://repo.lucko.me/")
     maven("https://oss.sonatype.org/content/repositories/snapshots/")
+    maven("https://maven.pkg.github.com/openboatutils/openboatutils")
 }
 
 dependencies {
@@ -110,6 +110,21 @@ publishing {
     publications {
         create<MavenPublication>("mavenJava") {
             artifact(tasks.shadowJar)
+        }
+    }
+
+    repositories {
+        maven {
+            name = "GitHubPackages"
+
+            url = uri(
+                "https://maven.pkg.github.com/ice-stom/icestom"
+            )
+
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
         }
     }
 }

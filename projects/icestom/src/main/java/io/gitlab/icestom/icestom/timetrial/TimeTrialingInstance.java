@@ -4,8 +4,10 @@ import com.google.protobuf.ByteString;
 import io.github.openboatutils.protocol.channels.OBUSettingsPacket;
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.command.BoatCommand;
+import io.gitlab.icestom.icestom.command.LonelyCommand;
 import io.gitlab.icestom.icestom.config.IceStomConfig;
 import io.gitlab.icestom.icestom.database.TimetrialDatabase;
+import io.gitlab.icestom.icestom.database.preference.PreferenceKey;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
 import io.gitlab.icestom.icestom.entity.TimetrialLeaderboard;
@@ -33,6 +35,7 @@ import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.item.ItemDropEvent;
@@ -67,6 +70,12 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
     private static final Logger log = LoggerFactory.getLogger(TimeTrialingInstance.class);
 
     private static final Key MOD_FEATURE_TIMETRIAL = Key.key(IceStom.NAMESPACE, "timetrial");
+
+    public static final PreferenceKey<Boolean> LONELY = IceStom.getInstance().getPreferenceRegistry().register(new PreferenceKey<>(
+            Key.key(IceStom.NAMESPACE, "lonely"),
+            Boolean.class,
+            false
+    ));
 
     private static final PluginMessagePacket no_collision_packet;
 
@@ -108,6 +117,12 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
     private final ItemStack SPAWN_ITEM = ItemStack.of(Material.RED_BED)
             .withCustomName(Component.text("Return to spawn", NamedTextColor.RED).style(Style.style().decoration(TextDecoration.ITALIC, false)));
+
+    private final ItemStack SHOW_PLAYERS_ITEM = ItemStack.of(Material.LIME_DYE)
+            .withCustomName(Component.text("Players: Visible", NamedTextColor.GREEN).style(Style.style().decoration(TextDecoration.ITALIC, false)));
+
+    private final ItemStack HIDE_PLAYERS_ITEM = ItemStack.of(Material.RED_DYE)
+            .withCustomName(Component.text("Players: Hidden", NamedTextColor.RED).style(Style.style().decoration(TextDecoration.ITALIC, false)));
 
     private final TimetrialLeaderboard leaderboard;
 
@@ -155,6 +170,8 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                 }
             } else if (itemStack == SPAWN_ITEM) {
                 teleportToSpawn(player);
+            } else if (itemStack == SHOW_PLAYERS_ITEM || itemStack == HIDE_PLAYERS_ITEM) {
+                LonelyCommand.toggleLonely(player);
             }
         });
 
@@ -185,6 +202,8 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                 }
             } else if (itemStack == SPAWN_ITEM) {
                 teleportToSpawn(player);
+            } else if (itemStack == SHOW_PLAYERS_ITEM || itemStack == HIDE_PLAYERS_ITEM) {
+                LonelyCommand.toggleLonely(player);
             }
         });
 
@@ -455,6 +474,22 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
             inventory.setItemStack(0, RESET_ITEM);
             inventory.setItemStack(2, PRACTICE_ITEM);
         }
+
+        updateLonely(player);
+    }
+
+    public void updateLonely(Player player) {
+        boolean lonely = ((IceStomPlayer) player).preference(LONELY);
+
+        player.getInventory().setItemStack(7, lonely ? HIDE_PLAYERS_ITEM : SHOW_PLAYERS_ITEM);
+        player.updateViewerRule(lonely ? entity -> !isSomeoneElses(player, entity) : null);
+    }
+
+    private boolean isSomeoneElses(Player viewer, Entity entity) {
+        if (entity instanceof Player) return entity != viewer;
+        if (entity instanceof Boat boat) return boat != getBoat(viewer);
+
+        return false;
     }
 
     public @Nullable TimedLap getTimedLap(UUID player) {
@@ -610,6 +645,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         player.getInventory().clear();
 
         player.sendPacket(no_collision_packet);
+        player.updateViewerRule(null);
 
         interfaceHolder.stopWatching(player);
     }

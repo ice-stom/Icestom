@@ -11,5 +11,9 @@ public interface TimetrialDatabase {
     @NotNull UUID newAttempt(TimeTrialResult result);
     @Nullable TimeTrialResult getAttempt(UUID attempt);
     @Nullable TimeTrialResult getBestAttempt(UUID player, String track_id);
-    @NotNull List<TimeTrialResult> getBestAttempts(String track_id, int number);
+    @NotNull List<TimeTrialResult> getBestAttempts(String track_id, int number, int offset);
+
+    default @NotNull List<TimeTrialResult> getBestAttempts(String track_id, int number) {
+        return getBestAttempts(track_id, number, 0);
+    }
 }

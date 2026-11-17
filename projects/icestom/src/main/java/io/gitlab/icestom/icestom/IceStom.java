@@ -298,9 +298,12 @@ public class IceStom {
     public void startStandard() {
         CommandManager commandManager = MinecraftServer.getCommandManager();
         commandManager.register(new BoatCommand());
+        commandManager.register(new ChangeBoatCommand());
+        commandManager.register(new LonelyCommand());
         commandManager.register(new TimeTrialCommand());
         commandManager.register(new SettingCommand());
         commandManager.register(new TrackCommand());
+        commandManager.register(new TimesCommand());
         commandManager.register(new SpawnCommand());
         commandManager.register(new EventCommand());
         commandManager.register(new ResetCommand());

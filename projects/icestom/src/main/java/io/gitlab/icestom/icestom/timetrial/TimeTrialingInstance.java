@@ -126,8 +126,6 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
     private final TimetrialLeaderboard leaderboard;
 
-    private final Map<UUID, TickLocation> lastPosition = new HashMap<>();
-    private final Map<UUID, Long> teleportedAtTick = new HashMap<>();
 
     public TimeTrialingInstance(TrackLibrary.Ticket ticket, Track track) {
         super(ticket, track);
@@ -229,18 +227,6 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
         eventNode().addListener(TrackRegionEnterEvent.class, handle_reset::accept);
         eventNode().addListener(TrackTriggerPassEvent.class, handle_reset::accept);
-    }
-
-    @Override
-    public CompletableFuture<Boat> createBoat(Player player, Pos pos) {
-        teleportedAtTick.put(player.getUuid(), getPlayerTick(player.getUuid()));
-        lastPosition.remove(player.getUuid());
-
-        return super.createBoat(player, pos);
-    }
-
-    private boolean isBeforeTeleport(TickLocation movement) {
-        return movement.tick() <= teleportedAtTick.getOrDefault(movement.player(), -1L);
     }
 
     @Override

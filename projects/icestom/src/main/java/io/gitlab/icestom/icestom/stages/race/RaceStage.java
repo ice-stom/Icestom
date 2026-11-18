@@ -65,8 +65,6 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
 
     private final String name;
 
-    private final Map<UUID, TickLocation> lastPosition = new HashMap<>();
-
     protected RaceStage(String stageName, TrackLibrary.Ticket ticket, Track track, int totalLaps, int totalPits) {
         super(ticket, track);
 
@@ -135,6 +133,8 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
         for (TickLocation movement : movements) {
             UUID player = movement.player();
 
+            if (isBeforeTeleport(movement)) continue;
+
             EventParticipant participant = getParticipants().getParticipantFromPlayer(player);
 
             if (participant == null) continue;
@@ -198,6 +198,11 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
 
                 ArrayDeque<TickLocation> playerQueue = bucket.get(player);
                 playerQueue.poll();
+
+                if (isBeforeTeleport(location)) {
+                    bucket.remove(player);
+                    continue;
+                }
 
                 lastPosition.put(player, location);
 

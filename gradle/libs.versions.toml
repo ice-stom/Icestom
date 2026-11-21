@@ -1,0 +1,10 @@
+[versions]
+luau = "1.2.1"
+
+[libraries]
+luau = { module = "dev.hollowcube:luau", version.ref = "luau" }
+luau-natives-linux-x64 = { module = "dev.hollowcube:luau-natives-linux-x64", version.ref = "luau" }
+luau-natives-windows-x64 = { module = "dev.hollowcube:luau-natives-windows-x64", version.ref = "luau" }
+
+[bundles]
+luau-natives = ["luau-natives-linux-x64", "luau-natives-windows-x64"]

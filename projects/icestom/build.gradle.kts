@@ -44,9 +44,10 @@ dependencies {
 
     implementation("com.electronwill.night-config:toml:3.8.4")
 
-    implementation("dev.hollowcube:luau:1.2.1")
-    implementation("dev.hollowcube:luau-natives-linux-x64:1.2.1")
-    implementation("dev.hollowcube:luau-natives-windows-x64:1.2.1")
+    implementation(project(":lua"))
+
+    implementation(libs.luau)
+    implementation(libs.bundles.luau.natives)
 
     implementation("org.jline:jline-terminal-jna:3.30.9")
     implementation("org.jline:jline-terminal-jansi:3.30.9")

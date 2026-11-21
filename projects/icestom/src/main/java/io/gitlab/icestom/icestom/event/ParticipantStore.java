@@ -1,4 +1,4 @@
-package io.gitlab.icestom.icestom.event.lua;
+package io.gitlab.icestom.icestom.event;
 
 import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import net.minestom.server.entity.Player;

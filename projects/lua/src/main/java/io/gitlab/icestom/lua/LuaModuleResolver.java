@@ -1,4 +1,4 @@
-package io.gitlab.icestom.icestom.event.lua;
+package io.gitlab.icestom.lua;
 
 import net.hollowcube.luau.LuaState;
 import net.hollowcube.luau.require.RequireResolver;

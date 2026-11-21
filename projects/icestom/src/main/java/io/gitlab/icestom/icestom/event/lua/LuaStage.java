@@ -4,7 +4,7 @@ import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import io.gitlab.icestom.icestom.event.stage.EventStage;
 import io.gitlab.icestom.icestom.event.event.Result;
-import io.gitlab.icestom.icestom.event.lua.adapter.LuaFunction;
+import io.gitlab.icestom.lua.adapter.LuaFunction;
 
 import java.util.List;
 

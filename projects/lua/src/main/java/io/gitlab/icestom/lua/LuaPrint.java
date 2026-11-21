@@ -1,4 +1,4 @@
-package io.gitlab.icestom.icestom.event.lua;
+package io.gitlab.icestom.lua;
 
 import net.hollowcube.luau.LuaFunc;
 import net.hollowcube.luau.LuaState;

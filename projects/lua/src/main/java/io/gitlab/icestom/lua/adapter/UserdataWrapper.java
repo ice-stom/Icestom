@@ -1,9 +1,7 @@
-package io.gitlab.icestom.icestom.event.lua.adapter;
+package io.gitlab.icestom.lua.adapter;
 
-import io.gitlab.icestom.icestom.IceStom;
 import net.hollowcube.luau.LuaFunc;
 import net.hollowcube.luau.LuaState;
-import net.kyori.adventure.key.Key;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
@@ -25,7 +23,7 @@ public class UserdataWrapper<T> implements LuaCodec<T> {
 
     public UserdataWrapper(Class<T> tClass) {
         this.tClass = tClass;
-        this.metatable = Key.key(IceStom.NAMESPACE, tClass.getSimpleName().toLowerCase(Locale.ROOT)).asString();
+        this.metatable = "icestom" + ":" + tClass.getSimpleName().toLowerCase(Locale.ROOT);
 
         for (Method method : tClass.getDeclaredMethods()) {
             LuaFunction annotation = method.getAnnotation(LuaFunction.class);

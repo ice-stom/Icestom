@@ -13,45 +13,43 @@ java {
 }
 
 repositories {
+
     mavenLocal()
     mavenCentral()
 
     // Spark everything
     maven("https://repo.lucko.me/")
     maven("https://oss.sonatype.org/content/repositories/snapshots/")
-    maven("https://maven.pkg.github.com/openboatutils/openboatutils")
 }
 
 dependencies {
-    implementation("io.github.openboatutils:Protocol:0.0.7")
+    // NOTE: if you're looking for versions go to /gradle/libs.versions.toml
+
     implementation(project(":stomtrack"))
     implementation(project(":linefold"))
     implementation(project(":protocol"))
 
-    implementation("net.minestom:minestom:2026.01.08-1.21.11")
+    implementation(libs.minestom)
     implementation("net.kyori:adventure-text-minimessage:4.25.0")
 
-    implementation("dev.hollowcube:polar:dev")
-    implementation("it.unimi.dsi:fastutil:8.5.13")
-    implementation("com.moandjiezana.toml:toml4j:0.7.2")
+    implementation(libs.bundles.polar)
 
     implementation("org.xerial:sqlite-jdbc:3.45.3.0")
     implementation("com.google.code.gson:gson:2.10.1")
 
-    //implementation("dev.lu15:spark-minestom:1.10-SNAPSHOT")
-
-    implementation("ch.qos.logback:logback-classic:1.5.32")
+    implementation(libs.logback)
 
     implementation("com.electronwill.night-config:toml:3.8.4")
+    implementation("com.moandjiezana.toml:toml4j:0.7.2")
 
     implementation(project(":lua"))
+
+    implementation(libs.openboatutils.protocol)
 
     implementation(libs.luau)
     implementation(libs.bundles.luau.natives)
 
-    implementation("org.jline:jline-terminal-jna:3.30.9")
-    implementation("org.jline:jline-terminal-jansi:3.30.9")
-    implementation("org.jline:jline-reader:3.30.9")
+    implementation(libs.bundles.jline)
 }
 
 val panelSiteDir = providers.gradleProperty("icestom.panelSite").orNull

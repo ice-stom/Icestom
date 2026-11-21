@@ -1,10 +1,28 @@
 [versions]
 luau = "1.2.1"
+openboatutils = "0.0.7"
+minestom = "2026.01.08-1.21.11"
+fastutil = "8.5.13"
+jline = "3.30.9"
+logback = "1.6.6"
 
 [libraries]
+minestom = { module = "net.minestom:minestom", version.ref = "minestom" }
+polar = { module = "dev.hollowcube:polar", version = "dev" }
+fastutil = { module = "it.unimi.dsi:fastutil", version.ref = "fastutil" }
+openboatutils-protocol = { module = "io.github.openboatutils:Protocol", version.ref = "openboatutils" }
+
+logback = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+
+jline-terminal-jna = { module = "org.jline:jline-terminal-jna", version.ref = "jline" }
+jline-terminal-jansi = { module = "org.jline:jline-terminal-jansi", version.ref = "jline" }
+jline-reader = { module = "org.jline:jline-reader", version.ref = "jline" }
+
 luau = { module = "dev.hollowcube:luau", version.ref = "luau" }
 luau-natives-linux-x64 = { module = "dev.hollowcube:luau-natives-linux-x64", version.ref = "luau" }
 luau-natives-windows-x64 = { module = "dev.hollowcube:luau-natives-windows-x64", version.ref = "luau" }
 
 [bundles]
 luau-natives = ["luau-natives-linux-x64", "luau-natives-windows-x64"]
+polar = ["polar", "fastutil"]
+jline = ["jline-terminal-jna", "jline-terminal-jansi", "jline-reader"]

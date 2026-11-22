@@ -28,6 +28,7 @@ import io.gitlab.icestom.linefold.LZ4SinglePositionWriter;
 import io.gitlab.icestom.protocol.ISChannel;
 import io.gitlab.icestom.protocol.packets.timetrial.ClientboundTimetrial;
 import io.gitlab.icestom.protocol.packets.timetrial.clientbound.ServerPBLine;
+import io.gitlab.icestom.tracklua.userdata.LuaEventProxy;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -305,6 +306,8 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         MinecraftServer.getGlobalEventHandler()
                 .call(new TimeTrialCheckpointAdvancedEvent(this, timedLap, Objects.requireNonNull(getPlayerByUuid(player))));
 
+        if (lua != null) lua.queueEvent(new LuaEventProxy.CheckpointEventProxy(player, 0));
+
         return timedLap;
     }
 
@@ -395,6 +398,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
                     continue;
                 }
 
+
                 bucket.remove(player);
 
                 @Nullable TimedLap lap = getTimedLap(player);
@@ -410,6 +414,8 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
                     MinecraftServer.getGlobalEventHandler()
                             .call(new TimeTrialCheckpointAdvancedEvent(this, lap, Objects.requireNonNull(getPlayerByUuid(player))));
+
+                    if (lua != null) lua.queueEvent(new LuaEventProxy.CheckpointEventProxy(player, checkpoint));
 
                     if (finished) {
                         completeLap(player, lap, () -> {

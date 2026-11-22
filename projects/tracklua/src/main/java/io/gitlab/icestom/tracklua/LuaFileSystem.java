@@ -22,17 +22,28 @@ public class LuaFileSystem {
                     .build()
     );
 
-    public LuaFileSystem() {}
+    public LuaFileSystem() {
+    }
 
     public Path root() {
         return fs.getPath("/");
     }
 
-    public void addFile(Path src, InputStream is) {
-        Path dest = root().resolve(src.toString()).normalize();
+    public void addFile(String src, InputStream is) {
+        Path dest = root().resolve(src).normalize();
 
         try {
-            Files.createDirectories(dest.getParent());
+            Path parent = dest.getParent();
+
+            if (parent != null) {
+                if (Files.exists(parent) && !Files.isDirectory(parent)) {
+                    throw new IOException(
+                            "Parent path exists but is not a directory: " + parent
+                    );
+                }
+
+                Files.createDirectories(parent);
+            }
 
             try (OutputStream outputStream = Files.newOutputStream(dest)) {
                 is.transferTo(outputStream);

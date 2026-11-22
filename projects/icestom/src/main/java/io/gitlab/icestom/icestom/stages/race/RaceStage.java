@@ -114,13 +114,17 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
             return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'pits' isn't a number"));
         }
 
+        if (!(options.get("allow_exclusive") instanceof Boolean allowExclusive)) {
+            return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'allow_exclusive' isn't a boolean"));
+        }
+
         int laps = (int) Math.floor(dLaps);
         int pits = (int) Math.floor(dPits);
 
         if (laps <= 0) return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'laps' is <= 0"));
         if (pits < 0) return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'pits' is <= 0"));
 
-        return TrackEventStage.withTrackTicket(track_id, (ticket, track) -> new RaceStage(name, ticket, track, laps, pits));
+        return TrackEventStage.withTrackTicket(track_id, (ticket, track) -> new RaceStage(name, ticket, track, laps, pits), allowExclusive);
     }
 
     @Override

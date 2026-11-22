@@ -2,7 +2,8 @@ import io.gitlab.icestom.stomtrack.TrackFile;
 import io.gitlab.icestom.stomtrack.TrackLoader;
 import io.gitlab.icestom.stomtrack.type.Location;
 import io.gitlab.icestom.tracklua.LuaFileSystem;
-import io.gitlab.icestom.tracklua.TrackHandle;
+import io.gitlab.icestom.tracklua.TrackLuaHandle;
+import io.gitlab.icestom.tracklua.WorldLuaHandle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-public class TestTrackLike implements TrackHandle {
+public class TestTrackLike implements TrackLuaHandle {
 
     private static final Logger log = LoggerFactory.getLogger(TestTrackLike.class);
 
@@ -36,7 +37,7 @@ public class TestTrackLike implements TrackHandle {
                 log.info("loading {} into luafs", relative);
 
                 try {
-                    fs.addFile(fs.root().resolve(relative.toString()), Files.newInputStream(path));
+                    fs.addFile(fs.root().resolve(relative.toString()).toString(), Files.newInputStream(path));
                 } catch (IOException e) {
                     log.error("Failed to load file into filesytem", e);
                 }
@@ -50,8 +51,28 @@ public class TestTrackLike implements TrackHandle {
     }
 
     @Override
-    public boolean supportsWorldMutation() {
-        return false;
+    public WorldLuaHandle getWorld() {
+        return null;
+    }
+
+    @Override
+    public void subscribeTrigger(String tag) {
+
+    }
+
+    @Override
+    public void subscribeRegion(String tag) {
+
+    }
+
+    @Override
+    public void unsubscribeTrigger(String tag) {
+
+    }
+
+    @Override
+    public void unsubscribeRegion(String tag) {
+
     }
 
     @Override

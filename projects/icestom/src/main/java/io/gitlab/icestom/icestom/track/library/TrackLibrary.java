@@ -52,6 +52,10 @@ public class TrackLibrary {
         loadTracks();
     }
 
+    public boolean isExclusive(UUID instance_id) {
+        return !nativeTrackIdsLookup.containsKey(instance_id);
+    }
+
     private void loadTracks() {
         sources.forEach((id, trackSource) -> {
             log.info("Preloading source '{}' [{}]", id, trackSource.getClass().getSimpleName());

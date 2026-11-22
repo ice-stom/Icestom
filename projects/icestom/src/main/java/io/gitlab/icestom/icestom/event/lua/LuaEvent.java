@@ -9,6 +9,7 @@ import io.gitlab.icestom.lua.LuaMethod;
 import io.gitlab.icestom.lua.LuaPrint;
 import io.gitlab.icestom.lua.UserdataWrapper;
 import net.hollowcube.luau.BuilinLibrary;
+import net.hollowcube.luau.LuaError;
 import net.hollowcube.luau.LuaState;
 import net.kyori.adventure.key.Key;
 import org.slf4j.Logger;
@@ -34,6 +35,7 @@ public class LuaEvent<Participant extends EventParticipant> extends IceStomEvent
 
         vm.openRequire(new EmptyModuleResolver());
         vm.openLibs(BuilinLibrary.BASE);
+        vm.openLibs(BuilinLibrary.DEBUG);
 
         resultUserdataWrapper.register(vm);
         eventUserdataWrapper.register(vm);
@@ -143,7 +145,12 @@ public class LuaEvent<Participant extends EventParticipant> extends IceStomEvent
                     results
             );
 
-            lua.call(2, 1);
+            try {
+                lua.call(2, 1);
+            } catch (LuaError e) {
+                log.error("LuaEvent main failed\n{}", LuaPrint.traceback(lua, e.getMessage()));
+                throw e;
+            }
 
             List<Result<EventParticipant>> output = resultUserdataWrapper.readList(
                     lua,

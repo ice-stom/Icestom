@@ -101,6 +101,7 @@ public final class TrackRequireResolver implements RequireResolver {
     private Path findFile() {
         if (cursor.getFileName() == null) return null;
 
+
         Path found = null;
         for (String ext : EXTENSIONS) {
             Path f = cursor.resolveSibling(cursor.getFileName() + ext);

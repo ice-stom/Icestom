@@ -5,8 +5,10 @@ import io.github.openboatutils.protocol.OBUPacket;
 import io.github.openboatutils.protocol.channels.OBUContextPacket;
 import io.github.openboatutils.protocol.channels.OBUSettingsPacket;
 import io.gitlab.icestom.icestom.IceStom;
+import io.gitlab.icestom.icestom.config.IceStomConfig;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
+import io.gitlab.icestom.icestom.instance.proxy.LuaTrackImpl;
 import io.gitlab.icestom.icestom.track.PlayerMovement;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
@@ -19,9 +21,12 @@ import io.gitlab.icestom.icestom.util.BatchQueue;
 import io.gitlab.icestom.protocol.ISChannel;
 import io.gitlab.icestom.protocol.packets.track.ClientboundTrack;
 import io.gitlab.icestom.protocol.packets.track.clientbound.ServerTrack;
-import io.gitlab.icestom.stomtrack.TrackFile;
 import io.gitlab.icestom.stomtrack.TrackLoader;
 import io.gitlab.icestom.stomtrack.impl.MutableTrackFile;
+import io.gitlab.icestom.tracklua.LuaFileSystem;
+import io.gitlab.icestom.tracklua.TrackLua;
+import io.gitlab.icestom.tracklua.userdata.LuaEventProxy;
+import net.hollowcube.luau.compiler.LuauCompileException;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.nbt.ListBinaryTag;
 import net.kyori.adventure.text.Component;
@@ -38,13 +43,13 @@ import net.minestom.server.event.player.PlayerPacketEvent;
 import net.minestom.server.instance.LightingChunk;
 import net.minestom.server.network.packet.client.play.ClientVehicleMovePacket;
 import net.minestom.server.network.packet.server.common.PluginMessagePacket;
+import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -70,6 +75,8 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
     private Map<InsideCollider, Set<String>> watchingRegions = Map.of();
     private Map<CrossCollider, Set<String>> watchingTriggers = Map.of();
 
+    protected final @Nullable TrackLua lua;
+
     protected TrackInstance(TrackLibrary.Ticket ticket, Track track) {
         super(UUID.randomUUID(), track.getMap());
 
@@ -77,6 +84,21 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
         this.track = track;
 
         setChunkSupplier(LightingChunk::new);
+
+        TrackLua trackLua = null;
+        if (IceStomConfig.getConfig().icestom.experimental_enable_tracklua) {
+            LuaFileSystem fs = track.getLuaFileSystem();
+
+            if (fs != null) {
+                try {
+                    trackLua = new TrackLua(new LuaTrackImpl(this));
+                } catch (LuauCompileException | IOException e) {
+                    log.error("Failed to load track lua!", e);
+                }
+            }
+        }
+
+        lua = trackLua;
 
         eventNode().addListener(PlayerBlockBreakEvent.class, event -> event.setCancelled(true));
         eventNode().addListener(PlayerBlockPlaceEvent.class, event -> event.setCancelled(true));
@@ -136,6 +158,11 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
     @Override
     public void tick(long time) {
         super.tick(time);
+
+        if (lua != null && !lua.isFinished()) {
+            lua.queueEvent(new LuaEventProxy.TickEventProxy(time));
+            lua.bump();
+        }
 
         if (!movementBatchQueue.isEmpty()) {
             List<TickLocation> movements = movementBatchQueue.drain();
@@ -234,6 +261,7 @@ public abstract class TrackInstance extends BoatInstance implements SpawnLocatio
 
                 for (String tag : tags) {
                     handler.call(new TrackTriggerPassEvent(tag, this, movement, player));
+                    if (lua != null) lua.queueEvent(new LuaEventProxy.TriggerCross(player.getUuid(), tag));
                 }
             });
         });

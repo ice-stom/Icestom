@@ -3,6 +3,7 @@ package io.gitlab.icestom.lua;
 import net.hollowcube.luau.LuaError;
 import net.hollowcube.luau.LuaFunc;
 import net.hollowcube.luau.LuaState;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 public final class LuaPrint {
@@ -50,8 +51,10 @@ public final class LuaPrint {
         state.setGlobal("print");
     }
 
-    public static String traceback(LuaState co) {
-        String msg = co.toStringRepr(-1);
+    public static String traceback(LuaState co, @Nullable String msg) {
+        if (msg == null) {
+            msg = co.isString(-1) ? co.toString(-1) : "(non-string error: " + co.toStringRepr(-1) + ")";
+        }
         LuaState main = co.mainThread();
         int base = main.top();
         try {

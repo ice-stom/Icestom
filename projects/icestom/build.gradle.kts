@@ -29,6 +29,7 @@ dependencies {
     implementation(project(":linefold"))
     implementation(project(":protocol"))
     implementation(project(":lua"))
+    implementation(project(":tracklua"))
 
     implementation(libs.minestom)
     implementation("net.kyori:adventure-text-minimessage:4.25.0")

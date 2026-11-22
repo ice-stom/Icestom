@@ -3,10 +3,7 @@ package io.gitlab.icestom.tracklua;
 import io.gitlab.icestom.lua.LuaPrint;
 import io.gitlab.icestom.lua.SealedUserdataCodec;
 import io.gitlab.icestom.lua.UserdataWrapper;
-import io.gitlab.icestom.tracklua.userdata.LocationProxy;
-import io.gitlab.icestom.tracklua.userdata.LuaEventProxy;
-import io.gitlab.icestom.tracklua.userdata.TrackDataProxy;
-import io.gitlab.icestom.tracklua.userdata.TrackProxy;
+import io.gitlab.icestom.tracklua.userdata.*;
 import net.hollowcube.luau.*;
 import net.hollowcube.luau.compiler.LuauCompileException;
 import net.hollowcube.luau.compiler.LuauCompiler;
@@ -35,6 +32,7 @@ public class TrackLua implements Closeable {
     private static final UserdataWrapper<TrackProxy> trackUserdataWrapper = new UserdataWrapper<>(erasedClass(TrackProxy.class));
     private static final UserdataWrapper<TrackDataProxy> trackDataUserdataWrapper = new UserdataWrapper<>(erasedClass(TrackDataProxy.class));
     private static final UserdataWrapper<LocationProxy> locationUserDataWrapper = new UserdataWrapper<>(erasedClass(LocationProxy.class));
+    private static final UserdataWrapper<WorldProxy> worldUserDataWrapper = new UserdataWrapper<>(erasedClass(WorldProxy.class));
     private static final SealedUserdataCodec<LuaEventProxy> luaEventUserDataWrapper = SealedUserdataCodec.of(LuaEventProxy.class);
 
     private static final LuaState vm;
@@ -64,11 +62,12 @@ public class TrackLua implements Closeable {
         trackDataUserdataWrapper.register(vm);
         locationUserDataWrapper.register(vm);
         luaEventUserDataWrapper.register(vm);
+        worldUserDataWrapper.register(vm);
 
         vm.sandbox();
     }
 
-    private final TrackHandle handle;
+    private final TrackLuaHandle handle;
     private final LuaState lua;
     private final int threadRef;
 
@@ -97,8 +96,6 @@ public class TrackLua implements Closeable {
 
     private boolean resume(@Nullable LuaEventProxy event) {
         if (finished) return true;
-        deadline = System.nanoTime() + TIMEOUT_NANOS;
-        running = true;
         try {
             if (event == null) {
                 lua.pushNil();
@@ -108,10 +105,12 @@ public class TrackLua implements Closeable {
 
             LuaStatus status;
             try {
+                deadline = System.nanoTime() + TIMEOUT_NANOS;
+                running = true;
                  status = lua.resume(null, 1);
             } catch (LuaError error) {
                 finished = true;
-                log.error("track script failed\n{}", LuaPrint.traceback(lua));
+                log.error("track script failed\n{}", LuaPrint.traceback(lua, error.getMessage()));
                 return true;
             }
 
@@ -120,7 +119,7 @@ public class TrackLua implements Closeable {
                 case OK -> finished = true;
                 default -> {
                     finished = true;
-                    log.error("track script failed: {}", LuaPrint.traceback(lua));
+                    log.error("track script failed hard: \n{}", LuaPrint.traceback(lua, null));
                 }
             }
         } finally {
@@ -130,7 +129,7 @@ public class TrackLua implements Closeable {
         return finished;
     }
 
-    public TrackLua(TrackHandle handle) throws LuauCompileException, IOException {
+    public TrackLua(TrackLuaHandle handle) throws LuauCompileException, IOException {
 
         this.handle = handle;
 
@@ -160,7 +159,15 @@ public class TrackLua implements Closeable {
 
         Path entrypoint = handle.getFileSystem().root().resolve(trackId + ".luau");
 
-        byte[] bytecode = compiler.compile(Files.readAllBytes(entrypoint));
+        byte[] bytecode;
+        try {
+            bytecode = compiler.compile(Files.readAllBytes(entrypoint));
+        } catch (LuauCompileException e) {
+            log.error("Failed to compile entrypoint {}", entrypoint, e);
+            close();
+            return;
+        }
+
         lua.load("@" + entrypoint, bytecode);
 
         resume(null);

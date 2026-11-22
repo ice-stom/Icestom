@@ -1,6 +1,7 @@
-package io.gitlab.icestom.icestom.event.event;
+package io.gitlab.icestom.icestom.event;
 
 import io.gitlab.icestom.icestom.IceStom;
+import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import io.gitlab.icestom.icestom.event.stage.EventStage;
 import io.gitlab.icestom.icestom.instance.SpawnInstance;
 import net.minestom.server.entity.Player;

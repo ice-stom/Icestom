@@ -2,7 +2,7 @@ package io.gitlab.icestom.icestom.event.stage;
 
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.event.event.EventParticipant;
-import io.gitlab.icestom.icestom.event.event.Result;
+import io.gitlab.icestom.icestom.event.Result;
 import io.gitlab.icestom.icestom.instance.PlayerHolder;
 import net.kyori.adventure.key.Key;
 import net.minestom.server.MinecraftServer;

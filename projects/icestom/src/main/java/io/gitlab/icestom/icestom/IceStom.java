@@ -9,7 +9,7 @@ import io.gitlab.icestom.icestom.database.sqlite.SQLiteTimetrialDatabase;
 import io.gitlab.icestom.icestom.debug.PerfHud;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
-import io.gitlab.icestom.icestom.event.event.EventManager;
+import io.gitlab.icestom.icestom.event.EventManager;
 import io.gitlab.icestom.icestom.event.stage.EventStage;
 import io.gitlab.icestom.icestom.event.stage.StageOption;
 import io.gitlab.icestom.icestom.event.stage.StageRegistry;

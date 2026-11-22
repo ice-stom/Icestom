@@ -2,12 +2,12 @@ package io.gitlab.icestom.icestom.event.lua;
 
 import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import io.gitlab.icestom.icestom.event.stage.EventStage;
-import io.gitlab.icestom.icestom.event.event.IceStomEvent;
-import io.gitlab.icestom.icestom.event.event.Result;
-import io.gitlab.icestom.lua.LuaModuleResolver;
+import io.gitlab.icestom.icestom.event.IceStomEvent;
+import io.gitlab.icestom.icestom.event.Result;
+import io.gitlab.icestom.lua.EmptyModuleResolver;
+import io.gitlab.icestom.lua.LuaMethod;
 import io.gitlab.icestom.lua.LuaPrint;
-import io.gitlab.icestom.lua.adapter.LuaFunction;
-import io.gitlab.icestom.lua.adapter.UserdataWrapper;
+import io.gitlab.icestom.lua.UserdataWrapper;
 import net.hollowcube.luau.BuilinLibrary;
 import net.hollowcube.luau.LuaState;
 import net.kyori.adventure.key.Key;
@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
-import static io.gitlab.icestom.lua.adapter.UserdataWrapper.erasedClass;
+import static io.gitlab.icestom.lua.UserdataWrapper.erasedClass;
 
 public class LuaEvent<Participant extends EventParticipant> extends IceStomEvent<Participant> {
 
@@ -32,7 +32,7 @@ public class LuaEvent<Participant extends EventParticipant> extends IceStomEvent
     static {
         vm = LuaState.newState();
 
-        vm.openRequire(new LuaModuleResolver());
+        vm.openRequire(new EmptyModuleResolver());
         vm.openLibs(BuilinLibrary.BASE);
 
         resultUserdataWrapper.register(vm);
@@ -106,7 +106,7 @@ public class LuaEvent<Participant extends EventParticipant> extends IceStomEvent
         this.stageName = nameString;
     }
 
-    @LuaFunction("makeStage")
+    @LuaMethod("make_stage")
     protected LuaStage makeStage(String key, Map<String, Object> options) {
         Key namespacedKey = Key.key(key);
 
@@ -115,6 +115,13 @@ public class LuaEvent<Participant extends EventParticipant> extends IceStomEvent
         addStage(stage);
 
         return new LuaStage(stage);
+    }
+
+    @LuaMethod("makeStage")
+    @Deprecated
+    protected LuaStage makeStageDelegate(String key, Map<String, Object> options) {
+        log.warn("LuaEvent used deprecated `:makeStage()`! Please move to `:make_stage()` (sorry)");
+        return makeStage(key, options);
     }
 
     @Override
@@ -159,6 +166,8 @@ public class LuaEvent<Participant extends EventParticipant> extends IceStomEvent
             lua.unref(eventFn);
             eventFn = null;
         }
+
+        lua.close();
     }
 
     public static class InvalidEventManifestException extends RuntimeException {

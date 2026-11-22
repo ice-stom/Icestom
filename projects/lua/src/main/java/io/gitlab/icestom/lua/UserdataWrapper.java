@@ -1,50 +1,104 @@
-package io.gitlab.icestom.lua.adapter;
+package io.gitlab.icestom.lua;
 
 import net.hollowcube.luau.LuaFunc;
 import net.hollowcube.luau.LuaState;
+import net.hollowcube.luau.LuaType;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 public class UserdataWrapper<T> implements LuaCodec<T> {
 
     private final Class<T> tClass;
     private final String metatable;
-    private final Map<String, LuaFunc> library = new HashMap<>();
+    private final Map<String, LuaFunc> library = new LinkedHashMap<>();
+    private final Map<String, LuaFunc> metaLibrary = new LinkedHashMap<>();
+
+    private static final Set<String> RESERVED = Set.of("__index", "__type");
 
     public UserdataWrapper(Class<T> tClass) {
         this.tClass = tClass;
-        this.metatable = "icestom" + ":" + tClass.getSimpleName().toLowerCase(Locale.ROOT);
+        this.metatable = "icestom:" + tClass.getName().toLowerCase(Locale.ROOT);
 
-        for (Method method : tClass.getDeclaredMethods()) {
-            LuaFunction annotation = method.getAnnotation(LuaFunction.class);
-            if (annotation == null) continue;
+        for (var e : collect(tClass, LuaMethod.class).entrySet()) {
+            Method method = e.getKey();
+            String name = e.getValue().value().isEmpty() ? method.getName() : e.getValue().value();
+            requireInstance(method, "@LuaMethod");
+            method.setAccessible(true);
 
-            if (Modifier.isStatic(method.getModifiers())) {
-                throw new IllegalStateException("@LuaFunction " + method + " must be an instance method");
+            if (library.put(name, wrap(method, name)) != null) {
+                throw new IllegalStateException("Duplicate @LuaMethod name '" + name + "' on " + tClass);
+            }
+        }
+
+        for (var e : collect(tClass, LuaMetaMethod.class).entrySet()) {
+            Method method = e.getKey();
+            String name = e.getValue().value().isEmpty() ? method.getName() : e.getValue().value();
+            requireInstance(method, "@LuaMetaMethod");
+
+            if (!name.startsWith("__")) {
+                throw new IllegalStateException("@LuaMetaMethod name must start with '__': " + method);
+            }
+            if (RESERVED.contains(name)) {
+                throw new IllegalStateException(name + " is managed by UserdataWrapper: " + method);
             }
             method.setAccessible(true);
-            String name = annotation.value().isEmpty() ? method.getName() : annotation.value();
 
-            LuaFunc func = isRaw(method)
-                    ? LuaFunc.wrap(state -> invokeRaw(method, state), name)
-                    : LuaFunc.wrap(state -> invokeMarshalled(method, state), name);
-
-            if (library.put(name, func) != null) {
-                throw new IllegalStateException("Duplicate @LuaFunction name '" + name + "' on " + tClass);
+            if (metaLibrary.put(name, wrap(method, name)) != null) {
+                throw new IllegalStateException("Duplicate @LuaMetaMethod name '" + name + "' on " + tClass);
             }
         }
 
         LuaCodecs.register(tClass, this);
+    }
+
+    public Class<T> tClass() {
+        return tClass;
+    }
+
+    private static <A extends Annotation> Map<Method, A> collect(Class<?> root, Class<A> annotationType) {
+        Map<String, Method> bySignature = new LinkedHashMap<>();
+        Set<Class<?>> seen = new HashSet<>();
+        Deque<Class<?>> queue = new ArrayDeque<>();
+        queue.add(root);
+
+        while (!queue.isEmpty()) {
+            Class<?> c = queue.poll();
+            if (c == Object.class || !seen.add(c)) continue;
+
+            for (Method m : c.getDeclaredMethods()) {
+                if (m.isBridge() || m.isSynthetic()) continue;
+                if (m.getAnnotation(annotationType) == null) continue;
+                bySignature.putIfAbsent(m.getName() + Arrays.toString(m.getParameterTypes()), m);
+            }
+
+            if (c.getSuperclass() != null) queue.add(c.getSuperclass());
+            queue.addAll(Arrays.asList(c.getInterfaces()));
+        }
+
+        Map<Method, A> result = new LinkedHashMap<>();
+        for (Method m : bySignature.values()) {
+            result.put(m, m.getAnnotation(annotationType));
+        }
+        return result;
+    }
+
+    private static void requireInstance(Method method, String annotationName) {
+        if (Modifier.isStatic(method.getModifiers())) {
+            throw new IllegalStateException(annotationName + " " + method + " must be an instance method");
+        }
+    }
+
+    private LuaFunc wrap(Method method, String name) {
+        return isRaw(method)
+                ? LuaFunc.wrap(state -> invokeRaw(method, state), name)
+                : LuaFunc.wrap(state -> invokeMarshalled(method, state), name);
     }
 
     private static boolean isRaw(Method method) {
@@ -90,8 +144,8 @@ public class UserdataWrapper<T> implements LuaCodec<T> {
         if (cause instanceof RuntimeException re) return re;
         if (cause instanceof Error err) throw err;
 
-        RuntimeException wrapped = new RuntimeException(cause.toString(), cause);
-        wrapped.setStackTrace(cause.getStackTrace());
+        RuntimeException wrapped = new RuntimeException(String.valueOf(cause), cause);
+        if (cause != null) wrapped.setStackTrace(cause.getStackTrace());
         return wrapped;
     }
 
@@ -122,6 +176,11 @@ public class UserdataWrapper<T> implements LuaCodec<T> {
     private static int pushResult(LuaState state, Type type, Object value) {
         if (type == void.class) return 0;
 
+        if (value == null) {
+            state.pushNil();
+            return 1;
+        }
+
         if (type instanceof ParameterizedType pt && pt.getRawType() == List.class) {
             Class<?> element = rawClass(pt.getActualTypeArguments()[0]);
             LuaCodec<Object> codec = LuaCodecs.forClass(element);
@@ -142,7 +201,7 @@ public class UserdataWrapper<T> implements LuaCodec<T> {
     private static Class<?> rawClass(Type type) {
         if (type instanceof Class<?> c) return c;
         if (type instanceof ParameterizedType pt) return (Class<?>) pt.getRawType();
-        throw new IllegalStateException("Unsupported @LuaFunction type: " + type);
+        throw new IllegalStateException("Unsupported @LuaMethod type: " + type);
     }
 
     public void register(LuaState lua) {
@@ -154,6 +213,11 @@ public class UserdataWrapper<T> implements LuaCodec<T> {
         lua.pushString(tClass.getSimpleName());
         lua.setField(-2, "__type");
 
+        for (var entry : metaLibrary.entrySet()) {
+            lua.pushFunction(entry.getValue());
+            lua.setField(-2, entry.getKey());
+        }
+
         lua.newTable();
         lua.register(library);
         lua.setField(-2, "__index");
@@ -164,7 +228,10 @@ public class UserdataWrapper<T> implements LuaCodec<T> {
     @Override
     public void push(LuaState lua, T value) {
         lua.newUserData(value);
-        lua.getMetaTable(metatable);
+        if (lua.getMetaTable(metatable) == LuaType.NIL) {
+            lua.pop(2); // nil + userdata
+            throw new IllegalStateException("Metatable " + metatable + " not registered; call register() first");
+        }
         lua.setMetaTable(-2);
     }
 

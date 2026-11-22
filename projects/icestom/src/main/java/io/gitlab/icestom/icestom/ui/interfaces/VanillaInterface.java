@@ -7,6 +7,7 @@ import io.gitlab.icestom.icestom.ordering.ForwardOrdering;
 import io.gitlab.icestom.icestom.ordering.Tower;
 import io.gitlab.icestom.icestom.ordering.TowerHolder;
 import io.gitlab.icestom.icestom.stages.qualifying.QualifyingStage;
+import io.gitlab.icestom.icestom.stages.qualifying.QualifyingTimingTower;
 import io.gitlab.icestom.icestom.stages.race.RaceTimingTower;
 import io.gitlab.icestom.icestom.stages.race.RaceStage;
 import io.gitlab.icestom.icestom.stages.race.event.RaceCompletedEvent;
@@ -97,6 +98,22 @@ public class VanillaInterface implements InterfaceProvider {
         } catch (Exception e) {
             log.error("getInterface failed for {}", holder, e);
             throw e;
+        }
+    }
+
+    protected static void showStartingCountdown(TickCountdown countdown, Set<Player> players) {
+        int remainingTicks = countdown.getRemainingTicks();
+
+        if (remainingTicks == 0 || remainingTicks % 20 != 0) return;
+
+        for (Player player : players) {
+            player.showTitle(Title.title(
+                    Component.text(remainingTicks / 20),
+                    Component.empty(),
+                    0, 20, 0
+            ));
+
+            player.playSound(COUNTDOWN, Sound.Emitter.self());
         }
     }
 
@@ -330,11 +347,19 @@ public class VanillaInterface implements InterfaceProvider {
                 null
         );
 
+        private static final int MAX_LINES = 15;
+
         private record CachedRow(Object[] values, Component rendered) {}
+
+        protected record Relative(Object value, boolean ahead) {
+            public NamedTextColor color() {
+                return ahead ? NamedTextColor.RED : NamedTextColor.GREEN;
+            }
+        }
 
         private final H holder;
 
-        private final List<CachedRow> rows = new ArrayList<>();
+        private final Map<Player, List<CachedRow>> rows = new HashMap<>();
 
         public TowerInterface(H holder) {
             this.holder = holder;
@@ -342,33 +367,67 @@ public class VanillaInterface implements InterfaceProvider {
 
         protected abstract Component render(Key column, Object value);
 
-        public void update() {
-            Tower<R> tower = holder.getTower();
+        protected @Nullable R getFocus(Player viewer) {
+            return null;
+        }
 
-            int limit = tower.size();
+        protected Object[] getRow(Tower<R> tower, ForwardOrdering<R>.Entry entry, @Nullable R focus) {
+            return tower.getRow(entry);
+        }
+
+        public void update() {
+            for (Player player : getWatching()) update(player);
+        }
+
+        protected static <R extends ForwardOrdering.Orderable<R>> int columnIndex(Tower<R> tower, Key identifier) {
             List<Tower.TowerColumn<R, ?>> columns = tower.getColumns();
+
+            for (int i = 0; i < columns.size(); i++) {
+                if (columns.get(i).identifier().equals(identifier)) return i;
+            }
+
+            throw new IllegalArgumentException("Tower has no column " + identifier);
+        }
+
+        private void update(Player viewer) {
+            Tower<R> tower = holder.getTower();
+            List<Tower.TowerColumn<R, ?>> columns = tower.getColumns();
+            List<CachedRow> viewerRows = rows.computeIfAbsent(viewer, _ -> new ArrayList<>());
+
+            @Nullable R focus = getFocus(viewer);
+
+            int focusIndex = -1;
+            for (ForwardOrdering<R>.Entry entry : tower) {
+                if (entry.getItem() == focus) {
+                    focusIndex = entry.getIndex();
+                    break;
+                }
+            }
+
+            int start = Math.max(0, Math.min(focusIndex - MAX_LINES / 2, tower.size() - MAX_LINES));
 
             int i = 0;
             for (ForwardOrdering<R>.Entry entry : tower) {
-                if (i >= limit) break;
+                if (entry.getIndex() < start) continue;
+                if (i >= MAX_LINES) break;
 
-                Object[] values = tower.getRow(entry);
+                Object[] values = getRow(tower, entry, focus);
 
-                if (i < rows.size() && Arrays.equals(rows.get(i).values(), values)) {
+                if (i < viewerRows.size() && Arrays.equals(viewerRows.get(i).values(), values)) {
                     i++;
                     continue;
                 }
 
                 CachedRow row = new CachedRow(values.clone(), renderRow(columns, values));
 
-                if (i < rows.size()) rows.set(i, row);
-                else rows.add(row);
+                if (i < viewerRows.size()) viewerRows.set(i, row);
+                else viewerRows.add(row);
 
-                PacketSendingUtils.sendGroupedPacket(getWatching(), scorePacket(i, row));
+                viewer.sendPacket(scorePacket(i, row));
                 i++;
             }
 
-            removeLinesFrom(i);
+            removeLinesFrom(viewer, viewerRows, i);
         }
 
         private Component renderRow(List<Tower.TowerColumn<R, ?>> columns, Object[] values) {
@@ -382,15 +441,14 @@ public class VanillaInterface implements InterfaceProvider {
             return builder.build();
         }
 
-        private void removeLinesFrom(int count) {
-            if (rows.size() <= count) return;
+        private static void removeLinesFrom(Player viewer, List<CachedRow> viewerRows, int count) {
+            if (viewerRows.size() <= count) return;
 
-            var viewers = getWatching();
-            for (int i = count; i < rows.size(); i++) {
-                PacketSendingUtils.sendGroupedPacket(viewers, new ResetScorePacket(lineName(i), OBJECTIVE));
+            for (int i = count; i < viewerRows.size(); i++) {
+                viewer.sendPacket(new ResetScorePacket(lineName(i), OBJECTIVE));
             }
 
-            rows.subList(count, rows.size()).clear();
+            viewerRows.subList(count, viewerRows.size()).clear();
         }
 
         private static String lineName(int index) {
@@ -419,21 +477,19 @@ public class VanillaInterface implements InterfaceProvider {
 
         @Override
         public void startWatching(Player player) {
-            update();
-
             player.sendPacket(CREATE_OBJECTIVE);
             player.sendPacket(SHOW_SIDEBAR);
 
-            for (int i = 0; i < rows.size(); i++) {
-                player.sendPacket(scorePacket(i, rows.get(i)));
-            }
-
             super.startWatching(player);
+
+            rows.remove(player);
+            update(player);
         }
 
         @Override
         public void stopWatching(Player player) {
             player.sendPacket(DESTROY_OBJECTIVE);
+            rows.remove(player);
 
             super.stopWatching(player);
         }
@@ -445,10 +501,38 @@ public class VanillaInterface implements InterfaceProvider {
         }
 
         @Override
+        protected RaceStage.@Nullable RaceParticipant getFocus(Player viewer) {
+            @Nullable EventParticipant participant = getHolder().getParticipants().getParticipantFromActivePlayer(viewer);
+
+            return participant == null ? null : getHolder().getRacer(participant.getUuid());
+        }
+
+        @Override
+        protected Object[] getRow(Tower<RaceStage.RaceParticipant> tower, ForwardOrdering<RaceStage.RaceParticipant>.Entry entry, RaceStage.@Nullable RaceParticipant focus) {
+            Object[] row = super.getRow(tower, entry, focus);
+
+            if (focus == null) return row;
+
+            RaceStage.RaceParticipant racer = entry.getItem();
+            @Nullable Long gap = racer == focus ? null : racer.getGapTo(focus);
+
+            row = row.clone();
+            row[columnIndex(tower, RaceTimingTower.DELTA)] = gap == null ? null : new Relative(gap, racer.betterThan(focus));
+
+            return row;
+        }
+
+        @Override
         protected Component render(Key column, Object value) {
             return switch (column.toString()) {
-                case "icestom:pos" -> Component.text(String.format("%2s.", value), NamedTextColor.YELLOW);
-                case "icestom:delta" -> value != null ? TextFormatter.getDelta((Long) value) : Component.text("   -   ", NamedTextColor.YELLOW);
+                case "icestom:position" -> Component.text(String.format("%2s.", value), NamedTextColor.YELLOW);
+                case "icestom:delta" -> switch (value) {
+                    case null -> Component.text("   -   ", NamedTextColor.YELLOW);
+                    case Relative relative when relative.value() instanceof Long gap -> Component.text(gap < 0 ? "-" : "+")
+                            .append(TextFormatter.getTime(Math.abs(gap)))
+                            .color(relative.color());
+                    default -> TextFormatter.getDelta((Long) value);
+                };
                 case "icestom:name" -> (Component) value;
                 default -> Component.text(value.toString());
             };
@@ -461,10 +545,32 @@ public class VanillaInterface implements InterfaceProvider {
         }
 
         @Override
+        protected QualifyingStage.@Nullable Qualifier getFocus(Player viewer) {
+            return getHolder().getQualifier(viewer.getUuid());
+        }
+
+        @Override
+        protected Object[] getRow(Tower<QualifyingStage.Qualifier> tower, ForwardOrdering<QualifyingStage.Qualifier>.Entry entry, QualifyingStage.@Nullable Qualifier focus) {
+            Object[] row = super.getRow(tower, entry, focus);
+
+            int time = columnIndex(tower, QualifyingTimingTower.TIME);
+            if (focus == null || entry.getItem() == focus || row[time] == null) return row;
+
+            row = row.clone();
+            row[time] = new Relative(row[time], entry.getItem().betterThan(focus));
+
+            return row;
+        }
+
+        @Override
         protected Component render(Key column, Object value) {
             return switch (column.toString()) {
                 case "icestom:position" -> Component.text(String.format("%2s.", value), NamedTextColor.YELLOW);
-                case "icestom:time" -> value != null ? TextFormatter.getTime((Long) value) : Component.text("   -   ", NamedTextColor.YELLOW);
+                case "icestom:time" -> switch (value) {
+                    case null -> Component.text("   -   ", NamedTextColor.YELLOW);
+                    case Relative relative when relative.value() instanceof Long time -> TextFormatter.getTime(time).color(relative.color());
+                    default -> TextFormatter.getTime((Long) value);
+                };
                 case "icestom:name" -> (Component) value;
                 default -> Component.text(String.valueOf(value));
             };
@@ -479,6 +585,61 @@ public class VanillaInterface implements InterfaceProvider {
             super(holder);
 
             towerInterface = new QualifyingTowerInterface(holder);
+
+            eventNode().addListener(InstanceTickEvent.class, this::instanceTickEvent);
+        }
+
+        protected void instanceTickEvent(InstanceTickEvent event) {
+            final QualifyingStage instance = (QualifyingStage) event.getInstance();
+
+            showStartingCountdown(instance.getStartingCountdown(), getWatching());
+
+            if (instance.getState() != QualifyingStage.QualifyingState.RUNNING
+                    && instance.getState() != QualifyingStage.QualifyingState.CHEQUERED_FLAG) return;
+
+            for (Player player : getWatching()) {
+                @Nullable QualifyingStage.Qualifier qualifier = instance.getQualifier(player.getUuid());
+
+                if (qualifier != null) player.sendActionBar(qualifyingActionBar(instance, qualifier, player));
+            }
+        }
+
+        private static Component qualifyingActionBar(QualifyingStage instance, QualifyingStage.Qualifier qualifier, Player player) {
+            TextComponent.Builder text = Component.text();
+
+            text.append(Component.text("P")
+                    .decorate(TextDecoration.BOLD)
+                    .append(Component.text(qualifier.getTowerEntry().getIndex() + 1, TextColor.color(0x4fd3ff))));
+
+            text.append(Component.text(" "));
+
+            @Nullable Integer lapsRemaining = qualifier.getLapsRemaining();
+
+            if (lapsRemaining != null) {
+                text.append(((IceStomPlayer) player).translate(Component.translatable("qualifying.actionbar.laps_remaining", Argument.numeric("laps", lapsRemaining))));
+            } else {
+                long seconds = instance.getSessionTimer().getRemainingTicks() / 20;
+                text.append(Component.text(String.format("%d:%02d", seconds / 60, seconds % 60)));
+            }
+
+            @Nullable TimedLap lap = instance.getTimedLap(player.getUuid());
+
+            if (lap != null) {
+                text.append(Component.text(" "));
+                text.append(TextFormatter.getTimeRounded(lap.getCurrentTime(instance.getPlayerTick(player.getUuid()))).color(NamedTextColor.YELLOW));
+
+                if (lap.getBestPreviousResult() != null && lap.getLastReachedCheckpoint() > 0) {
+                    text.append(Component.text(" - "));
+                    text.append(TextFormatter.getDelta(lap.getRecentSplit()));
+                }
+            }
+
+            return text.build();
+        }
+
+        @Override
+        protected void TimeTrialLapTimerEvent(TimeTrialLapTimerEvent event) {
+            // the qualifying action bar is sent every tick instead
         }
 
         @Override
@@ -591,7 +752,7 @@ public class VanillaInterface implements InterfaceProvider {
                     .append(Component.text(pos + 1, TextColor.color(0x4fd3ff))));
 
             text.append(Component.text(" "));
-            text.append(Component.text(Math.max(0, racer.getCompletedLapCount()) + "/" + instance.getTotalLaps()));
+            text.append(Component.text(racer.getCurrentLapNumber() + "/" + instance.getTotalLaps()));
             text.append(Component.text(" "));
             text.append(TextFormatter.getTimeRounded(lap.getCurrentTime(tick)).color(NamedTextColor.YELLOW));
 
@@ -608,21 +769,7 @@ public class VanillaInterface implements InterfaceProvider {
         }
 
         protected void instanceTickEvent(InstanceTickEvent event) {
-            int remainingTicks = ((RaceStage) (event.getInstance())).getStartingCountdown().getRemainingTicks();
-
-            if (remainingTicks % 20 == 0) {
-                for (Player player : getWatching()) {
-                    if (remainingTicks != 0) {
-                        player.showTitle(Title.title(
-                                Component.text(remainingTicks / 20),
-                                Component.empty(),
-                                0, 20, 0
-                        ));
-
-                        player.playSound(COUNTDOWN, Sound.Emitter.self());
-                    }
-                }
-            }
+            showStartingCountdown(((RaceStage) (event.getInstance())).getStartingCountdown(), getWatching());
 
             if (event.getInstance().getWorldAge() % 20 != 0) return;
 

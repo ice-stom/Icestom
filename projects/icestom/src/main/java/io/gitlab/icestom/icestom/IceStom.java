@@ -172,7 +172,8 @@ public class IceStom {
                         "A gridded race. You start the countdown and wave the chequered flag.",
                         StageOption.track("track", "Track", "Which track to race on"),
                         StageOption.number("laps", "Laps", "How many laps to complete", 3, 1d, null),
-                        StageOption.number("pits", "Pit stops", "How many pit stops are required", 0, 0d, null)
+                        StageOption.number("pits", "Pit stops", "How many pit stops are required", 0, 0d, null),
+                        StageOption.bool("collisions", "Collisions", "Whether players collide with each other (needs OpenBoatUtils)", true)
                 ));
         stageRegistry.register(Key.key(NAMESPACE, "qualifying"), QualifyingStage.class, QualifyingStage::create,
                 StageSchema.of(

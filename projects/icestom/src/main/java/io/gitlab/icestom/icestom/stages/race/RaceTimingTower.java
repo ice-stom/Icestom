@@ -8,10 +8,12 @@ import net.kyori.adventure.text.Component;
 import java.util.List;
 
 public class RaceTimingTower extends Tower<RaceStage.RaceParticipant> {
+    public static final Key DELTA = Key.key(IceStom.NAMESPACE, "delta");
+
     public RaceTimingTower() {
         super(List.of(
                 new TowerColumn<>(Key.key(IceStom.NAMESPACE, "position"), Component.text("Pos"), entry -> entry.getIndex() + 1),
-                new TowerColumn<>(Key.key(IceStom.NAMESPACE, "delta"), Component.text("Delta"), entry -> entry.getIndex() == 0 ? null : entry.getItem().getDeltaToAhead()),
+                new TowerColumn<>(DELTA, Component.text("Delta"), entry -> entry.getIndex() == 0 ? null : entry.getItem().getDeltaToAhead()),
                 new TowerColumn<>(Key.key(IceStom.NAMESPACE, "name"), Component.text("Name"), entry -> entry.getItem().getName())
         ));
     }

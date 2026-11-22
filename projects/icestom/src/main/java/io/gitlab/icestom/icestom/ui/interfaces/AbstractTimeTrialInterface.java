@@ -6,6 +6,7 @@ import net.minestom.server.event.Event;
 import net.minestom.server.event.EventFilter;
 import net.minestom.server.event.EventHandler;
 import net.minestom.server.event.EventNode;
+import net.minestom.server.event.trait.InstanceEvent;
 import net.minestom.server.event.trait.PlayerEvent;
 import org.jspecify.annotations.NonNull;
 
@@ -25,6 +26,10 @@ public abstract class AbstractTimeTrialInterface extends Interface<TimeTrialingI
         eventNode = EventNode.type("time_trialing_interface", EventFilter.ALL, (event, _) -> {
            if (event instanceof TimeTrialEvent timeTrialEvent) {
                if (timeTrialEvent.getInstance() != weakReference.get()) return false;
+           }
+
+           if (event instanceof InstanceEvent instanceEvent) {
+               if (instanceEvent.getInstance() != weakReference.get()) return false;
            }
 
             if (event instanceof PlayerEvent playerEvent) {

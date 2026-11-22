@@ -1,6 +1,8 @@
 package io.gitlab.icestom.icestom.stages.qualifying;
 
 import io.gitlab.icestom.icestom.IceStom;
+import io.gitlab.icestom.icestom.entity.Boat;
+import io.gitlab.icestom.icestom.entity.GridBoatHolder;
 import io.gitlab.icestom.icestom.event.ParticipantStoreHolder;
 import io.gitlab.icestom.icestom.event.Stateful;
 import io.gitlab.icestom.icestom.event.event.EventParticipant;
@@ -11,6 +13,8 @@ import io.gitlab.icestom.icestom.ordering.ForwardOrdering;
 import io.gitlab.icestom.icestom.ordering.TowerHolder;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;
 import io.gitlab.icestom.icestom.timetrial.lap.TimedLap;
+import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResult;
+import io.gitlab.icestom.icestom.timetrial.lap.TimedLapResultSource;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.TrackEventStage;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
@@ -18,6 +22,7 @@ import io.gitlab.icestom.icestom.ui.TickCountdown;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,6 +40,7 @@ public class QualifyingStage extends TimeTrialingInstance implements TrackEventS
 
     private final QualifyingTimingTower tower = new QualifyingTimingTower();
 
+    private final TickCountdown startingCountdown = new TickCountdown();
     private final TickCountdown sessionTimer = new TickCountdown();
 
     private QualifyingState state = QualifyingState.WAITING;
@@ -101,6 +107,7 @@ public class QualifyingStage extends TimeTrialingInstance implements TrackEventS
     public void tick(long time) {
         super.tick(time);
 
+        if (startingCountdown.tick()) startQualifying();
         if (sessionTimer.tick()) showChequeredFlag();
         if (state == QualifyingState.CHEQUERED_FLAG && nobodyOnTimedLap()) endQualifying();
     }
@@ -110,11 +117,39 @@ public class QualifyingStage extends TimeTrialingInstance implements TrackEventS
                 .allMatch(player -> getTimedLap(player.getUuid()) == null);
     }
 
-    private void startQualifying() {
+    private void startCountdown() {
         if (state != QualifyingState.WAITING) return;
+        state = QualifyingState.COUNTDOWN;
+
+        startingCountdown.start(10 * 20);
+    }
+
+    private void startQualifying() {
+        if (state != QualifyingState.COUNTDOWN) return;
         state = QualifyingState.RUNNING;
 
+        for (Player player : participants.getActivelyParticipatingPlayers()) {
+            if (player.getVehicle() instanceof Boat boat && boat.getVehicle() instanceof GridBoatHolder holder) {
+                holder.remove();
+            }
+        }
+
         if (rules.durationTicks() > 0) sessionTimer.start(rules.durationTicks());
+    }
+
+    private boolean isBeforeStart() {
+        return state == QualifyingState.WAITING || state == QualifyingState.COUNTDOWN;
+    }
+
+    @Override
+    public CompletableFuture<Boat> createBoat(Player player, Pos pos) {
+        CompletableFuture<Boat> boat = super.createBoat(player, pos);
+
+        boat.thenAccept(created -> {
+            if (isBeforeStart()) new GridBoatHolder(this, pos).addPassenger(created);
+        });
+
+        return boat;
     }
 
     private void showChequeredFlag() {
@@ -139,7 +174,7 @@ public class QualifyingStage extends TimeTrialingInstance implements TrackEventS
     protected void completeLap(UUID player, TimedLap lap, Runnable startNextLap) {
         @Nullable Qualifier qualifier = getQualifier(player);
 
-        if (qualifier != null) recordLap(qualifier, lap.getTime());
+        if (qualifier != null) recordLap(qualifier, TimedLapResult.freeze(lap));
 
         if (qualifier != null && keepsLapping(qualifier)) {
             super.completeLap(player, lap, startNextLap);
@@ -163,17 +198,29 @@ public class QualifyingStage extends TimeTrialingInstance implements TrackEventS
         });
     }
 
-    private void recordLap(Qualifier qualifier, long time) {
-        qualifier.addLap(time);
+    private void recordLap(Qualifier qualifier, TimedLapResultSource lap) {
+        qualifier.addLap(lap);
         tower.update(qualifier.getTowerEntry());
 
         if (rules.lapLimit() > 0 && qualifiers.values().stream().allMatch(Qualifier::isDone)) showChequeredFlag();
     }
 
-    private @Nullable Qualifier getQualifier(UUID player) {
+    public @Nullable Qualifier getQualifier(UUID player) {
         @Nullable EventParticipant participant = participants.getParticipantFromPlayer(player);
 
         return participant == null ? null : qualifiers.get(participant.getUuid());
+    }
+
+    @Override
+    protected @Nullable TimedLapResultSource getPersonalBest(UUID player) {
+        @Nullable Qualifier qualifier = getQualifier(player);
+
+        return qualifier == null ? null : qualifier.bestLap;
+    }
+
+    @Override
+    protected boolean savesToLeaderboard() {
+        return false;
     }
 
     @Override
@@ -245,6 +292,10 @@ public class QualifyingStage extends TimeTrialingInstance implements TrackEventS
         return rules;
     }
 
+    public TickCountdown getStartingCountdown() {
+        return startingCountdown;
+    }
+
     public TickCountdown getSessionTimer() {
         return sessionTimer;
     }
@@ -257,7 +308,7 @@ public class QualifyingStage extends TimeTrialingInstance implements TrackEventS
     @Override
     public List<StateChange<QualifyingState>> getStageChanges() {
         return List.of(
-                new StateChange<>("StartQualifying", QualifyingState.WAITING, QualifyingState.RUNNING, this::startQualifying),
+                new StateChange<>("StartQualifying", QualifyingState.WAITING, QualifyingState.COUNTDOWN, this::startCountdown),
                 new StateChange<>("ShowChequeredFlag", QualifyingState.RUNNING, QualifyingState.CHEQUERED_FLAG, this::showChequeredFlag),
                 new StateChange<>("EndQualifying", QualifyingState.CHEQUERED_FLAG, QualifyingState.END, this::endQualifying)
         );
@@ -265,6 +316,7 @@ public class QualifyingStage extends TimeTrialingInstance implements TrackEventS
 
     public enum QualifyingState {
         WAITING,
+        COUNTDOWN,
         RUNNING,
         CHEQUERED_FLAG,
         END
@@ -275,6 +327,7 @@ public class QualifyingStage extends TimeTrialingInstance implements TrackEventS
         private final List<Long> lapTimes = new ArrayList<>();
 
         private @Nullable Long qualifyingTime;
+        private @Nullable TimedLapResultSource bestLap;
 
         private ForwardOrdering<Qualifier>.Entry towerEntry;
 
@@ -282,8 +335,10 @@ public class QualifyingStage extends TimeTrialingInstance implements TrackEventS
             this.participant = participant;
         }
 
-        void addLap(long time) {
-            lapTimes.add(time);
+        void addLap(TimedLapResultSource lap) {
+            lapTimes.add(lap.getTime());
+
+            if (bestLap == null || lap.getTime() < bestLap.getTime()) bestLap = lap;
 
             @Nullable Long ranked = rules.ranking().rank(lapTimes);
 
@@ -323,6 +378,10 @@ public class QualifyingStage extends TimeTrialingInstance implements TrackEventS
 
         public List<Long> getLapTimes() {
             return Collections.unmodifiableList(lapTimes);
+        }
+
+        public @Nullable Integer getLapsRemaining() {
+            return rules.lapLimit() > 0 ? Math.max(0, rules.lapLimit() - lapTimes.size()) : null;
         }
     }
 }

@@ -2,7 +2,7 @@ package io.gitlab.icestom.icestom.event.lua;
 
 import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import io.gitlab.icestom.icestom.event.event.Result;
-import io.gitlab.icestom.icestom.event.lua.adapter.LuaFunction;
+import io.gitlab.icestom.lua.adapter.LuaFunction;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

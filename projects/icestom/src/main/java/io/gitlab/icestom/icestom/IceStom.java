@@ -302,6 +302,7 @@ public class IceStom {
         commandManager.register(new ChangeBoatCommand());
         commandManager.register(new LonelyCommand());
         commandManager.register(new TimeTrialCommand());
+        commandManager.register(new SettingCommand());
         commandManager.register(new TrackCommand());
         commandManager.register(new TimesCommand());
         commandManager.register(new SpawnCommand());

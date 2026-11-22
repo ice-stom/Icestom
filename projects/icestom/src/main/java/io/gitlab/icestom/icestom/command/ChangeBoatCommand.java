@@ -10,11 +10,12 @@ import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.entity.EntityType;
 import net.minestom.server.entity.Player;
+import org.intellij.lang.annotations.Subst;
 
 public class ChangeBoatCommand extends Command {
 
     // I don't wanna deal with chest boats because I'm lazy
-    private static final String[] BOAT_TYPES = EntityType.values().stream()
+    @Subst("oak_boat") private static final String[] BOAT_TYPES = EntityType.values().stream()
             .map(entityType -> entityType.key().value())
             .filter(name -> (name.endsWith("_boat") || name.endsWith("_raft")) && !name.contains("chest"))
             .sorted()

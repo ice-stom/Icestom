@@ -1,4 +1,4 @@
-package io.gitlab.icestom.icestom.event.lua.adapter;
+package io.gitlab.icestom.lua.adapter;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

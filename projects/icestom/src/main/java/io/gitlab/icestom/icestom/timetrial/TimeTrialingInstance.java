@@ -1,11 +1,9 @@
 package io.gitlab.icestom.icestom.timetrial;
 
 import com.google.protobuf.ByteString;
-import io.github.openboatutils.protocol.channels.OBUSettingsPacket;
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.command.BoatCommand;
 import io.gitlab.icestom.icestom.command.LonelyCommand;
-import io.gitlab.icestom.icestom.config.IceStomConfig;
 import io.gitlab.icestom.icestom.database.TimetrialDatabase;
 import io.gitlab.icestom.icestom.database.preference.PreferenceKey;
 import io.gitlab.icestom.icestom.entity.Boat;
@@ -18,9 +16,6 @@ import io.gitlab.icestom.icestom.timetrial.lap.*;
 import io.gitlab.icestom.icestom.track.PlayerMovement;
 import io.gitlab.icestom.icestom.track.Track;
 import io.gitlab.icestom.icestom.track.colliders.CrossCollider;
-import io.gitlab.icestom.icestom.track.event.TrackColliderEvent;
-import io.gitlab.icestom.icestom.track.event.TrackRegionEnterEvent;
-import io.gitlab.icestom.icestom.track.event.TrackTriggerPassEvent;
 import io.gitlab.icestom.icestom.track.library.TrackLibrary;
 import io.gitlab.icestom.icestom.ui.event.GenericErrorMessageEvent;
 import io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager;
@@ -52,17 +47,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 
 import static io.gitlab.icestom.icestom.IceStom.RECORDINGS_PATH;
-import static io.gitlab.icestom.icestom.intergrations.OpenBoatUtilsManager.writePacket;
 import static io.gitlab.icestom.icestom.ui.interfaces.InterfaceManager.getHolder;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -78,17 +69,9 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
             false
     ));
 
-    private static final PluginMessagePacket no_collision_packet;
-
     private static final ByteString linefoldEmpty;
 
     static {
-        try {
-            no_collision_packet = writePacket(new OBUSettingsPacket.CollisionMode(OBUSettingsPacket.CollisionModes.NO_BOATS_AND_PLAYERS));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
         ByteArrayOutputStream os = new ByteArrayOutputStream();
 
         try {
@@ -107,9 +90,6 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
     private final Map<UUID, Pos> practicePoints = new HashMap<>();
 
-    private final ItemStack RESET_ITEM = ItemStack.of(Objects.requireNonNull(Material.fromKey(IceStomConfig.getConfig().icestom.reset_item)))
-            .withCustomName(Component.text("Reset", NamedTextColor.RED).style(Style.style().decoration(TextDecoration.ITALIC, false)));
-
     private final ItemStack BOAT_ITEM = ItemStack.of(Material.OAK_BOAT)
             .withCustomName(Component.text("Boat", NamedTextColor.GREEN).style(Style.style().decoration(TextDecoration.ITALIC, false)));
 
@@ -127,8 +107,6 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
     private final TimetrialLeaderboard leaderboard;
 
-    private final Map<UUID, TickLocation> lastPosition = new HashMap<>();
-    private final Map<UUID, Long> teleportedAtTick = new HashMap<>();
 
     public TimeTrialingInstance(TrackLibrary.Ticket ticket, Track track) {
         super(ticket, track);
@@ -210,38 +188,16 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
 
         leaderboard = new TimetrialLeaderboard(track);
         interfaceHolder = getHolder(TimeTrialingInstance.class, this);
-
-        subscribeRegionId("icestom.reset");
-        subscribeTriggerId("icestom.reset");
-
-        Consumer<TrackColliderEvent> handle_reset = event -> {
-            final Player player = event.getPlayer();
-
-            if (event.getTag().equals("icestom.reset")) {
-                TimedLap lap = getTimedLap(player.getUuid());
-
-                if (lap == null) return;
-
-                Pos reset_point = track.getLocations().getOrDefault("icestom.reset_" + lap.getLastReachedCheckpoint(), track.getSpawnLocation());
-
-                createBoat(player, reset_point);
-            }
-        };
-
-        eventNode().addListener(TrackRegionEnterEvent.class, handle_reset::accept);
-        eventNode().addListener(TrackTriggerPassEvent.class, handle_reset::accept);
     }
 
     @Override
-    public CompletableFuture<Boat> createBoat(Player player, Pos pos) {
-        teleportedAtTick.put(player.getUuid(), getPlayerTick(player.getUuid()));
-        lastPosition.remove(player.getUuid());
+    public boolean resetToLastCheckpoint(Player player) {
+        @Nullable TimedLap lap = getTimedLap(player.getUuid());
 
-        return super.createBoat(player, pos);
-    }
+        if (lap == null) return false;
 
-    private boolean isBeforeTeleport(TickLocation movement) {
-        return movement.tick() <= teleportedAtTick.getOrDefault(movement.player(), -1L);
+        createBoat(player, getCheckpointReset(lap.getLastReachedCheckpoint()));
+        return true;
     }
 
     @Override
@@ -283,10 +239,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
     }
 
     private TimedLap startTimedLap(UUID player, @Nullable TickLocation previous, TickLocation location, long tick_delta, int checkpoint) {
-        @Nullable TimeTrialResult best_result =
-                IceStom.getInstance().getTimetrialDatabase().getBestAttempt(player, track.getId());
-
-        TimedLap timedLap = new TimedLap(track, best_result, new Split(
+        TimedLap timedLap = new TimedLap(track, getPersonalBest(player), new Split(
                 location.tick() * 50,
                 tick_delta,
                 checkpoint
@@ -453,6 +406,14 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
         return true;
     }
 
+    protected @Nullable TimedLapResultSource getPersonalBest(UUID player) {
+        return IceStom.getInstance().getTimetrialDatabase().getBestAttempt(player, track.getId());
+    }
+
+    protected boolean savesToLeaderboard() {
+        return true;
+    }
+
     @Override
     protected boolean shouldTrackPlayer(Player player) {
         return player.getVehicle() instanceof Boat;
@@ -539,7 +500,7 @@ public class TimeTrialingInstance extends BoatedTrackInstance implements SpawnLo
             boolean is_best_checkpoints = !is_first && result.splits().size() > best.splits().size();
             boolean is_best_time = !is_first && result.splits().size() == best.splits().size() && result.getTime() < best.getTime();
 
-            boolean is_improvement = is_first || is_best_checkpoints || is_best_time;
+            boolean is_improvement = savesToLeaderboard() && (is_first || is_best_checkpoints || is_best_time);
 
             if (is_improvement) {
 

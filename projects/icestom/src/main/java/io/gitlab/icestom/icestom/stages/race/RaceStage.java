@@ -31,7 +31,9 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.player.PlayerStartSneakingEvent;
+import net.minestom.server.event.player.PlayerUseItemEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -55,6 +57,7 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
 
     private final int totalLaps;
     private final int totalPits;
+    private final boolean collisions;
 
     private final TickCountdown startingCountdown = new TickCountdown();
     private final TickCountdown chequeredFlag = new TickCountdown();
@@ -65,18 +68,24 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
 
     private final String name;
 
-    private final Map<UUID, TickLocation> lastPosition = new HashMap<>();
-
-    protected RaceStage(String stageName, TrackLibrary.Ticket ticket, Track track, int totalLaps, int totalPits) {
+    protected RaceStage(String stageName, TrackLibrary.Ticket ticket, Track track, int totalLaps, int totalPits, boolean collisions) {
         super(ticket, track);
 
         this.name = stageName;
 
         this.totalLaps = totalLaps;
         this.totalPits = totalPits;
+        this.collisions = collisions;
 
-        subscribeRegionId("icestom.reset");
-        subscribeTriggerId("icestom.reset");
+        eventNode().addListener(PlayerUseItemEvent.class, event -> {
+            if (event.getItemStack() == RESET_ITEM) resetToLastCheckpoint(event.getPlayer());
+        });
+
+        eventNode().addListener(ItemDropEvent.class, event -> {
+            event.setCancelled(true);
+
+            if (event.getItemStack() == RESET_ITEM) resetToLastCheckpoint(event.getPlayer());
+        });
 
         eventNode().addListener(PlayerStartSneakingEvent.class, event -> {
             Player player = event.getPlayer();
@@ -114,6 +123,11 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
             return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'pits' isn't a number"));
         }
 
+        // legacy support
+        if (!(options.getOrDefault("collisions", true) instanceof Boolean collisions)) {
+            return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'collisions' isn't a boolean"));
+        }
+
         if (!(options.get("allow_exclusive") instanceof Boolean allowExclusive)) {
             return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'allow_exclusive' isn't a boolean"));
         }
@@ -124,7 +138,7 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
         if (laps <= 0) return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'laps' is <= 0"));
         if (pits < 0) return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'pits' is <= 0"));
 
-        return TrackEventStage.withTrackTicket(track_id, (ticket, track) -> new RaceStage(name, ticket, track, laps, pits), allowExclusive);
+        return TrackEventStage.withTrackTicket(track_id, (ticket, track) -> new RaceStage(name, ticket, track, laps, pits, collisions), allowExclusive);
     }
 
     @Override
@@ -138,6 +152,8 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
 
         for (TickLocation movement : movements) {
             UUID player = movement.player();
+
+            if (isBeforeTeleport(movement)) continue;
 
             EventParticipant participant = getParticipants().getParticipantFromPlayer(player);
 
@@ -202,6 +218,11 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
 
                 ArrayDeque<TickLocation> playerQueue = bucket.get(player);
                 playerQueue.poll();
+
+                if (isBeforeTeleport(location)) {
+                    bucket.remove(player);
+                    continue;
+                }
 
                 lastPosition.put(player, location);
 
@@ -484,6 +505,10 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
         return totalPits;
     }
 
+    public boolean hasCollisions() {
+        return collisions;
+    }
+
     public RaceParticipant getRacer(UUID uuid) {
         return racers.get(uuid);
     }
@@ -503,10 +528,33 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
     }
 
     @Override
+    public boolean resetToLastCheckpoint(Player player) {
+        if (raceState != RaceState.RACE && raceState != RaceState.CHEQUERED_FLAG) return false;
+
+        @Nullable EventParticipant participant = participants.getParticipantFromActivePlayer(player);
+        if (participant == null) return false;
+
+        RaceParticipant racer = getRacer(participant.getUuid());
+        if (racer.isFinished()) return false;
+
+        int checkpoint = racer.getCurrentLap().getLastReachedCheckpoint();
+
+        // the grid is behind the start line, so anyone who has not crossed it goes back to their slot
+        @Nullable Pos location = checkpoint == -1 ? getGridLocation(participant) : getCheckpointReset(checkpoint);
+
+        createBoat(player, location != null ? location : track.getSpawnLocation());
+        return true;
+    }
+
+    @Override
     public void resetPlayer(Player player) {
         EventParticipant participant = participants.getParticipantFromActivePlayer(player);
 
+        player.getInventory().clear();
+
         if (raceState == RaceState.GRID && participant != null) {
+            player.getInventory().setItemStack(0, RESET_ITEM);
+
             if (!gridPlayer(player)) {
                 MinecraftServer.getGlobalEventHandler()
                         .call(new GenericErrorMessageEvent(player, Component.translatable("message.race.error.failed_to_grid")));
@@ -516,6 +564,8 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
             player.teleport(track.getSpawnLocation());
             player.setGameMode(GameMode.SPECTATOR);
         }
+
+        player.sendPacket(collisions ? vanilla_collision_packet : no_collision_packet);
     }
 
     @Override
@@ -527,6 +577,7 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
     @Override
     public void drop(Player player) {
         super.drop(player);
+        player.getInventory().clear();
         interfaceHolder.stopWatching(player);
     }
 
@@ -654,6 +705,14 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
             return deltaToAhead;
         }
 
+        public @Nullable Long getGapTo(RaceParticipant other) {
+            int shared = Math.min(raceSplits.size(), other.raceSplits.size()) - 1;
+
+            if (shared < 0) return null;
+
+            return raceSplits.get(shared).ms() - other.raceSplits.get(shared).ms();
+        }
+
         @Override
         public boolean betterThan(RaceParticipant other) {
 
@@ -700,6 +759,12 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
         public List<TimedLapResultSource> getCompletedLaps() { return completedLaps; }
 
         public int getCompletedLapCount() { return completedLapCount; }
+
+        public int getCurrentLapNumber() {
+            if (raceSplits.isEmpty()) return 0;
+
+            return Math.min(completedLapCount + 1, totalLaps);
+        }
 
         public int getCompletedPitCount() { return completedPitCount; }
 

@@ -7,6 +7,7 @@ import io.gitlab.icestom.icestom.track.colliders.InsideCollider;
 import io.gitlab.icestom.icestom.track.library.VirtualTrackInstance;
 import io.gitlab.icestom.stomtrack.EnvironmentFile;
 import io.gitlab.icestom.stomtrack.TrackFile;
+import io.gitlab.icestom.tracklua.LuaFileSystem;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
@@ -43,11 +44,13 @@ public class Track {
 
     private final VirtualTrackInstance map;
 
+    private final @Nullable LuaFileSystem luaFileSystem;
+
     private final int wrapIndex;
 
     private final TrackFile source;
 
-    public Track(TrackFile trackFile, VirtualTrackInstance map) {
+    public Track(TrackFile trackFile, VirtualTrackInstance map, @Nullable LuaFileSystem luaFileSystem) {
         this.source = trackFile;
 
         this.id = trackFile.getId();
@@ -63,6 +66,8 @@ public class Track {
         this.locations = LocationConverter.fromLocationDef(trackFile.getLocations());
 
         this.map = map;
+
+        this.luaFileSystem = luaFileSystem;
 
         for (Map.Entry<CrossCollider, Integer> entry : checkpoints.entrySet()) {
             CrossCollider checkpoint = entry.getKey();
@@ -124,6 +129,10 @@ public class Track {
     public Map<String, Pos> getLocations() { return locations; }
 
     public VirtualTrackInstance getMap() { return map; }
+
+    public @Nullable LuaFileSystem getLuaFileSystem() {
+        return luaFileSystem;
+    }
 
     public static RegistryKey<DimensionType> getDimensionKey(EnvironmentFile environmentFile) {
 

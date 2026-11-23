@@ -1,6 +1,6 @@
-package io.gitlab.icestom.icestom.event.event;
+package io.gitlab.icestom.icestom.event;
 
-import io.gitlab.icestom.icestom.event.ParticipantStoreHolder;
+import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import io.gitlab.icestom.icestom.event.lua.LuaEvent;
 import io.gitlab.icestom.icestom.event.stage.EventStage;
 import net.hollowcube.luau.compiler.LuauCompileException;

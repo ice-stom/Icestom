@@ -6,6 +6,7 @@ import io.gitlab.icestom.icestom.track.library.VirtualTrackInstance;
 import io.gitlab.icestom.stomtrack.EnvironmentFile;
 import io.gitlab.icestom.stomtrack.TrackFile;
 import io.gitlab.icestom.stomtrack.TrackLoader;
+import io.gitlab.icestom.tracklua.LuaFileSystem;
 import net.hollowcube.polar.PolarDataConverter;
 import net.hollowcube.polar.PolarLoadHandle;
 import net.hollowcube.polar.PolarLoader;
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.net.URI;
 import java.nio.channels.Channels;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CancellationException;
@@ -119,16 +121,32 @@ public class FileSystemSource extends TrackSource {
 
                 String polar_entry = null;
 
+                LuaFileSystem luaFileSystem = null;
+
                 while (entries.hasMoreElements()) {
                     ZipEntry entry = entries.nextElement();
 
-                    if (entry.getName().endsWith(".environment.xml")) {
-                        environmentFile = TrackLoader.loadEnvironmentFile(zipFile.getInputStream(entry));
-                    } else if (entry.getName().endsWith(".track.xml")) {
-                        trackFiles.add(TrackLoader.loadTrack(zipFile.getInputStream(entry)));
-                    } else if (entry.getName().endsWith(".polar")) {
-                        polar_entry = entry.getName();
-                        env_name = polar_entry.substring(0, polar_entry.length() - ".polar".length());
+                    String name = entry.getName();
+
+                    if (!entry.isDirectory() && name.lastIndexOf("/") == -1) {
+                        if (name.endsWith(".environment.xml")) {
+                            environmentFile = TrackLoader.loadEnvironmentFile(zipFile.getInputStream(entry));
+                        } else if (name.endsWith(".track.xml")) {
+                            trackFiles.add(TrackLoader.loadTrack(zipFile.getInputStream(entry)));
+                        } else if (name.endsWith(".polar")) {
+                            polar_entry = name;
+                            env_name = polar_entry.substring(0, polar_entry.length() - ".polar".length());
+                        }
+                    }
+
+                    if (name.startsWith("lua/") && !entry.isDirectory()) {
+                        if (luaFileSystem == null) luaFileSystem = new LuaFileSystem();
+
+                        String luaPath = "/" + name.substring("lua/".length());
+
+                        try (InputStream in = zipFile.getInputStream(entry)) {
+                            luaFileSystem.addFile(luaPath, in);
+                        }
                     }
                 }
 
@@ -151,7 +169,8 @@ public class FileSystemSource extends TrackSource {
                 for (TrackFile trackFile : trackFiles) {
                     Track track = new Track(
                             trackFile,
-                            map
+                            map,
+                            luaFileSystem
                     );
 
                     if (trackFile.getId().equals(track_id)) {

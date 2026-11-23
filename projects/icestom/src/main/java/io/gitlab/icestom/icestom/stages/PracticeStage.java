@@ -2,7 +2,7 @@ package io.gitlab.icestom.icestom.stages;
 
 import io.gitlab.icestom.icestom.event.*;
 import io.gitlab.icestom.icestom.event.event.EventParticipant;
-import io.gitlab.icestom.icestom.event.event.Result;
+import io.gitlab.icestom.icestom.event.Result;
 import io.gitlab.icestom.icestom.event.ParticipantStore;
 import io.gitlab.icestom.icestom.event.stage.InvalidStageArgumentsException;
 import io.gitlab.icestom.icestom.timetrial.TimeTrialingInstance;

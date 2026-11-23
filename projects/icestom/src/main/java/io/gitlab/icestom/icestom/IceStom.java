@@ -9,7 +9,7 @@ import io.gitlab.icestom.icestom.database.sqlite.SQLiteTimetrialDatabase;
 import io.gitlab.icestom.icestom.debug.PerfHud;
 import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.IceStomPlayer;
-import io.gitlab.icestom.icestom.event.event.EventManager;
+import io.gitlab.icestom.icestom.event.EventManager;
 import io.gitlab.icestom.icestom.event.stage.EventStage;
 import io.gitlab.icestom.icestom.event.stage.StageOption;
 import io.gitlab.icestom.icestom.event.stage.StageRegistry;
@@ -173,7 +173,8 @@ public class IceStom {
                         StageOption.track("track", "Track", "Which track to race on"),
                         StageOption.number("laps", "Laps", "How many laps to complete", 3, 1d, null),
                         StageOption.number("pits", "Pit stops", "How many pit stops are required", 0, 0d, null),
-                        StageOption.bool("collisions", "Collisions", "Whether players collide with each other (needs OpenBoatUtils)", true)
+                        StageOption.bool("collisions", "Collisions", "Whether players collide with each other (needs OpenBoatUtils)", true),
+                        StageOption.bool("allow_exclusive", "Allow Exclusive", "Allow this track to request its own world data (required for tracks that mutate the world)", false)
                 ));
         stageRegistry.register(Key.key(NAMESPACE, "qualifying"), QualifyingStage.class, QualifyingStage::create,
                 StageSchema.of(
@@ -360,7 +361,6 @@ public class IceStom {
 
         MinecraftServer.getSchedulerManager().buildShutdownTask(console::stop);
 //        MinecraftServer.getSchedulerManager().buildShutdownTask(spark::shutdown);
-//        MinecraftServer.getSchedulerManager().scheduleTask(timeTrialManager::cullDeadTimetrialInstances, TaskSchedule.immediate(), TaskSchedule.tick(100));
     }
 
     public void setSpawnProvider(Supplier<SpawnInstance> spawnProvider) {

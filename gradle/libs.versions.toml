@@ -4,7 +4,7 @@ openboatutils = "0.0.7"
 minestom = "2026.01.08-1.21.11"
 fastutil = "8.5.13"
 jline = "3.30.9"
-logback = "1.6.6"
+logback = "1.6.8"
 
 [libraries]
 minestom = { module = "net.minestom:minestom", version.ref = "minestom" }

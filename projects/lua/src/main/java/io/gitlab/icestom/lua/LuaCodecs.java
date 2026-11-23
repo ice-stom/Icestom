@@ -1,4 +1,4 @@
-package io.gitlab.icestom.lua.adapter;
+package io.gitlab.icestom.lua;
 
 import net.hollowcube.luau.LuaState;
 

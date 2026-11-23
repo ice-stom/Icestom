@@ -3,8 +3,8 @@ package io.gitlab.icestom.icestom.event.lua;
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import io.gitlab.icestom.icestom.event.stage.EventStage;
-import io.gitlab.icestom.icestom.event.event.Result;
-import io.gitlab.icestom.lua.adapter.LuaFunction;
+import io.gitlab.icestom.icestom.event.Result;
+import io.gitlab.icestom.lua.LuaMethod;
 
 import java.util.List;
 
@@ -16,12 +16,12 @@ public class LuaStage {
         this.stage = stage;
     }
 
-    @LuaFunction("get_key")
+    @LuaMethod("get_key")
     public String getKey() {
         return IceStom.getInstance().getStageRegistry().getKey(getClass()).toString();
     }
 
-    @LuaFunction("begin")
+    @LuaMethod("begin")
     public LuaStageFuture begin(List<Result<EventParticipant>> results) {
         return new LuaStageFuture(stage.begin(results));
     }

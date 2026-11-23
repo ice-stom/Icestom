@@ -5,7 +5,7 @@ import io.gitlab.icestom.icestom.entity.Boat;
 import io.gitlab.icestom.icestom.entity.GridBoatHolder;
 import io.gitlab.icestom.icestom.event.*;
 import io.gitlab.icestom.icestom.event.event.EventParticipant;
-import io.gitlab.icestom.icestom.event.event.Result;
+import io.gitlab.icestom.icestom.event.Result;
 import io.gitlab.icestom.icestom.event.ParticipantStore;
 import io.gitlab.icestom.icestom.event.stage.InvalidStageArgumentsException;
 import io.gitlab.icestom.icestom.instance.BoatedTrackInstance;
@@ -128,13 +128,17 @@ public class RaceStage extends BoatedTrackInstance implements TrackEventStage, T
             return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'collisions' isn't a boolean"));
         }
 
+        if (!(options.get("allow_exclusive") instanceof Boolean allowExclusive)) {
+            return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'allow_exclusive' isn't a boolean"));
+        }
+
         int laps = (int) Math.floor(dLaps);
         int pits = (int) Math.floor(dPits);
 
         if (laps <= 0) return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'laps' is <= 0"));
         if (pits < 0) return CompletableFuture.failedFuture(new InvalidStageArgumentsException("'pits' is <= 0"));
 
-        return TrackEventStage.withTrackTicket(track_id, (ticket, track) -> new RaceStage(name, ticket, track, laps, pits, collisions));
+        return TrackEventStage.withTrackTicket(track_id, (ticket, track) -> new RaceStage(name, ticket, track, laps, pits, collisions), allowExclusive);
     }
 
     @Override

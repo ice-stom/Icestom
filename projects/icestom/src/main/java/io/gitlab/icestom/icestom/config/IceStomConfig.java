@@ -51,6 +51,7 @@ public class IceStomConfig {
     public static class IceStomConfigSection {
         public int leaderboard_rows;
         public String reset_item;
+        public boolean experimental_enable_tracklua;
     }
 
     public static class DatabaseConfigSection {

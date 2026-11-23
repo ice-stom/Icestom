@@ -1,5 +1,6 @@
-package io.gitlab.icestom.icestom.event.event;
+package io.gitlab.icestom.icestom.event;
 
+import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import net.kyori.adventure.key.Key;
 
 import java.util.HashMap;

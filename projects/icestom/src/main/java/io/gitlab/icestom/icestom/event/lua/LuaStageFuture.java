@@ -1,8 +1,8 @@
 package io.gitlab.icestom.icestom.event.lua;
 
 import io.gitlab.icestom.icestom.event.event.EventParticipant;
-import io.gitlab.icestom.icestom.event.event.Result;
-import io.gitlab.icestom.lua.adapter.LuaFunction;
+import io.gitlab.icestom.icestom.event.Result;
+import io.gitlab.icestom.lua.LuaMethod;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -15,7 +15,7 @@ public class LuaStageFuture {
         this.future = future;
     }
 
-    @LuaFunction
+    @LuaMethod
     public List<Result<EventParticipant>> join() {
         return future.join();
     }

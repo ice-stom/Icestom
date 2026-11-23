@@ -5,7 +5,7 @@ import com.google.gson.JsonObject;
 import io.gitlab.icestom.icestom.IceStom;
 import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import io.gitlab.icestom.icestom.event.stage.EventStage;
-import io.gitlab.icestom.icestom.event.event.IceStomEvent;
+import io.gitlab.icestom.icestom.event.IceStomEvent;
 import io.gitlab.icestom.icestom.event.stage.StageOption;
 import io.gitlab.icestom.icestom.event.stage.StageSchema;
 import io.gitlab.icestom.icestom.event.Stateful;

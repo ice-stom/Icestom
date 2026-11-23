@@ -4,7 +4,7 @@ import io.gitlab.icestom.icestom.entity.Snowball;
 import io.gitlab.icestom.icestom.event.Stateful;
 import io.gitlab.icestom.icestom.event.event.EventParticipant;
 import io.gitlab.icestom.icestom.event.stage.InvalidStageArgumentsException;
-import io.gitlab.icestom.icestom.event.event.Result;
+import io.gitlab.icestom.icestom.event.Result;
 import io.gitlab.icestom.icestom.event.ParticipantStore;
 import io.gitlab.icestom.icestom.instance.TrackInstance;
 import io.gitlab.icestom.icestom.track.Track;

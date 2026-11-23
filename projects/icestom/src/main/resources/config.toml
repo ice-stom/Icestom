@@ -3,6 +3,7 @@
 [icestom]
 leaderboard_rows = 15
 reset_item = "minecraft:barrier"
+experimental_enable_tracklua = false # This is unstable!
 
 [library]
 local = "file://./tracks"
